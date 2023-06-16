@@ -1,15 +1,8 @@
 # martignac
 
-[![Release](https://img.shields.io/github/v/release/tbereau/martignac)](https://img.shields.io/github/v/release/tbereau/martignac)
-[![Build status](https://img.shields.io/github/actions/workflow/status/tbereau/martignac/main.yml?branch=main)](https://github.com/tbereau/martignac/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/tbereau/martignac/branch/main/graph/badge.svg)](https://codecov.io/gh/tbereau/martignac)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/tbereau/martignac)](https://img.shields.io/github/commit-activity/m/tbereau/martignac)
-[![License](https://img.shields.io/github/license/tbereau/martignac)](https://img.shields.io/github/license/tbereau/martignac)
-
 This is a template repository for Python projects that use Poetry for their dependency management.
 
-- **Github repository**: <https://github.com/tbereau/martignac/>
-- **Documentation** <https://tbereau.github.io/martignac/>
+- **GitLab repository**: <https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac/>
 
 ## Getting started with your project
 
@@ -19,7 +12,7 @@ First, create a repository on GitHub with the same name as this project, and the
 git init -b main
 git add .
 git commit -m "init commit"
-git remote add origin git@github.com:tbereau/martignac.git
+git remote add origin git@lin0.thphys.uni-heidelberg.de:bereau/martignac.git
 git push -u origin main
 ```
 

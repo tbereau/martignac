@@ -2,9 +2,9 @@
 name = "martignac"
 version = "0.0.1"
 description = "This is a template repository for Python projects that use Poetry for their dependency management."
-authors = ["Tristan Bereau <fbereau@thphys.uni-heidelberg.de>"]
-repository = "https://github.com/tbereau/martignac"
-documentation = "https://tbereau.github.io/martignac/"
+authors = ["Tristan Bereau <bereau@thphys.uni-heidelberg.de>"]
+repository = "https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac"
+documentation = ""
 readme = "README.md"
 packages = [
   {include = "martignac"}
@@ -12,6 +12,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
+signac = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"

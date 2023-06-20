@@ -1,0 +1,11 @@
+#include "martini.itp"
+#include "martini_solvents.itp"
+#include "martini_na.itp"
+
+[ system ]
+One Na bead in hexadecane
+
+[ molecules ]
+
+Na        1
+HD        320

@@ -32,12 +32,22 @@ For activating the automatic documentation with MkDocs, see
 [here](https://fpgmaas.github.io/cookiecutter-poetry/features/mkdocs/#enabling-the-documentation-on-github).
 To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/codecov/).
 
-## Martignac dependencies installation with Conda
-add channels to conda config, and then install dependencies in requirements.txt
+## Martignac dependencies installation 
+
+Update `requirements.txt` from `pyproject.toml` with piptools, and then install dependencies with pip:
 
 ```bash
-conda config --add channels conda-forge bioconda
-conda install --files requirements.txt
+pip install pip-tools
+python -m piptools compile -o requirements.txt pyproject.toml
+pip install -r requirements.txt
+```
+
+If you don't already have Gromacs installed, you can quickly install with conda via:
+
+```bash
+conda config --add channels bioconda
+conda install conda install ocl-icd-system==1.0.0
+conda install gromacs==2018.6
 ```
 
 ## Examples 

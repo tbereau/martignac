@@ -32,6 +32,24 @@ For activating the automatic documentation with MkDocs, see
 [here](https://fpgmaas.github.io/cookiecutter-poetry/features/mkdocs/#enabling-the-documentation-on-github).
 To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/codecov/).
 
+## Martignac dependencies installation with Conda
+add channels to conda config, and then install dependencies in requirements.txt
+
+```bash
+conda config --add channels conda-forge bioconda
+conda install --files requirements.txt
+```
+
+## Examples 
+
+Examples are found in `martini_fep/` and  `martini_solvate/`. In each case execute the following commands:
+```bash
+python init.py
+python project.py run
+``` 
+
+The results can be found in `workspace/`
+
 ## Releasing a new version
 
 

@@ -50,6 +50,21 @@ conda install conda install ocl-icd-system==1.0.0
 conda install gromacs==2018.6
 ```
 
+alternatively, to install `conda`:
+```bash
+wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+# on MacOS replace with:
+# wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+bash ./miniconda.sh -b -f -p /path/to/conda
+export PATH="/path/to/conda/bin:$PATH"
+source activate base
+```
+
+and gromacs
+```bash
+conda install -c conda-forge gromacs
+```
+
 ## Examples 
 
 Examples are found in `martini_fep/` and  `martini_solvate/`. In each case execute the following commands:

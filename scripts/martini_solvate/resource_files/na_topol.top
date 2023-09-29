@@ -1,0 +1,10 @@
+#include "martini.itp"
+#include "martini_solvents.itp"
+#include "martini_na.itp"
+
+[ system ]
+One Na bead
+
+[ molecules ]
+
+Na        1

@@ -1,14 +1,23 @@
-import numpy as np
+import pandas as pd
 import regex
-from flow import FlowProject
+import os
+from os.path import join
+
+from alchemlyb.parsing.gmx import extract_u_nk
+from alchemlyb.estimators import MBAR
+from flow import FlowProject, aggregator
 
 
 RESOURCE_DIR = "../../resource_files/"
 MDP_FILES = "../../mdp_files/"
+TEMPERATURE = 298.0
 
 
 class MartiniProject(FlowProject):
     pass
+
+
+project = MartiniProject().get_project()
 
 
 def get_run_name(job) -> str:
@@ -24,7 +33,9 @@ def gromacs_simulation_command(
         n_maxwarn: int = 10,
         n_threads: int = 1
 ) -> str:
-    grompp_cmd = f'gmx grompp -f {mdp} -p {top} -c {gro} -o {name}.tpr -maxwarn {n_maxwarn}'
+    grompp_cmd = (
+        f'gmx grompp -f {mdp} -p {top} -c {gro} -o {name}.tpr -maxwarn {n_maxwarn}'
+    )
     mdrun_cmd = f'gmx mdrun -nt {n_threads} -v -deffnm {name}'
     return f"{grompp_cmd} && {mdrun_cmd}"
 
@@ -37,6 +48,15 @@ def sampled(job):
             lines = file.read()
         return "Finished mdrun on rank" in lines
     return False
+
+
+@MartiniProject.label
+def all_sampled(*jobs):
+    result = all([
+        any([".xvg" in f for f in os.listdir(job.path)])
+        for job in project.find_jobs()
+    ])
+    return result
 
 
 @MartiniProject.post(sampled)
@@ -58,6 +78,25 @@ def sample(job):
         name=run_name,
         n_threads=4,
     )
+
+
+@MartiniProject.pre(all_sampled)
+@MartiniProject.post(lambda *jobs: project.doc.get("free_energy", False))
+@MartiniProject.operation(aggregator=aggregator(sort_by="lambda_state"))
+def compute_free_energy(*jobs):
+    xvg_files = [
+        join(job.path, f) for job in jobs
+        for f in os.listdir(job.path)
+        if ".xvg" in f
+    ]
+    u_nk_list = [extract_u_nk(f, T=TEMPERATURE) for f in xvg_files]
+    u_nk_combined = pd.concat(u_nk_list)
+    mbar = MBAR().fit(u_nk_combined)
+    # mbar.delta_f_.to_csv("delta_f.csv")
+    # mbar.d_delta_f_.to_csv("d_delta_f.csv")
+    free_energy = float(mbar.delta_f_.iloc[0, -1])
+    print(f"free energy: {free_energy:+.3f} kT")
+    project.document["free_energy"] = free_energy
 
 
 if __name__ == "__main__":

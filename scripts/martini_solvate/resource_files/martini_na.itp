@@ -1,9 +1,0 @@
-;;;;;; Na bead
-[moleculetype]
-; molname       nrexcl
-  Na     	1
-
-[atoms]
-; id    type    resnr   residu  atom    cgnr    charge
-  1 	Na 	1 	Na 	N 	1 	0 
-  

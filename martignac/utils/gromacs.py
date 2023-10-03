@@ -4,15 +4,30 @@ from os.path import join, basename
 
 
 __all__ = [
-    "solvate_command",
+    "generate_solvent_command",
+    "solvate_solute_command",
     "gromacs_simulation_command",
     "copy_files_to",
+    "generate_top_file_for_generic_molecule"
 ]
 
 logger = logging.getLogger(__name__)
 
 
-def solvate_command(
+def generate_solvent_command(
+        gro_solvent_mol: str,
+        box_length: float,
+        output_name: str = "solvent",
+        scale: float = 0.1
+) -> str:
+    box_size = " ".join([str(box_length) for _ in range(3)])
+    return (
+        f'gmx solvate -cs {gro_solvent_mol} -box {box_size} '
+        f'-o {output_name}.gro -scale {scale}'
+    )
+
+
+def solvate_solute_command(
         gro_solute: str,
         gro_solvent: str,
         top_solute: str,
@@ -57,4 +72,26 @@ def copy_files_to(
         logger.info(
             f"copying {file} to {destination_dir}"
         )
-        shutil.copy(file, join(destination_dir, basename(file)))
+        try:
+            shutil.copy(file, join(destination_dir, basename(file)))
+        except shutil.SameFileError:
+            logger.info(f"file {file} already located at {destination_dir}")
+            pass
+
+
+def generate_top_file_for_generic_molecule(
+        molecule_name: str,
+        force_field_filenames: list[str],
+        top_filename: str,
+        num_molecules: int = 1
+) -> None:
+    with open(top_filename, 'w') as f:
+        # Include force field files
+        for ff_file in force_field_filenames:
+            f.write(f"#include \"{ff_file}\"\n")
+
+        f.write("\n")
+        f.write("[ system ]\n")
+        f.write(f"{molecule_name} system\n\n")
+        f.write("[ molecules ]\n")
+        f.write(f"{molecule_name:4s}            {num_molecules:5d}\n")

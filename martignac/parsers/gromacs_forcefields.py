@@ -1,0 +1,262 @@
+from dataclasses import dataclass
+from random import uniform
+import logging
+import numpy as np
+from MDAnalysis import Universe
+
+from martignac.utils.gromacs import generate_top_file_for_generic_molecule
+
+
+__all__ = [
+    "Atom",
+    "Bond",
+    "Angle",
+    "Constraint",
+    "Molecule",
+    "parse_molecules_from_itp",
+    "find_molecule_from_name",
+    "generate_gro_file_for_molecule",
+    "generate_top_file_for_molecule"
+]
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Atom:
+    id: int
+    type: str
+    residue_number: int
+    residue: str
+    atom: str
+    charge_number: int
+    charge: int
+
+    @classmethod
+    def parse_from_itp_entry(cls, entry: list) -> "Atom":
+        return Atom(
+            int(entry[0]),
+            str(entry[1]),
+            int(entry[2]),
+            str(entry[3]),
+            str(entry[4]),
+            int(entry[5]),
+            int(entry[6])
+        )
+
+
+@dataclass
+class Constraint:
+    id_i: int
+    id_j: int
+    funct: int
+    length: float
+
+    @classmethod
+    def parse_from_itp_entry(cls, entry: list) -> "Constraint":
+        return Constraint(
+            int(entry[0]), int(entry[1]), int(entry[2]), float(entry[3])
+        )
+
+
+@dataclass
+class Bond(Constraint):
+    force_constant: float
+
+    @classmethod
+    def parse_from_itp_entry(cls, entry: list) -> "Bond":
+        return Bond(
+            int(entry[0]), int(entry[1]), int(entry[2]), float(entry[3]), float(entry[4])
+        )
+
+@dataclass
+class Angle:
+    id_i: int
+    id_j: int
+    id_k: int
+    funct: int
+    angle: float
+    force_constant: float
+
+    @classmethod
+    def parse_from_itp_entry(cls, entry: list) -> "Angle":
+        return Angle(
+            int(entry[0]),
+            int(entry[1]),
+            int(entry[2]),
+            int(entry[3]),
+            float(entry[4]),
+            float(entry[5])
+        )
+
+
+@dataclass
+class Molecule:
+    name: str
+    number_excl: int
+    atoms: list[Atom]
+    bonds: list[Bond] | None = None
+    angles: list[Angle] | None = None
+    constraints: list[Constraint] | None = None
+
+    @property
+    def num_atoms(self) -> int:
+        return len(self.atoms)
+
+    def generate_coordinates(self, jitter: float = 0.1) -> np.ndarray:
+        coordinates = np.array([[0., 0., 0.] for _ in range(self.num_atoms)])
+        placed_atoms = set()
+
+        def add_jitter(coord):
+            return [val + uniform(-jitter, jitter) for val in coord]
+
+        def get_next_coordinate(id_ref, length):
+            if id_ref - 1 not in placed_atoms:
+                return add_jitter([length, 0, 0])
+            else:
+                return add_jitter([coordinates[id_ref - 1][0] + length, 0, 0])
+
+        if self.constraints:
+            for constraint in self.constraints:
+                coordinates[constraint.id_j - 1] = get_next_coordinate(constraint.id_i, constraint.length)
+                placed_atoms.add(constraint.id_j - 1)
+
+        if self.bonds:
+            for bond in self.bonds:
+                if bond.id_j - 1 not in placed_atoms:
+                    coordinates[bond.id_j - 1] = get_next_coordinate(bond.id_i, bond.length)
+                    placed_atoms.add(bond.id_j - 1)
+
+        return coordinates
+
+    @classmethod
+    def parse_from_itp_entry(cls, entry: dict) -> "Molecule":
+        name = entry["moleculetype"][0][0]
+        number_excl = entry["moleculetype"][0][1]
+        atoms = [Atom.parse_from_itp_entry(e) for e in entry["atoms"]]
+        bonds, angles, constraints = None, None, None
+        try:
+            bonds = [Bond.parse_from_itp_entry(e) for e in entry["bonds"]]
+        except KeyError:
+            pass
+        try:
+            angles = [Angle.parse_from_itp_entry(e) for e in entry["angles"]]
+        except KeyError:
+            pass
+        try:
+            constraints = [Constraint.parse_from_itp_entry(e) for e in entry["constraints"]]
+        except KeyError:
+            pass
+        return Molecule(
+            name=name,
+            number_excl=number_excl,
+            atoms=atoms,
+            bonds=bonds,
+            angles=angles,
+            constraints=constraints
+        )
+
+
+def parse_molecules_from_itp(itp_filename: str) -> list[Molecule]:
+    with open(itp_filename, 'r') as f:
+        lines = f.readlines()
+
+    molecules = []
+    molecule_data = {}
+    section = None
+
+    for line in lines:
+        line = line.strip()
+
+        # Skip comments and empty lines
+        if line.startswith(";") or not line:
+            continue
+
+        # Detect section headers
+        if line.startswith("["):
+            section = line.strip('[] ').lower()
+
+            # If a new molecule starts
+            if section == "moleculetype" and molecule_data:
+                molecules.append(molecule_data)
+                molecule_data = {}
+
+            molecule_data[section] = []
+            continue
+
+        # Add data for the current section
+        if section:
+            molecule_data[section].append(line.split())
+
+    # Add the last molecule
+    if molecule_data:
+        molecules.append(molecule_data)
+
+    return [Molecule.parse_from_itp_entry(m) for m in molecules]
+
+
+def find_molecule_from_name(itp_filenames: list[str], molecule_name: str) -> Molecule:
+    molecules = []
+    for itp_filename in itp_filenames:
+        try:
+            molecules = [*molecules, *parse_molecules_from_itp(itp_filename)]
+        except KeyError:
+            pass
+    return next(m for m in molecules if m.name == molecule_name)
+
+
+def generate_gro_file_for_molecule(
+        molecule: Molecule, gro_filename: str, box_length: float = 10.0
+) -> None:
+    n_atoms = len(molecule.atoms)
+    dtype = [('name', np.dtype('<U4')),
+             ('type', np.dtype('<U4')),
+             ('resid', int),
+             ('resname', np.dtype('<U4')),
+             ('charge', float),
+             ('id', int)]
+
+    atom_data = np.zeros(n_atoms, dtype=dtype)
+
+    for i, atom in enumerate(molecule.atoms):
+        atom_data[i] = (
+            atom.atom, atom.type, atom.residue_number, atom.residue, atom.charge, atom.id
+        )
+
+    assert len(set(atom_data["resid"])) == 1, "only one resid supported"
+    assert len(set(atom_data["resname"])) == 1, "only one resname supported"
+    residue_indices = [0] * n_atoms
+    u = Universe.empty(
+        n_atoms=n_atoms,
+        n_residues=1,
+        atom_resindex=residue_indices,
+        trajectory=True
+    )
+    u.add_TopologyAttr('name', atom_data['name'])
+    u.add_TopologyAttr('type', atom_data['type'])
+    u.add_TopologyAttr('resid', [atom_data['resid'][0]])
+    u.add_TopologyAttr('resname', [atom_data['resname'][0]])
+    u.add_TopologyAttr('charge', atom_data['charge'])
+    u.add_TopologyAttr('id', atom_data['id'])
+
+    u.atoms.positions = [[x*10 for x in coord] for coord in molecule.generate_coordinates()]
+    if molecule.bonds:
+        bond_tuples = [(bond.id_i - 1, bond.id_j - 1) for bond in molecule.bonds]  # adjust index by -1
+        u.add_TopologyAttr('bonds', bond_tuples)
+
+    box_size = [box_length, box_length, box_length, 90., 90., 90.]
+    u.dimensions = box_size
+
+    logger.info(f"generating {gro_filename} for molecule {molecule.name}")
+    u.atoms.write(gro_filename)
+
+
+def generate_top_file_for_molecule(
+        molecule: Molecule,
+        force_field_filenames: list[str],
+        top_filename: str,
+        num_molecules: int = 1
+) -> None:
+    return generate_top_file_for_generic_molecule(
+        molecule.name, force_field_filenames, top_filename, num_molecules
+    )

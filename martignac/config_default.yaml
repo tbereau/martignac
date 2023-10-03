@@ -1,0 +1,45 @@
+solute_generation:
+  itp_files:
+    particle_definition: "../../../martini_v300/martini_v3.0.0.itp"
+  mdp_files:
+    minimize: "../../../martini_solute_gen/mdp_files/min.mdp"
+  settings:
+    n_threads: 1
+  output_names:
+    system: "solute"
+    states:
+      generate: "gen_mol"
+      minimize: "min"
+
+solvent_generation:
+  itp_files:
+    - "../../../martini_v300/martini_v3.0.0.itp"
+    - "../../../martini_v300/martini_v3.0.0_solvents_v1.itp"
+  mdp_files:
+    minimize: "../../../martini_solvent_gen/mdp_files/min.mdp"
+    equilibrate: "../../../martini_solvent_gen/mdp_files/equ.mdp"
+    production: "../../../martini_solvent_gen/mdp_files/run.mdp"
+  settings:
+    n_threads: 1
+    box_length: 6.0
+  output_names:
+    system: "solvent"
+    states:
+      mol: "gen_mol"
+      box: "gen_box"
+      min: "min"
+      equ: "equ"
+      prod: "prod"
+
+solute_solvation:
+  settings:
+    n_threads: 1
+  mdp_files:
+    minimize: "../../../martini_solvate/mdp_files/min.mdp"
+    equilibrate: "../../../martini_solvate/mdp_files/equ.mdp"
+  output_names:
+    system: "solute_solvent"
+    states:
+      generate: "gen"
+      minimize: "min"
+      equilibrate: "equ"

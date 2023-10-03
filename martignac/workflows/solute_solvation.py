@@ -61,6 +61,7 @@ project = SoluteSolvationFlow().get_project()
 def solute_generated(job) -> bool:
     return job.document.get("solute_gro") and job.document.get("solute_top")
 
+
 @SoluteSolvationFlow.label
 def solvent_generated(job) -> bool:
     return job.document.get("solvent_gro")
@@ -69,13 +70,13 @@ def solvent_generated(job) -> bool:
 @SoluteSolvationFlow.post(solute_generated)
 @SoluteSolvationFlow.operation
 def generate_solute(job):
-    SoluteGenFlow().run()
+    SoluteGenFlow().run(jobs=[job])
 
 
 @SoluteSolvationFlow.post(solvent_generated)
 @SoluteSolvationFlow.operation
 def generate_solvent(job):
-    SolventGenFlow().run()
+    SolventGenFlow().run(jobs=[job])
 
 
 @SoluteSolvationFlow.label
@@ -118,6 +119,7 @@ def minimize(job):
         solute_solvent_top, [solvent_top, solute_top]
     )
     new_top.output_top(SoluteSolvationFlow.get_top())
+    job.document["solute_solvent_top"] = SoluteSolvationFlow.get_top()
     return gromacs_simulation_command(
         mdp=SoluteSolvationFlow.minimize_mdp,
         top=SoluteSolvationFlow.get_top(),
@@ -131,6 +133,7 @@ def minimize(job):
 @SoluteSolvationFlow.post(system_equilibrated)
 @SoluteSolvationFlow.operation(cmd=True, with_job=True)
 def equilibrate(job):
+    job.document["solute_solvent_gro"] = SoluteSolvationFlow.get_system_equ_gro()
     return gromacs_simulation_command(
         mdp=SoluteSolvationFlow.equilibrate_mdp,
         top=SoluteSolvationFlow.get_top(),

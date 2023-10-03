@@ -43,3 +43,14 @@ solute_solvation:
       generate: "gen"
       minimize: "min"
       equilibrate: "equ"
+
+alchemical_transformation:
+  settings:
+    n_threads: 2
+    temperature: 300.
+  mdp_files:
+    run: "../../../martini_fep/mdp_files/run_lambda.mdp"
+  output_names:
+    system: "fep"
+    states:
+      run: "run"

@@ -1,5 +1,6 @@
 import shutil
 import logging
+import regex
 from os.path import join, basename
 
 
@@ -8,7 +9,8 @@ __all__ = [
     "solvate_solute_command",
     "gromacs_simulation_command",
     "copy_files_to",
-    "generate_top_file_for_generic_molecule"
+    "generate_top_file_for_generic_molecule",
+    "sub_template_mdp"
 ]
 
 logger = logging.getLogger(__name__)
@@ -95,3 +97,11 @@ def generate_top_file_for_generic_molecule(
         f.write(f"{molecule_name} system\n\n")
         f.write("[ molecules ]\n")
         f.write(f"{molecule_name:4s}            {num_molecules:5d}\n")
+
+
+def sub_template_mdp(mdp_source: str, template: str, new_entry: str, mdp_dest: str) -> None:
+    with open(mdp_source) as pipe:
+        mdp_content = pipe.read()
+    mdp_content = regex.sub(template, new_entry, mdp_content)
+    with open(mdp_dest, "w") as pipe:
+        pipe.write(mdp_content)

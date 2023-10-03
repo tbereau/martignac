@@ -1,5 +1,5 @@
 from signac_dashboard import Dashboard
-from project import MartiniProject
+from martignac.workflows.alchemical_transformation import AlchemicalTransformationFlow
 
 
 class MyDashboard(Dashboard):
@@ -7,4 +7,4 @@ class MyDashboard(Dashboard):
 
 
 if __name__ == '__main__':
-    MyDashboard(project=MartiniProject()).main()
+    MyDashboard(project=AlchemicalTransformationFlow()).main()

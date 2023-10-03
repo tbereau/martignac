@@ -75,6 +75,7 @@ def solvate(job) -> None:
     )
     job.document["solute_itp"] = SoluteGenFlow.get_solute_itp()
     job.document["solute_top"] = SoluteGenFlow.get_solute_top()
+    job.document["solute_name"] = molecule.name
     return None
 
 

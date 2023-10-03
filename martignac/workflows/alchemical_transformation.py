@@ -44,8 +44,8 @@ def solvent_and_solute_aggregator(jobs):
         yield [job for job in jobs if job.sp.solvent_name == solvent and job.sp.solute_name == solute]
 
 
-def job_system_name(job) -> str:
-    return f"solvent_{job.sp.solvent_name},_solute_{job.sp.solute_name}"
+def job_system_keys(job) -> [str, str]:
+    return [job.sp.solvent_name, job.sp.solute_name]
 
 
 def lowest_lambda_job(jobs) -> bool:
@@ -106,6 +106,12 @@ def all_lambda_states_sampled(*jobs):
     return result
 
 
+@AlchemicalTransformationFlow.label
+def free_energy_already_calculated(*jobs):
+    keys = job_system_keys(jobs[0])
+    return project.document.get(keys[0], {}).get(keys[1], {}).get("free_energy_mean", False)
+
+
 @AlchemicalTransformationFlow.pre(system_prepared)
 @AlchemicalTransformationFlow.post(lambda_sampled)
 @AlchemicalTransformationFlow.operation(cmd=True, with_job=True)
@@ -134,6 +140,7 @@ def sample_lambda(job):
 
 
 @AlchemicalTransformationFlow.pre(all_lambda_states_sampled)
+@AlchemicalTransformationFlow.post(free_energy_already_calculated)
 @AlchemicalTransformationFlow.operation(
     aggregator=aggregator(
         aggregator_function=solvent_and_solute_aggregator,
@@ -148,13 +155,13 @@ def compute_free_energy(*jobs):
     ]
     u_nk_combined = pd.concat(u_nk_list)
     mbar = MBAR().fit(u_nk_combined)
-    # mbar.delta_f_.to_csv("delta_f.csv")
-    # mbar.d_delta_f_.to_csv("d_delta_f.csv")
     free_energy = float(mbar.delta_f_.iloc[0, -1])
+    d_free_energy = float(mbar.d_delta_f_.iloc[0, -1])
     print(f"free energy: {free_energy:+.3f} kT")
-    solvent_name = jobs[0].sp.solvent_name
-    solute_name = jobs[0].sp.solute_name
-    if "free_energy" not in project.document:
-        project.document["free_energy"] = {}
-        project.document["free_energy"][solvent_name] = {}
-    project.document["free_energy"][solvent_name][solute_name] = free_energy
+    solvent_name, solute_name = job_system_keys(jobs[0])
+    if solvent_name not in project.document:
+        project.document[solvent_name] = {}
+    if solute_name not in project.document[solvent_name]:
+        project.document[solvent_name][solute_name] = {}
+    project.document[solvent_name][solute_name]["free_energy_mean"] = free_energy
+    project.document[solvent_name][solute_name]["free_energy_std"] = d_free_energy

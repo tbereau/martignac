@@ -3,9 +3,9 @@ import itertools
 
 project = signac.init_project()
 
-solvent_names = ["HD"]
+solvent_names = ["W", "OCO"]
 solute_names = ["P6"]
-lambda_states = range(2)
+lambda_states = range(11)
 
 triplets = list(itertools.product(solvent_names, solute_names, lambda_states))
 

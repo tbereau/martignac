@@ -1,7 +1,10 @@
+import os
+
 from flow import FlowProject
 
 from martignac.utils.gromacs import (
-    generate_solvent_command,
+    generate_solvent_with_packmol,
+    convert_pdb_to_gro,
     gromacs_simulation_command,
 )
 from martignac.parsers.gromacs_forcefields import (
@@ -56,6 +59,10 @@ class SolventGenFlow(FlowProject):
         return f"{cls.get_solvent_mol_name()}.gro"
 
     @classmethod
+    def get_solvent_box_pdb(cls) -> str:
+        return f"{cls.get_solvent_box_name()}.pdb"
+
+    @classmethod
     def get_solvent_box_gro(cls) -> str:
         return f"{cls.get_solvent_box_name()}.gro"
 
@@ -81,6 +88,11 @@ class SolventGenFlow(FlowProject):
 
 
 project = SolventGenFlow().get_project()
+
+
+@SolventGenFlow.label
+def generated_box_pdb(job):
+    return job.isfile(SolventGenFlow.get_solvent_box_pdb())
 
 
 @SolventGenFlow.label
@@ -122,13 +134,24 @@ def generate_solvent_molecule(job) -> None:
 
 
 @SolventGenFlow.pre(generated_mol_gro)
-@SolventGenFlow.post(generated_box_gro)
+@SolventGenFlow.post(generated_box_pdb)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def solvate(job):
-    return generate_solvent_command(
+    return generate_solvent_with_packmol(
         gro_solvent_mol=SolventGenFlow.get_solvent_mol_gro(),
         box_length=SolventGenFlow.box_length,
-        output_name=SolventGenFlow.get_solvent_box_name(),
+        output_pdb=SolventGenFlow.get_solvent_box_pdb(),
+    )
+
+
+@SolventGenFlow.pre(generated_box_pdb)
+@SolventGenFlow.post(generated_box_gro)
+@SolventGenFlow.operation(with_job=True)
+def solvate_convert_to_gro(job):
+    convert_pdb_to_gro(
+        SolventGenFlow.get_solvent_box_pdb(),
+        SolventGenFlow.get_solvent_box_gro(),
+        SolventGenFlow.box_length,
     )
 
 
@@ -148,6 +171,7 @@ def minimize(job):
         )
     )
     job.document["solvent_top"] = SolventGenFlow.get_solvent_box_top()
+    job.document["solvent_name"] = job.sp.solvent_name
     return gromacs_simulation_command(
         mdp=SolventGenFlow.minimize_mdp,
         top=SolventGenFlow.get_solvent_box_top(),

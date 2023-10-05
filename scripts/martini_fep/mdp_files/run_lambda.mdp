@@ -1,4 +1,4 @@
-integrator               = sd
+integrator               = md
 ; start time and timestep in ps = 
 tinit                    = 0
 dt                       = 0.020
@@ -23,22 +23,13 @@ cutoff-scheme            = Verlet
 nstlist                  = 20
 ;rlist                    = 1.2
 
-coulombtype              = cutoff 
-coulomb-modifier         = Potential-shift-verlet
+coulombtype              = reaction-field
 rcoulomb                 = 1.1
 epsilon_r                = 15   ; 2.5 (with polarizable water)
+epsilon_rf               = 0
 vdw_type                 = cutoff  
 vdw-modifier             = Potential-shift-verlet
 rvdw                     = 1.1
-
-;coulombtype              = Shift 
-;rcoulomb_switch          = 0.0
-;rcoulomb                 = 1.2
-;epsilon_r                = 15
-;vdw_type                 = Shift 
-;rvdw_switch              = 0.9
-;rvdw                     = 1.2
-
 
 gen-vel                  = no
 tc-grps                  = System
@@ -49,7 +40,7 @@ ref_t                    = 300
 Pcoupl                   = Parrinello-Rahman
 tau_p                    = 4.0
 compressibility          = 4.5e-5
-ref_p         = 1.0
+ref_p                    = 1.0
 
 ;lincs-iter = 2
 ;lincs-order = 8

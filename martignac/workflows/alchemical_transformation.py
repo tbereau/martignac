@@ -101,15 +101,20 @@ def lambda_sampled(job):
 @AlchemicalTransformationFlow.label
 def all_lambda_states_sampled(*jobs):
     result = all([
-        job.isfile(job.document.get("alchemical_xvg", default="")) for job in jobs
+        job.isfile(job.fn(job.document.get("alchemical_xvg", default=""))) for job in jobs
     ])
     return result
 
 
 @AlchemicalTransformationFlow.label
 def free_energy_already_calculated(*jobs):
-    keys = job_system_keys(jobs[0])
-    return project.document.get(keys[0], {}).get(keys[1], {}).get("free_energy_mean", False)
+    solvent_name, solute_name = job_system_keys(jobs[0])
+    return any(
+        [
+            e for e in project.document.get("free_energies", [])
+            if e["solute_name"] == solute_name and e["solvent_name"] == solvent_name
+        ]
+    )
 
 
 @AlchemicalTransformationFlow.pre(system_prepared)
@@ -157,11 +162,17 @@ def compute_free_energy(*jobs):
     mbar = MBAR().fit(u_nk_combined)
     free_energy = float(mbar.delta_f_.iloc[0, -1])
     d_free_energy = float(mbar.d_delta_f_.iloc[0, -1])
-    print(f"free energy: {free_energy:+.3f} kT")
     solvent_name, solute_name = job_system_keys(jobs[0])
-    if solvent_name not in project.document:
-        project.document[solvent_name] = {}
-    if solute_name not in project.document[solvent_name]:
-        project.document[solvent_name][solute_name] = {}
-    project.document[solvent_name][solute_name]["free_energy_mean"] = free_energy
-    project.document[solvent_name][solute_name]["free_energy_std"] = d_free_energy
+    logger.info(
+        f"free energy {solvent_name}_{solute_name}: "
+        f"{free_energy:+6.2f} +- {d_free_energy:5.2f} kT"
+    )
+    f_contrib = {
+        "solvent_name": solvent_name,
+        "solute_name": solute_name,
+        "f_mean": free_energy,
+        "f_std": d_free_energy,
+    }
+    if "free_energies" not in project.document:
+        project.document["free_energies"] = []
+    project.document["free_energies"].append(f_contrib)

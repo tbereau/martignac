@@ -1,4 +1,4 @@
-integrator               = sd
+integrator               = md
 tinit                    = 0
 dt                       = 0.020
 
@@ -17,23 +17,26 @@ nstxtcout                = 10000
 
 cutoff-scheme            = Verlet
 nstlist                  = 20
+ns_type                  = grid
+pbc                      = xyz
+verlet-buffer-tolerance  = 0.005
 
-coulombtype              = cutoff 
-coulomb-modifier         = Potential-shift-verlet
+coulombtype              = reaction-field
 rcoulomb                 = 1.1
 epsilon_r                = 15   ; 2.5 (with polarizable water)
-vdw_type                 = cutoff  
+epsilon_rf               = 0
+vdw_type                 = cutoff
 vdw-modifier             = Potential-shift-verlet
 rvdw                     = 1.1
 
 gen-vel                  = yes
-gen-temp                 = 300
 tc-grps                  = System
 tcoupl                   = v-rescale
 tau_t                    = 1.0
 ref_t                    = 300
 
-Pcoupl                   = Berendsen
+Pcoupl                   = berendsen
+Pcoupltype               = isotropic
 tau_p                    = 4.0
-compressibility          = 4.5e-5
+compressibility          = 3e-5
 ref_p                    = 1.0

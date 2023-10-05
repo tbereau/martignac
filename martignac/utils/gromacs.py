@@ -1,11 +1,16 @@
 import shutil
 import logging
 import regex
+from MDAnalysis import Universe
 from os.path import join, basename
 
 
+VOLUME_PER_CG_BEAD_IN_NM3 = 0.08
+
 __all__ = [
-    "generate_solvent_command",
+    "generate_solvent_with_gromacs",
+    "generate_solvent_with_packmol",
+    "convert_pdb_to_gro",
     "solvate_solute_command",
     "gromacs_simulation_command",
     "copy_files_to",
@@ -16,7 +21,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def generate_solvent_command(
+def generate_solvent_with_gromacs(
         gro_solvent_mol: str,
         box_length: float,
         output_name: str = "solvent",
@@ -27,6 +32,43 @@ def generate_solvent_command(
         f'gmx solvate -cs {gro_solvent_mol} -box {box_size} '
         f'-o {output_name}.gro -scale {scale}'
     )
+
+
+def generate_solvent_with_packmol(
+        gro_solvent_mol: str,
+        box_length: float,
+        output_pdb: str,
+        packmol_input_file: str = "packmol.inp"
+) -> str:
+    pdb_solvent_mol = f"{gro_solvent_mol.rstrip('.gro')}.pdb"
+    universe = Universe(gro_solvent_mol)
+    universe.atoms.write(pdb_solvent_mol)
+    length_in_a = box_length * 10.
+    num_beads_per_mol = len(universe.residues[0].atoms)
+    volume_box = box_length ** 3
+    num_beads_in_box = int(
+            volume_box / (num_beads_per_mol * VOLUME_PER_CG_BEAD_IN_NM3)
+    )
+    logger.info(f"calling packmol to generate box with {num_beads_in_box} molecules")
+    packmol_inp = f"""tolerance 2.0
+filetype pdb
+output {output_pdb}
+
+structure {pdb_solvent_mol}
+  number {num_beads_in_box}
+  inside box 0. 0. 0. {length_in_a} {length_in_a} {length_in_a}
+end structure
+"""
+    with open(packmol_input_file, "w") as pipe:
+        pipe.write(packmol_inp)
+    return "packmol < packmol.inp"
+
+
+def convert_pdb_to_gro(pdb_file: str, output_gro: str, box_length: float) -> None:
+    universe = Universe(pdb_file)
+    box_size = [box_length * 10., box_length * 10., box_length * 10., 90., 90., 90.]
+    universe.dimensions = box_size
+    universe.atoms.write(output_gro)
 
 
 def solvate_solute_command(

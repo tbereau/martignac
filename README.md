@@ -1,26 +1,73 @@
 # martignac
 
+This is a template repository for Python projects that use Poetry for their dependency management.
+
+- **GitLab repository**: <https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac/>
+
+## Getting started with your project
+
+First, create a repository on GitHub with the same name as this project, and then run the following commands:
+
+``` bash
+git init -b main
+git add .
+git commit -m "init commit"
+git remote add origin git@lin0.thphys.uni-heidelberg.de:bereau/martignac.git
+git push -u origin main
+```
+
+Finally, install the environment and the pre-commit hooks with 
+
+```bash
+make install
+```
+
+You are now ready to start development on your project! The CI/CD
+pipeline will be triggered when you open a pull request, merge to main,
+or when you create a new release.
+
+To finalize the set-up for publishing to PyPi or Artifactory, see
+[here](https://fpgmaas.github.io/cookiecutter-poetry/features/publishing/#set-up-for-pypi).
+For activating the automatic documentation with MkDocs, see
+[here](https://fpgmaas.github.io/cookiecutter-poetry/features/mkdocs/#enabling-the-documentation-on-github).
+To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/codecov/).
+
 ## Martignac dependencies installation 
 
-It is recommended to use [Anaconda](https://www.anaconda.com/) for installing and managing dependencies. Create a new conda environment with *Python 3.11* and install the package installer *pip*:
-```
-conda create -n conda-martinac python=3.11 pip
-source activate conda-martinac
-```
-Then, install all required dependencies and the program *packmol*.
+Update `requirements.txt` from `pyproject.toml` with piptools, and then install dependencies with pip:
+
 ```bash
+pip install pip-tools
+python -m piptools compile -o requirements.txt pyproject.toml
 pip install -r requirements.txt
-conda install -c conda-forge packmol
-pip install -e .
 ```
-We also need the Gromacs simulation package. Check the [Gromacs Website](https://manual.gromacs.org/documentation/current/install-guide/index.html) for instructions on how to install the latest version of Gromacs. Older versions of Gromacs are available via Anaconda:
+
+If you don't already have Gromacs installed, you can quickly install with conda via:
+
 ```bash
-conda install -c bioconda gromacs
+conda config --add channels bioconda
+conda install conda install ocl-icd-system==1.0.0
+conda install gromacs==2018.6
+```
+
+alternatively, to install `conda`:
+```bash
+wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+# on MacOS replace with:
+# wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+bash ./miniconda.sh -b -f -p /path/to/conda
+export PATH="/path/to/conda/bin:$PATH"
+source activate base
+```
+
+and gromacs
+```bash
+conda install -c conda-forge gromacs
 ```
 
 ## Examples 
 
-Examples are found in `scripts/martini_fep/` and  `scripts/martini_solvate/`. In each case execute the following commands:
+Examples are found in `martini_fep/` and  `martini_solvate/`. In each case execute the following commands:
 ```bash
 python init.py
 python project.py run
@@ -28,3 +75,10 @@ python project.py run
 
 The results can be found in `workspace/`
 
+## Releasing a new version
+
+
+
+---
+
+Repository initiated with [fpgmaas/cookiecutter-poetry](https://github.com/fpgmaas/cookiecutter-poetry).

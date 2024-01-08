@@ -3,11 +3,11 @@ from flow import FlowProject
 from martignac.utils.gromacs import (
     gromacs_simulation_command
 )
-from martignac.parsers.gromacs_particle_definitions import (
-    find_particle_type_from_name,
-    generate_gro_for_particle_type,
-    generate_top_file_for_particle,
-    generate_itp_file_for_particle,
+from martignac.parsers.gromacs_forcefields import (
+    get_molecule_from_name,
+    generate_gro_file_for_molecule,
+    generate_itp_file_for_molecule,
+    generate_top_file_for_molecule,
 )
 from martignac import config
 
@@ -21,6 +21,9 @@ class SoluteGenFlow(FlowProject):
     system_name: str = conf["output_names"]["system"].get(str)
     generate_name: str = conf["output_names"]["states"]["generate"].get(str)
     minimize_name: str = conf["output_names"]["states"]["minimize"].get(str)
+    bond_length: float = conf["parameters"]["bond_length"].get(float)
+    number_excl: float = conf["parameters"]["number_excl"].get(int)
+    bond_constant: float = conf["parameters"]["bond_constant"].get(float)
 
     @classmethod
     def get_solute_mol_name(cls) -> str:
@@ -52,7 +55,9 @@ project = SoluteGenFlow().get_project()
 
 @SoluteGenFlow.label
 def generated(job):
-    return job.isfile(SoluteGenFlow.get_solute_mol_gro())
+    return (job.isfile(SoluteGenFlow.get_solute_mol_gro()) and
+        job.isfile(SoluteGenFlow.get_solute_itp()) and
+        job.isfile(SoluteGenFlow.get_solute_top()))
 
 
 @SoluteGenFlow.label
@@ -63,12 +68,15 @@ def minimized(job):
 @SoluteGenFlow.post(generated)
 @SoluteGenFlow.operation(with_job=True)
 def solvate(job) -> None:
-    molecule = find_particle_type_from_name(
-        SoluteGenFlow.particle_def_itp, job.sp.solute_name
+    molecule = get_molecule_from_name(
+        job.sp.solute_name,
+        bond_length=SoluteGenFlow.bond_length,
+        bond_constant=SoluteGenFlow.bond_constant,
+        number_excl=SoluteGenFlow.number_excl
     )
-    generate_gro_for_particle_type(molecule, SoluteGenFlow.get_solute_mol_gro())
-    generate_itp_file_for_particle(molecule, SoluteGenFlow.get_solute_itp())
-    generate_top_file_for_particle(
+    generate_gro_file_for_molecule(molecule, SoluteGenFlow.get_solute_mol_gro())
+    generate_itp_file_for_molecule(molecule, SoluteGenFlow.get_solute_itp())
+    generate_top_file_for_molecule(
         molecule,
         [SoluteGenFlow.particle_def_itp, SoluteGenFlow.get_solute_itp()],
         SoluteGenFlow.get_solute_top()

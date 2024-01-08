@@ -16,7 +16,9 @@ __all__ = [
     "parse_molecules_from_itp",
     "find_molecule_from_name",
     "generate_gro_file_for_molecule",
-    "generate_top_file_for_molecule"
+    "generate_top_file_for_molecule",
+    "get_molecule_from_name",
+    "generate_itp_file_for_molecule",
 ]
 
 logger = logging.getLogger(__name__)
@@ -206,7 +208,7 @@ def find_molecule_from_name(itp_filenames: list[str], molecule_name: str) -> Mol
 
 
 def generate_gro_file_for_molecule(
-        molecule: Molecule, gro_filename: str, box_length: float = 10.0
+        molecule: Molecule, gro_filename: str, box_length: float = 100.0
 ) -> None:
     n_atoms = len(molecule.atoms)
     dtype = [('name', np.dtype('<U4')),
@@ -260,3 +262,106 @@ def generate_top_file_for_molecule(
     return generate_top_file_for_generic_molecule(
         molecule.name, force_field_filenames, top_filename, num_molecules
     )
+
+def _get_atom_from_string(atom_string: str, i: int) -> Atom:
+    charge = 0
+    if '+' in atom_string:
+        particle_info = atom_string.split('+')
+        charge = int(particle_info[1]) if particle_info[1].isdigit() else 1
+        atom_string = particle_info[0]
+    elif '-' in atom_string:
+        particle_info = atom_string.split('-')
+        charge = -1 * int(particle_info[1]) if particle_info[1].isdigit() else -1
+        atom_string = particle_info[0]
+    atom = Atom(
+        i + 1,        # id
+        atom_string,  # type
+        1,            # residue_number
+        'UNK',        # residue
+        atom_string,  # atom
+        i + 1,        # charge_number
+        charge        # charge
+    )
+    return atom
+
+def get_molecule_from_name(
+        molecule_name: str,
+        bond_length: float,
+        bond_constant: float|None = None,
+        number_excl: int = 3,
+        molecule_label: str|None = None,
+) -> Molecule:
+    particle_names = molecule_name.split(',')[0].split()
+    # Construct list of atoms
+    atoms = [_get_atom_from_string(name, i) for i, name in enumerate(particle_names)]
+    # Construct molecule with atoms
+    if molecule_label is None:
+        molecule_label = ''.join(particle_names)
+    molecule = Molecule(molecule_label, number_excl, atoms)
+    # Add bonds and constraints to the molecule
+    if ',' in molecule_name:
+        # Obtain bonds and constraints from molecule string
+        bond_constraints_info = molecule_name.split(',')[1].split()
+        bond_info = [
+            [int(idx)+1 for idx in b.split('-')] for b in bond_constraints_info if '-' in b
+        ]
+        constraint_info = [
+            [int(idx)+1 for idx in c.split('_')] for c in bond_constraints_info if '_' in c
+        ]
+        # Add bonds and constraints to the molecule
+        if bond_constant is None and len(bond_info) > 0:
+            raise ValueError("bond_constant must be specified if the molecule contains bonds")
+        if len(constraint_info) > 0:
+            constraints = []
+            for id_i, id_j in constraint_info:
+                constraint = Constraint(id_i, id_j, 1, bond_length)
+                constraints.append(constraint)
+            molecule.constraints = constraints
+        if len(bond_info) > 0:
+            bonds = []
+            for id_i, id_j in bond_info:
+                bond = Bond(id_i, id_j, 1, bond_length, bond_constant)
+                bonds.append(bond)
+            molecule.bonds = bonds
+    return molecule
+
+def generate_itp_file_for_molecule(
+        molecule: Molecule,
+        itp_filename: str,
+) -> None:
+    with open(itp_filename, 'w') as f:
+        f.write(f"\n;;;;;; {molecule.name} molecule\n")
+        f.write("\n[moleculetype]\n")
+        f.write("; molname       nrexcl\n")
+        f.write(f" {molecule.name}\t{molecule.number_excl}\n")
+        f.write("\n[atoms]\n")
+        f.write("; id    type    resnr   residu  atom    cgnr    charge\n")
+        for atom in molecule.atoms:
+            f.write(
+                f" {atom.id}\t{atom.type}\t{atom.residue_number}\t{atom.residue}\t"
+                f"{atom.atom}\t{atom.charge_number}\t{atom.charge}\n"
+            )
+        if molecule.bonds is not None:
+            f.write("\n[bonds]\n")
+            f.write("; i     j       funct   length  force_constant\n")
+            for bond in molecule.bonds:
+                f.write(
+                    f" {bond.id_i}\t{bond.id_j}\t{bond.funct}\t"
+                    f"{bond.length}\t{bond.force_constant}\n"
+                )
+        if molecule.angles is not None:
+            f.write("\n[angles]\n")
+            f.write("; i     j       k       funct   angle   force_constant\n")
+            for angle in molecule.angles:
+                f.write(
+                    f" {angle.id_i}\t{angle.id_j}\t{angle.id_k}\t{angle.funct}\t"
+                    f"{angle.angle}\t{angle.force_constant}\n"
+                )
+        if molecule.constraints is not None:
+            f.write("\n[constraints]\n")
+            f.write("; i     j       funct   length\n")
+            for constraint in molecule.constraints:
+                f.write(
+                    f" {constraint.id_i}\t{constraint.id_j}\t{constraint.funct}\t"
+                    f"{constraint.length}\n"
+                )

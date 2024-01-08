@@ -10,6 +10,10 @@ solute_generation:
     states:
       generate: "gen_mol"
       minimize: "min"
+  parameters:
+    bond_length: 0.360
+    bond_constant: 100000
+    number_excl: 3
 
 solvent_generation:
   itp_files:

@@ -169,6 +169,7 @@ workspace/*
 view/*
 .DS_Store
 .idea/
+scripts/*/workspace
 scripts/*/workspace/*/*
 scripts/*/.signac/*
 scripts/*/signac_project_document.json

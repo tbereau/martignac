@@ -1,15 +1,13 @@
 from flow import FlowProject
 
-from martignac.utils.gromacs import (
-    gromacs_simulation_command
-)
+from martignac import config
 from martignac.parsers.gromacs_forcefields import (
-    get_molecule_from_name,
     generate_gro_file_for_molecule,
     generate_itp_file_for_molecule,
     generate_top_file_for_molecule,
+    get_molecule_from_name,
 )
-from martignac import config
+from martignac.utils.gromacs import gromacs_simulation_command
 
 conf = config()["solute_generation"]
 
@@ -22,7 +20,7 @@ class SoluteGenFlow(FlowProject):
     generate_name: str = conf["output_names"]["states"]["generate"].get(str)
     minimize_name: str = conf["output_names"]["states"]["minimize"].get(str)
     bond_length: float = conf["parameters"]["bond_length"].get(float)
-    number_excl: float = conf["parameters"]["number_excl"].get(int)
+    number_excl: int = conf["parameters"]["number_excl"].get(int)
     bond_constant: float = conf["parameters"]["bond_constant"].get(float)
 
     @classmethod
@@ -55,9 +53,11 @@ project = SoluteGenFlow().get_project()
 
 @SoluteGenFlow.label
 def generated(job):
-    return (job.isfile(SoluteGenFlow.get_solute_mol_gro()) and
-        job.isfile(SoluteGenFlow.get_solute_itp()) and
-        job.isfile(SoluteGenFlow.get_solute_top()))
+    return (
+        job.isfile(SoluteGenFlow.get_solute_mol_gro())
+        and job.isfile(SoluteGenFlow.get_solute_itp())
+        and job.isfile(SoluteGenFlow.get_solute_top())
+    )
 
 
 @SoluteGenFlow.label
@@ -72,14 +72,14 @@ def solvate(job) -> None:
         job.sp.solute_name,
         bond_length=SoluteGenFlow.bond_length,
         bond_constant=SoluteGenFlow.bond_constant,
-        number_excl=SoluteGenFlow.number_excl
+        number_excl=SoluteGenFlow.number_excl,
     )
     generate_gro_file_for_molecule(molecule, SoluteGenFlow.get_solute_mol_gro())
     generate_itp_file_for_molecule(molecule, SoluteGenFlow.get_solute_itp())
     generate_top_file_for_molecule(
         molecule,
         [SoluteGenFlow.particle_def_itp, SoluteGenFlow.get_solute_itp()],
-        SoluteGenFlow.get_solute_top()
+        SoluteGenFlow.get_solute_top(),
     )
     job.document["solute_itp"] = SoluteGenFlow.get_solute_itp()
     job.document["solute_top"] = SoluteGenFlow.get_solute_top()
@@ -97,5 +97,5 @@ def minimize(job):
         top=SoluteGenFlow.get_solute_top(),
         gro=SoluteGenFlow.get_solute_mol_gro(),
         name=SoluteGenFlow.get_solute_min_name(),
-        n_threads=SoluteGenFlow.n_threads
+        n_threads=SoluteGenFlow.n_threads,
     )

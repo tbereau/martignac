@@ -29,6 +29,7 @@ python-decouple = "^3.8"
 marshmallow-dataclass = "^8.6.0"
 cachetools = "^5.3.2"
 isort = "^5.8.0"
+insane = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"

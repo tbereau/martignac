@@ -2,7 +2,7 @@ integrator               = md
 tinit                    = 0
 dt                       = 0.020
 
-nsteps                   = 50000
+nsteps                   = 10000
 
 comm-mode                = Linear
 nstcomm                  = 10

@@ -73,6 +73,13 @@ def retrieve_datasets(
     return datasets
 
 
+def get_dataset_by_id(dataset_id: str, use_prod: bool = True) -> NomadDataset:
+    datasets = retrieve_datasets(dataset_id=dataset_id, use_prod=use_prod)
+    if len(datasets) != 1:
+        raise ValueError(f"Problem retrieving dataset {dataset_id}: {datasets}")
+    return datasets[0]
+
+
 def create_dataset(dataset_name: str, use_prod: bool = False, timeout_in_sec: int = 10) -> str:
     logger.info(f"creating dataset name {dataset_name} on {'prod' if use_prod else 'test'} server")
     json_dict = {"dataset_name": dataset_name}

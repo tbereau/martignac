@@ -1,0 +1,26 @@
+workflow2:
+  inputs:
+  - name: Input for SoluteSolvationFlow
+    section: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/solute_solvent_min.log#/run/0/calculation/0
+  outputs:
+  - name: Output for AlchemicalTransformationFlow
+    section: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/fep_run-0.log#/run/0/calculation/-1
+  tasks:
+  - inputs:
+    - name: input
+      section: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/solute_solvent_min.log#/run/0/calculation/0
+    m_def: nomad.datamodel.metainfo.workflow.TaskReference
+    name: SoluteSolvationFlow
+    outputs:
+    - name: output
+      section: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/fep_run-0.log#/run/0/calculation/-1
+    task: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/solute_solvation.archive.yaml#/workflow2
+  - inputs:
+    - name: input
+      section: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/fep_run-0.log#/run/0/calculation/-1
+    m_def: nomad.datamodel.metainfo.workflow.TaskReference
+    name: AlchemicalTransformationFlow
+    outputs:
+    - name: output
+      section: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/fep_run-0.log#/run/0/calculation/-1
+    task: ../upload/archive/mainfile/5caf20eeffab1356ae64234a1827c8a2/alchemical_transformation.archive.yaml#/workflow2

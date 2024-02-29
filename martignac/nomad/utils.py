@@ -29,7 +29,8 @@ def get_authentication_token(
         params={"username": username, "password": password},
         timeout=timeout_in_sec,
     )
-    assert response.status_code == 200, f"Unexpected response {response.json()}"
+    if not response.status_code == 200:
+        raise ValueError(f"Unexpected response {response.json()}")
     return response.json().get("access_token")
 
 
@@ -82,7 +83,8 @@ def post_nomad_request(
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending post request @ {url}")
     response = requests.post(url, headers=headers, json=json_dict, data=data, timeout=timeout_in_sec)
-    assert response.status_code == 200, f"Unexpected response {response.json()}"
+    if not response.status_code == 200:
+        raise ValueError(f"Unexpected response {response.json()}")
     return response.json()
 
 
@@ -105,5 +107,6 @@ def delete_nomad_request(
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending delete request @ {url}")
     response = requests.delete(url, headers=headers, timeout=timeout_in_sec)
-    assert response.status_code == 200, f"Unexpected response {response.json()}"
+    if not response.status_code == 200:
+        raise ValueError(f"Unexpected response {response.json()}")
     return response.json()

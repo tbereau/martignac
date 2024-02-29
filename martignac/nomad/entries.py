@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 from dataclasses import field
 from typing import Any, Optional
 
@@ -8,6 +9,8 @@ from marshmallow_dataclass import class_schema, dataclass
 from martignac.nomad.datasets import NomadDataset
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import get_nomad_request, post_nomad_request
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -55,11 +58,11 @@ class NomadEntry:
     viewers: list[NomadUser] = field(repr=False)
     entry_create_time: dt.datetime
     with_embargo: bool
-    domain: str
     files: list[str] = field(repr=False)
     entry_type: str
     authors: list[NomadUser] = field(repr=False)
     license: str
+    domain: Optional[str] = None
     optimade: Optional[dict] = field(repr=False, default=None)
     comment: Optional[str] = None
     upload_name: Optional[str] = None
@@ -67,9 +70,11 @@ class NomadEntry:
     writer_groups: Optional[list[Any]] = field(repr=False, default=None)
     text_search_contents: Optional[list[str]] = None
     publish_time: Optional[dt.datetime] = None
+    entry_references: Optional[list[dict]] = None
 
 
 def get_entry_by_id(entry_id: str, use_prod: bool = True, with_authentication: bool = False) -> NomadEntry:
+    logger.info(f"retrieving entry {entry_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         f"/entries/{entry_id}",
         with_authentication=with_authentication,
@@ -79,9 +84,21 @@ def get_entry_by_id(entry_id: str, use_prod: bool = True, with_authentication: b
     return nomad_entry_schema().load(response["data"])
 
 
+def get_entries_of_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
+    logger.info(f"retrieving entries for upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    response = get_nomad_request(
+        f"/uploads/{upload_id}/entries",
+        with_authentication=True,
+        timeout_in_sec=timeout_in_sec,
+    )
+    nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
+    return [nomad_entry_schema().load(r["entry_metadata"]) for r in response["data"]]
+
+
 def query_entries(
-    worfklow_name: str = "MolecularDynamics",
-    program_name: str = "GROMACS",
+    worfklow_name: str = None,
+    program_name: str = None,
+    dataset_id: str = None,
     origin: str = None,
     page_size: int = 10,
     max_entries: int = 50,
@@ -94,6 +111,8 @@ def query_entries(
     }
     entries = []
     while (max_entries > 0 and len(entries) <= max_entries) or (max_entries < 0):
+        if dataset_id:
+            json_dict["query"]["datasets"] = {"dataset_id": dataset_id}
         if worfklow_name:
             json_dict["query"]["results.method"] = {"workflow_name": worfklow_name}
         if program_name:
@@ -109,4 +128,4 @@ def query_entries(
             break
     if max_entries > 0:
         entries = entries[:max_entries]
-    return [get_entry_by_id(e) for e in entries]
+    return [get_entry_by_id(e, use_prod=use_prod) for e in entries]

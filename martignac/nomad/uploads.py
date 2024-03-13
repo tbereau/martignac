@@ -6,7 +6,7 @@ from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
 from martignac.nomad.users import NomadUser, get_user_by_id
-from martignac.nomad.utils import get_nomad_request, post_nomad_request
+from martignac.nomad.utils import get_nomad_base_url, get_nomad_request, post_nomad_request
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,22 @@ class NomadUpload:
     external_db: Optional[str] = None
     upload_name: Optional[str] = None
     comment: Optional[str] = None
+    base_url: Optional[str] = None
+
+    @property
+    def nomad_gui_url(self) -> str:
+        return f"{self.base_url}/gui/user/uploads/upload/id/{self.upload_id}"
+
+
+def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadUpload]:
+    logger.info(f"retrieving all uploads on {'prod' if use_prod else 'test'} server")
+    response = get_nomad_request(
+        "/uploads",
+        with_authentication=True,
+        timeout_in_sec=timeout_in_sec,
+    )
+    upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
+    return [upload_class_schema().load({**r, "base_url": get_nomad_base_url(use_prod)}) for r in response["data"]]
 
 
 def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> NomadUpload:
@@ -65,7 +81,7 @@ def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int
         timeout_in_sec=timeout_in_sec,
     )
     upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
-    return upload_class_schema().load(response["data"])
+    return upload_class_schema().load({**response["data"], "base_url": get_nomad_base_url(use_prod)})
 
 
 def upload_files_to_nomad(filename: str, use_prod: bool = False, timeout_in_sec: int = 30) -> str:

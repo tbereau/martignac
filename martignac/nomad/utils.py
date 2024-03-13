@@ -58,6 +58,10 @@ def get_nomad_request(
     return response.json()
 
 
+def get_nomad_base_url(use_prod: bool) -> str:
+    return (NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL).removesuffix("/api/v1")
+
+
 def post_nomad_request(
     section: str,
     headers: dict = None,

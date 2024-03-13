@@ -16,40 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class SoluteGenFlow(MartiniFlowProject):
-    particle_def_itp: str = conf["itp_files"]["particle_definition"].get(str)
-    minimize_mdp: str = conf["mdp_files"]["minimize"].get(str)
-    n_threads: int = conf["settings"]["n_threads"].get(int)
-    system_name: str = conf["output_names"]["system"].get(str)
+    itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
+    mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
+    simulation_settings = {"n_threads": conf["settings"]["n_threads"].get(int)}
+    system_name = conf["output_names"]["system"].get(str)
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
-    generate_name: str = conf["output_names"]["states"]["generate"].get(str)
-    minimize_name: str = conf["output_names"]["states"]["minimize"].get(str)
-    bond_length: float = conf["parameters"]["bond_length"].get(float)
-    number_excl: int = conf["parameters"]["number_excl"].get(int)
-    bond_constant: float = conf["parameters"]["bond_constant"].get(float)
-
-    @classmethod
-    def get_solute_mol_name(cls) -> str:
-        return f"{cls.system_name}_{cls.generate_name}"
-
-    @classmethod
-    def get_solute_mol_gro(cls) -> str:
-        return f"{cls.get_solute_mol_name()}.gro"
-
-    @classmethod
-    def get_solute_min_name(cls) -> str:
-        return f"{cls.system_name}_{cls.minimize_name}"
-
-    @classmethod
-    def get_solute_min_gro(cls) -> str:
-        return f"{cls.get_solute_min_name()}.gro"
-
-    @classmethod
-    def get_solute_itp(cls) -> str:
-        return f"{cls.system_name}.itp"
-
-    @classmethod
-    def get_solute_top(cls) -> str:
-        return f"{cls.system_name}.top"
+    state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
+    ff_parameters = {
+        "number_excl": conf["parameters"]["number_excl"].get(int),
+        "bond_length": conf["parameters"]["bond_length"].get(float),
+        "bond_constant": conf["parameters"]["bond_constant"].get(float),
+    }
 
 
 project = SoluteGenFlow().get_project()
@@ -58,15 +35,15 @@ project = SoluteGenFlow().get_project()
 @SoluteGenFlow.label
 def generated(job: Job):
     return (
-        job.isfile(SoluteGenFlow.get_solute_mol_gro())
-        and job.isfile(SoluteGenFlow.get_solute_itp())
-        and job.isfile(SoluteGenFlow.get_solute_top())
+        job.isfile(SoluteGenFlow.get_state_name("generate", "gro"))
+        and job.isfile(SoluteGenFlow.get_state_name("", "itp"))
+        and job.isfile(SoluteGenFlow.get_state_name("", "top"))
     )
 
 
 @SoluteGenFlow.label
 def minimized(job: Job):
-    return job.isfile(SoluteGenFlow.get_solute_min_gro())
+    return job.isfile(SoluteGenFlow.get_state_name("minimize", "gro"))
 
 
 @SoluteGenFlow.post(generated)
@@ -74,19 +51,19 @@ def minimized(job: Job):
 def solvate(job: Job) -> None:
     molecule = get_molecule_from_name(
         job.sp.solute_name,
-        bond_length=SoluteGenFlow.bond_length,
-        bond_constant=SoluteGenFlow.bond_constant,
-        number_excl=SoluteGenFlow.number_excl,
+        bond_length=SoluteGenFlow.ff_parameters["bond_length"],
+        bond_constant=SoluteGenFlow.ff_parameters["bond_constant"],
+        number_excl=SoluteGenFlow.ff_parameters["number_excl"],
     )
-    generate_gro_file_for_molecule(molecule, SoluteGenFlow.get_solute_mol_gro())
-    generate_itp_file_for_molecule(molecule, SoluteGenFlow.get_solute_itp())
+    generate_gro_file_for_molecule(molecule, SoluteGenFlow.get_state_name("generate", "gro"))
+    generate_itp_file_for_molecule(molecule, SoluteGenFlow.get_state_name("", "itp"))
     generate_top_file_for_molecule(
         molecule,
-        [SoluteGenFlow.particle_def_itp, SoluteGenFlow.get_solute_itp()],
-        SoluteGenFlow.get_solute_top(),
+        [*SoluteGenFlow.itp_files.values(), SoluteGenFlow.get_state_name("", "itp")],
+        SoluteGenFlow.get_state_name("", "top"),
     )
-    job.document["solute_itp"] = SoluteGenFlow.get_solute_itp()
-    job.document["solute_top"] = SoluteGenFlow.get_solute_top()
+    job.document["solute_itp"] = SoluteGenFlow.get_state_name("", "itp")
+    job.document["solute_top"] = SoluteGenFlow.get_state_name("", "top")
     job.document["solute_name"] = molecule.name
     return None
 
@@ -94,15 +71,15 @@ def solvate(job: Job) -> None:
 @SoluteGenFlow.pre(generated)
 @SoluteGenFlow.post(minimized)
 @SoluteGenFlow.operation(cmd=True, with_job=True)
-@SoluteGenFlow.log_gromacs_simulation(SoluteGenFlow.get_solute_min_name())
+@SoluteGenFlow.log_gromacs_simulation(SoluteGenFlow.get_state_name("minimize"))
 def minimize(job: Job):
-    job.document["solute_gro"] = SoluteGenFlow.get_solute_min_gro()
+    job.document["solute_gro"] = SoluteGenFlow.get_state_name("minimize", "gro")
     return gromacs_simulation_command(
-        mdp=SoluteGenFlow.minimize_mdp,
-        top=SoluteGenFlow.get_solute_top(),
-        gro=SoluteGenFlow.get_solute_mol_gro(),
-        name=SoluteGenFlow.get_solute_min_name(),
-        n_threads=SoluteGenFlow.n_threads,
+        mdp=SoluteGenFlow.mdp_files["minimize"],
+        top=SoluteGenFlow.get_state_name("", "top"),
+        gro=SoluteGenFlow.get_state_name("generate", "gro"),
+        name=SoluteGenFlow.get_state_name("minimize"),
+        n_threads=SoluteGenFlow.simulation_settings["n_threads"],
     )
 
 

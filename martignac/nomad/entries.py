@@ -1,14 +1,15 @@
 import datetime as dt
+import json
 import logging
 from dataclasses import field
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
 from martignac.nomad.datasets import NomadDataset
 from martignac.nomad.users import NomadUser, get_user_by_id
-from martignac.nomad.utils import get_nomad_request, post_nomad_request
+from martignac.nomad.utils import get_nomad_base_url, get_nomad_request, post_nomad_request
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,31 @@ class NomadEntry:
     text_search_contents: Optional[list[str]] = None
     publish_time: Optional[dt.datetime] = None
     entry_references: Optional[list[dict]] = None
+    base_url: Optional[str] = None
+
+    @property
+    def nomad_gui_url(self) -> str:
+        return f"{self.base_url}/gui/user/uploads/upload/id/{self.upload_id}/entry/id/{self.entry_id}"
+
+    @property
+    def job_id(self) -> str:
+        return self._comment_dict["job_id"]
+
+    @property
+    def worfklow_name(self) -> str:
+        return self._comment_dict["workflow_name"]
+
+    @property
+    def state_point(self) -> dict:
+        return self._comment_dict["state_point"]
+
+    @property
+    def mdp_files(self) -> Dict[str, str]:
+        return self._comment_dict["mdp_files"]
+
+    @property
+    def _comment_dict(self) -> dict:
+        return json.loads(self.comment)
 
 
 def get_entry_by_id(entry_id: str, use_prod: bool = True, with_authentication: bool = False) -> NomadEntry:
@@ -81,7 +107,7 @@ def get_entry_by_id(entry_id: str, use_prod: bool = True, with_authentication: b
         use_prod=use_prod,
     )
     nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
-    return nomad_entry_schema().load(response["data"])
+    return nomad_entry_schema().load({**response["data"], "base_url": get_nomad_base_url(use_prod)})
 
 
 def get_entries_of_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
@@ -92,7 +118,10 @@ def get_entries_of_upload(upload_id: str, use_prod: bool = False, timeout_in_sec
         timeout_in_sec=timeout_in_sec,
     )
     nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
-    return [nomad_entry_schema().load(r["entry_metadata"]) for r in response["data"]]
+    return [
+        nomad_entry_schema().load({**r["entry_metadata"], "base_url": get_nomad_base_url(use_prod)})
+        for r in response["data"]
+    ]
 
 
 def query_entries(

@@ -122,6 +122,7 @@ class Molecule:
         name = entry["moleculetype"][0][0]
         number_excl = entry["moleculetype"][0][1]
         atoms = [Atom.parse_from_itp_entry(e) for e in entry["atoms"]]
+        bonds, angles, constraints = [], [], []
         with suppress(KeyError):
             bonds = [Bond.parse_from_itp_entry(e) for e in entry["bonds"]]
         with suppress(KeyError):
@@ -249,9 +250,9 @@ def _get_atom_from_string(atom_string: str, i: int) -> Atom:
 def get_molecule_from_name(
     molecule_name: str,
     bond_length: float,
-    bond_constant: float | None = None,
+    bond_constant: Optional[float] = None,
     number_excl: int = 3,
-    molecule_label: str | None = None,
+    molecule_label: Optional[str] = None,
 ) -> Molecule:
     particle_names = molecule_name.split(",")[0].split()
     # Construct list of atoms

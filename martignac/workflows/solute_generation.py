@@ -9,13 +9,16 @@ from martignac.parsers.gromacs_forcefields import (
     get_molecule_from_name,
 )
 from martignac.utils.gromacs import gromacs_simulation_command
-from martignac.utils.martini_flow_projects import MartiniFlowProject
+from martignac.utils.martini_flow_projects import MartiniFlowProject, fetched_from_nomad, uploaded_to_nomad
 
 conf = config()["solute_generation"]
 logger = logging.getLogger(__name__)
 
 
 class SoluteGenFlow(MartiniFlowProject):
+    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
+    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
     simulation_settings = {"n_threads": conf["settings"]["n_threads"].get(int)}
@@ -29,7 +32,7 @@ class SoluteGenFlow(MartiniFlowProject):
     }
 
 
-project = SoluteGenFlow().get_project()
+project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
 
 
 @SoluteGenFlow.label
@@ -46,6 +49,7 @@ def minimized(job: Job):
     return job.isfile(SoluteGenFlow.get_state_name("minimize", "gro"))
 
 
+@SoluteGenFlow.pre(fetched_from_nomad)
 @SoluteGenFlow.post(generated)
 @SoluteGenFlow.operation(with_job=True)
 def solvate(job: Job) -> None:
@@ -73,7 +77,6 @@ def solvate(job: Job) -> None:
 @SoluteGenFlow.operation(cmd=True, with_job=True)
 @SoluteGenFlow.log_gromacs_simulation(SoluteGenFlow.get_state_name("minimize"))
 def minimize(job: Job):
-    job.document["solute_gro"] = SoluteGenFlow.get_state_name("minimize", "gro")
     return gromacs_simulation_command(
         mdp=SoluteGenFlow.mdp_files["minimize"],
         top=SoluteGenFlow.get_state_name("", "top"),
@@ -83,7 +86,27 @@ def minimize(job: Job):
     )
 
 
+@SoluteGenFlow.label
+def equilibrated(job: Job) -> bool:
+    return job.isfile(SoluteGenFlow.get_state_name("equilibrate", "gro"))
+
+
 @SoluteGenFlow.pre(minimized)
+@SoluteGenFlow.post(equilibrated)
+@SoluteGenFlow.operation(cmd=True, with_job=True)
+@SoluteGenFlow.log_gromacs_simulation(SoluteGenFlow.get_state_name("equilibrate"))
+def equilibrate(job: Job):
+    job.document["solute_gro"] = SoluteGenFlow.get_state_name("equilibrate", "gro")
+    return gromacs_simulation_command(
+        mdp=SoluteGenFlow.mdp_files["equilibrate"],
+        top=SoluteGenFlow.get_state_name("", "top"),
+        gro=SoluteGenFlow.get_state_name("minimize", "gro"),
+        name=SoluteGenFlow.get_state_name("equilibrate"),
+        n_threads=SoluteGenFlow.simulation_settings["n_threads"],
+    )
+
+
+@SoluteGenFlow.pre(equilibrated)
 @SoluteGenFlow.post(lambda job: job.isfile(SoluteGenFlow.nomad_workflow))
 @SoluteGenFlow.operation(with_job=True)
 def generate_nomad_workflow(job: Job):
@@ -92,7 +115,7 @@ def generate_nomad_workflow(job: Job):
 
 
 @SoluteGenFlow.pre(lambda job: job.isfile(SoluteGenFlow.nomad_workflow))
-@SoluteGenFlow.post(lambda job: job.document.get("nomad_upload_id", False))
+@SoluteGenFlow.post(lambda job: uploaded_to_nomad(job))
 @SoluteGenFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return SoluteGenFlow.upload_to_nomad(job)

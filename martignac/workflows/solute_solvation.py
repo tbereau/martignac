@@ -1,17 +1,18 @@
 import logging
+from typing import cast
 
 import networkx as nx
 
 from martignac import config
-from martignac.nomad.workflows import NomadTopLevelWorkflow, NomadWorkflow
+from martignac.nomad.workflows import Job, NomadTopLevelWorkflow, NomadWorkflow
 from martignac.parsers.gromacs_topologies import Topology, append_all_includes_to_top
 from martignac.utils.gromacs import (
     gromacs_simulation_command,
     solvate_solute_command,
 )
-from martignac.utils.martini_flow_projects import Job, MartiniFlowProject
-from martignac.workflows.solute_generation import SoluteGenFlow
-from martignac.workflows.solvent_generation import SolventGenFlow
+from martignac.utils.martini_flow_projects import MartiniFlowProject, import_job_from_other_flow, uploaded_to_nomad
+from martignac.workflows.solute_generation import project as solute_gen_project
+from martignac.workflows.solvent_generation import project as solvent_gen_project
 
 logger = logging.getLogger(__name__)
 
@@ -19,46 +20,29 @@ conf = config()["solute_solvation"]
 
 
 class SoluteSolvationFlow(MartiniFlowProject):
-    minimize_mdp: str = conf["mdp_files"]["minimize"].get(str)
-    equilibrate_mdp: str = conf["mdp_files"]["equilibrate"].get(str)
-    n_threads: int = conf["settings"]["n_threads"].get(int)
-    system_name: str = conf["output_names"]["system"].get(str)
+    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
+    itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
+    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
+    simulation_settings = {"n_threads": conf["settings"]["n_threads"].get(int)}
+    system_name = conf["output_names"]["system"].get(str)
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
     nomad_top_level_workflow: str = conf["output_names"]["nomad_top_level_workflow"].get(str)
-    generate_name: str = conf["output_names"]["states"]["generate"].get(str)
-    minimize_name: str = conf["output_names"]["states"]["minimize"].get(str)
-    equilibrate_name: str = conf["output_names"]["states"]["equilibrate"].get(str)
-
-    @classmethod
-    def get_system_gen_name(cls) -> str:
-        return f"{cls.system_name}_{cls.generate_name}"
-
-    @classmethod
-    def get_system_gen_gro(cls) -> str:
-        return f"{cls.get_system_gen_name()}.gro"
-
-    @classmethod
-    def get_system_min_name(cls) -> str:
-        return f"{cls.system_name}_{cls.minimize_name}"
-
-    @classmethod
-    def get_system_min_gro(cls) -> str:
-        return f"{cls.get_system_min_name()}.gro"
-
-    @classmethod
-    def get_system_equ_name(cls) -> str:
-        return f"{cls.system_name}_{cls.equilibrate_name}"
-
-    @classmethod
-    def get_system_equ_gro(cls) -> str:
-        return f"{cls.get_system_equ_name()}.gro"
-
-    @classmethod
-    def get_top(cls) -> str:
-        return f"{cls.system_name}.top"
+    state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
 
-project = SoluteSolvationFlow().get_project()
+project = SoluteSolvationFlow.get_project(path=SoluteSolvationFlow.workspace_path)
+
+
+def get_solute_job(job: Job) -> Job:
+    sp = {"type": "solute", "solute_name": job.sp.get("solute_name")}
+    return solute_gen_project.open_job(sp).init()
+
+
+def get_solvent_job(job: Job) -> Job:
+    sp = {"type": "solvent", "solvent_name": job.sp.get("solvent_name")}
+    return solvent_gen_project.open_job(sp).init()
 
 
 @SoluteSolvationFlow.label
@@ -73,33 +57,39 @@ def solvent_generated(job) -> bool:
 
 @SoluteSolvationFlow.post(solute_generated)
 @SoluteSolvationFlow.operation
-def generate_solute(job):
-    job.document["upload_to_nomad"] = False
-    SoluteGenFlow().run(jobs=[job])
-    job.document["upload_to_nomad"] = True
+def generate_solute(job: Job):
+    solute_job: Job = get_solute_job(job)
+    files_to_copy = [
+        solute_job.document["solute_gro"],
+        solute_job.document["solute_top"],
+        solute_job.document["solute_itp"],
+    ]
+    update_keys = ["solute_gro", "solute_top", "solute_itp", "solute_name"]
+    import_job_from_other_flow(job, solute_gen_project, solute_job, files_to_copy, update_keys)
 
 
 @SoluteSolvationFlow.post(solvent_generated)
 @SoluteSolvationFlow.operation
 def generate_solvent(job):
-    job.document["upload_to_nomad"] = False
-    SolventGenFlow().run(jobs=[job])
-    job.document["upload_to_nomad"] = True
+    solvent_job: Job = get_solvent_job(job)
+    files_to_copy = [solvent_job.document["solvent_gro"], solvent_job.document["solvent_top"]]
+    update_keys = ["solvent_gro", "solvent_top", "solvent_name"]
+    import_job_from_other_flow(job, solvent_gen_project, solvent_job, files_to_copy, update_keys)
 
 
 @SoluteSolvationFlow.label
 def system_generated(job):
-    return job.isfile(SoluteSolvationFlow.get_system_gen_gro())
+    return job.isfile(SoluteSolvationFlow.get_state_name("generate", "gro"))
 
 
 @SoluteSolvationFlow.label
 def system_minimized(job):
-    return job.isfile(SoluteSolvationFlow.get_system_min_gro())
+    return job.isfile(SoluteSolvationFlow.get_state_name("minimize", "gro"))
 
 
 @SoluteSolvationFlow.label
 def system_equilibrated(job):
-    return job.isfile(SoluteSolvationFlow.get_system_equ_gro())
+    return job.isfile(SoluteSolvationFlow.get_state_name("equilibrate", "gro"))
 
 
 @SoluteSolvationFlow.pre(solute_generated)
@@ -111,43 +101,43 @@ def solvate(job):
         gro_solute=job.document["solute_gro"],
         gro_solvent=job.document["solvent_gro"],
         top_solute=job.document["solute_top"],
-        top_output=SoluteSolvationFlow.get_top(),
-        output_name=SoluteSolvationFlow.get_system_gen_name(),
+        top_output=SoluteSolvationFlow.get_state_name(extension="top"),
+        output_name=SoluteSolvationFlow.get_state_name("generate"),
     )
 
 
 @SoluteSolvationFlow.pre(system_generated)
 @SoluteSolvationFlow.post(system_minimized)
 @SoluteSolvationFlow.operation(cmd=True, with_job=True)
-@SoluteSolvationFlow.log_gromacs_simulation(SoluteSolvationFlow.get_system_min_name())
+@SoluteSolvationFlow.log_gromacs_simulation(SoluteSolvationFlow.get_state_name("minimize"))
 def minimize(job):
     solute_top = Topology.parse_top_file(job.document["solute_top"])
     solvent_top = Topology.parse_top_file(job.document["solvent_top"])
-    solute_solvent_top = Topology.parse_top_file(SoluteSolvationFlow.get_top())
+    solute_solvent_top = Topology.parse_top_file(SoluteSolvationFlow.get_state_name(extension="top"))
     new_top = append_all_includes_to_top(solute_solvent_top, [solvent_top, solute_top])
-    new_top.output_top(SoluteSolvationFlow.get_top())
-    job.document["solute_solvent_top"] = SoluteSolvationFlow.get_top()
+    new_top.output_top(SoluteSolvationFlow.get_state_name(extension="top"))
+    job.document["solute_solvent_top"] = SoluteSolvationFlow.get_state_name(extension="top")
     return gromacs_simulation_command(
-        mdp=SoluteSolvationFlow.minimize_mdp,
-        top=SoluteSolvationFlow.get_top(),
-        gro=SoluteSolvationFlow.get_system_gen_gro(),
-        name=SoluteSolvationFlow.get_system_min_name(),
-        n_threads=SoluteSolvationFlow.n_threads,
+        mdp=SoluteSolvationFlow.mdp_files.get("minimize"),
+        top=SoluteSolvationFlow.get_state_name(extension="top"),
+        gro=SoluteSolvationFlow.get_state_name("generate", "gro"),
+        name=SoluteSolvationFlow.get_state_name("minimize"),
+        n_threads=SoluteSolvationFlow.simulation_settings.get("n_threads"),
     )
 
 
 @SoluteSolvationFlow.pre(system_minimized)
 @SoluteSolvationFlow.post(system_equilibrated)
 @SoluteSolvationFlow.operation(cmd=True, with_job=True)
-@SoluteSolvationFlow.log_gromacs_simulation(SoluteSolvationFlow.get_system_equ_name())
+@SoluteSolvationFlow.log_gromacs_simulation(SoluteSolvationFlow.get_state_name("equilibrate"))
 def equilibrate(job):
-    job.document["solute_solvent_gro"] = SoluteSolvationFlow.get_system_equ_gro()
+    job.document["solute_solvent_gro"] = SoluteSolvationFlow.get_state_name("equilibrate", "gro")
     return gromacs_simulation_command(
-        mdp=SoluteSolvationFlow.equilibrate_mdp,
-        top=SoluteSolvationFlow.get_top(),
-        gro=SoluteSolvationFlow.get_system_min_gro(),
-        name=SoluteSolvationFlow.get_system_equ_name(),
-        n_threads=SoluteSolvationFlow.n_threads,
+        mdp=SoluteSolvationFlow.mdp_files.get("equilibrate"),
+        top=SoluteSolvationFlow.get_state_name(extension="top"),
+        gro=SoluteSolvationFlow.get_state_name("minimize", "gro"),
+        name=SoluteSolvationFlow.get_state_name("equilibrate"),
+        n_threads=SoluteSolvationFlow.simulation_settings.get("n_threads"),
     )
 
 
@@ -159,20 +149,27 @@ def equilibrate(job):
 )
 @SoluteSolvationFlow.operation(with_job=True)
 def generate_nomad_workflow(job):
-    workflow = NomadWorkflow(project, job)
-    workflow.build_workflow_yaml(SoluteSolvationFlow.nomad_workflow)
-    graph = nx.DiGraph([("SoluteGenFlow", "SoluteSolvationFlow"), ("SolventGenFlow", "SoluteSolvationFlow")])
     projects = {
         "SoluteSolvationFlow": project,
-        "SoluteGenFlow": SoluteGenFlow.get_project(),
-        "SolventGenFlow": SolventGenFlow.get_project(),
+        "SoluteGenFlow": solute_gen_project,
+        "SolventGenFlow": solvent_gen_project,
     }
-    top_level_workflow = NomadTopLevelWorkflow(projects, job, graph)
+    jobs = {
+        "SoluteSolvationFlow": job,
+        "SoluteGenFlow": get_solute_job(job),
+        "SolventGenFlow": get_solvent_job(job),
+    }
+    for workflow_name in projects:
+        workflow = NomadWorkflow(projects[workflow_name], job)
+        workflow_flow = cast(MartiniFlowProject, locals()[workflow_name])
+        workflow.build_workflow_yaml(workflow_flow.nomad_workflow)
+    graph = nx.DiGraph([("SoluteGenFlow", "SoluteSolvationFlow"), ("SolventGenFlow", "SoluteSolvationFlow")])
+    top_level_workflow = NomadTopLevelWorkflow(projects, jobs, graph)
     top_level_workflow.build_workflow_yaml(SoluteSolvationFlow.nomad_top_level_workflow)
 
 
 @SoluteSolvationFlow.pre(lambda job: job.isfile(SoluteSolvationFlow.nomad_top_level_workflow))
-@SoluteSolvationFlow.post(lambda job: job.document.get("nomad_upload_id", False))
+@SoluteSolvationFlow.post(lambda job: uploaded_to_nomad(job))
 @SoluteSolvationFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return SoluteSolvationFlow.upload_to_nomad(job)

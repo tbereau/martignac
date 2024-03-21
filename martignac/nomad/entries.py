@@ -1,17 +1,29 @@
 import datetime as dt
 import json
 import logging
+import os
+import shutil
 from dataclasses import field
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, ByteString, Optional, cast
+from zipfile import ZipFile
 
+from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
+from signac.job import Job
 
+from martignac import config
 from martignac.nomad.datasets import NomadDataset
+from martignac.nomad.uploads import get_all_my_uploads
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import get_nomad_base_url, get_nomad_request, post_nomad_request
+from martignac.utils.martini_flow_projects import MartiniFlowProject
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_DATABASE = config()["nomad"]["dataset"]["id"].get(str)
+DEFAULT_USE_PROD = config()["nomad"]["use_prod"].get(bool)
 
 
 @dataclass(frozen=True)
@@ -72,44 +84,57 @@ class NomadEntry:
     text_search_contents: Optional[list[str]] = None
     publish_time: Optional[dt.datetime] = None
     entry_references: Optional[list[dict]] = None
-    base_url: Optional[str] = None
+    use_prod: Optional[bool] = None
+
+    @property
+    def base_url(self) -> Optional[str]:
+        if self.use_prod is not None:
+            return get_nomad_base_url(self.use_prod)
+        return None
 
     @property
     def nomad_gui_url(self) -> str:
+        if self.base_url is None:
+            raise ValueError(f"missing attribute 'use_prod' for entry {self}")
         return f"{self.base_url}/gui/user/uploads/upload/id/{self.upload_id}/entry/id/{self.entry_id}"
 
     @property
-    def job_id(self) -> str:
-        return self._comment_dict["job_id"]
+    def job_id(self) -> Optional[str]:
+        return self._comment_dict.get("job_id", None)
 
     @property
-    def worfklow_name(self) -> str:
-        return self._comment_dict["workflow_name"]
+    def workflow_name(self) -> Optional[str]:
+        return self._comment_dict.get("workflow_name", None)
 
     @property
     def state_point(self) -> dict:
-        return self._comment_dict["state_point"]
+        return self._comment_dict.get("state_point", {})
 
     @property
-    def mdp_files(self) -> Dict[str, str]:
-        return self._comment_dict["mdp_files"]
+    def mdp_files(self) -> Optional[str]:
+        return self._comment_dict.get("mdp_files", None)
 
     @property
     def _comment_dict(self) -> dict:
-        return json.loads(self.comment)
+        return json.loads(self.comment or "{}")
 
 
-def get_entry_by_id(entry_id: str, use_prod: bool = True, with_authentication: bool = False) -> NomadEntry:
+@ttl_cache(maxsize=128, ttl=180)
+def get_entry_by_id(
+    entry_id: str, use_prod: bool = True, with_authentication: bool = False, timeout_in_sec: int = 10
+) -> NomadEntry:
     logger.info(f"retrieving entry {entry_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         f"/entries/{entry_id}",
         with_authentication=with_authentication,
         use_prod=use_prod,
+        timeout_in_sec=timeout_in_sec,
     )
     nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
-    return nomad_entry_schema().load({**response["data"], "base_url": get_nomad_base_url(use_prod)})
+    return nomad_entry_schema().load({**response["data"], "use_prod": use_prod})
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def get_entries_of_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
     logger.info(f"retrieving entries for upload {upload_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
@@ -118,12 +143,22 @@ def get_entries_of_upload(upload_id: str, use_prod: bool = False, timeout_in_sec
         timeout_in_sec=timeout_in_sec,
     )
     nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
+    return [nomad_entry_schema().load({**r["entry_metadata"], "use_prod": use_prod}) for r in response["data"]]
+
+
+def get_entries_of_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
     return [
-        nomad_entry_schema().load({**r["entry_metadata"], "base_url": get_nomad_base_url(use_prod)})
-        for r in response["data"]
+        upload_entry
+        for u in get_all_my_uploads(use_prod=use_prod, timeout_in_sec=timeout_in_sec)
+        for upload_entry in get_entries_of_upload(u.upload_id)
     ]
 
 
+def get_entries_in_database(database_id: str = DEFAULT_DATABASE, use_prod: bool = DEFAULT_USE_PROD) -> list[NomadEntry]:
+    return query_entries(dataset_id=database_id, use_prod=use_prod)
+
+
+@ttl_cache(maxsize=128, ttl=180)
 def query_entries(
     worfklow_name: str = None,
     program_name: str = None,
@@ -158,3 +193,77 @@ def query_entries(
     if max_entries > 0:
         entries = entries[:max_entries]
     return [get_entry_by_id(e, use_prod=use_prod) for e in entries]
+
+
+def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
+    entries = find_entries_corresponding_to_job(job)
+    if len(entries) == 0:
+        return False
+    entry = entries[0]
+    zip_content = _get_raw_data_of_entry_by_id(
+        entry.entry_id, use_prod=entry.use_prod, timeout_in_sec=timeout_in_sec, with_authentication=not entry.published
+    )
+    zip_file_name = "nomad_archive.zip"
+    with open(job.fn(zip_file_name), "wb") as f:
+        f.write(bytes(zip_content))
+    zip_file = ZipFile(job.fn(zip_file_name))
+    archive_path = job.path + "/" + entry.upload_id
+    name_list = zip_file.namelist()
+    name_list = [name for name in name_list if name.startswith(f"{entry.upload_id}/")]
+    zip_file.extractall(path=job.path, members=name_list)
+    for file_name in name_list:
+        if Path(file_name).name not in os.listdir(job.path):
+            shutil.move(job.path + "/" + file_name, job.path)
+    os.remove(job.fn(zip_file_name))
+    if "signac_job_document.json" in os.listdir(archive_path):
+        with open(archive_path + "/signac_job_document.json") as fp:
+            json_data = json.load(fp)
+            job.document.update(json_data)
+    for file_name in os.listdir(archive_path):
+        os.remove(archive_path + "/" + file_name)
+    os.removedirs(archive_path)
+    job.document["nomad_dataset_id"] = MartiniFlowProject.nomad_dataset_id
+    if "nomad_upload_id" not in job.document:
+        job.document["nomad_upload_id"] = {}
+    job.document["nomad_upload_id"][entry.workflow_name] = entry.upload_id
+    return True
+
+
+def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
+    if not issubclass(type(job.project), MartiniFlowProject):
+        raise TypeError(f"job project {type(job.project)} does not derive from MartiniFlowProject")
+    project = cast("MartiniFlowProject", job.project)
+
+    def associate_entry_to_job(entry_: NomadEntry) -> Optional[NomadEntry]:
+        if entry_.comment is not None and entry_.job_id == job.id and entry_.mdp_files == project.get_mdp_hash(job):
+            return entry_
+
+    match_entries = []
+    nomad_entries = query_entries(dataset_id=project.nomad_dataset_id, use_prod=project.nomad_use_prod_database)
+    for entry in nomad_entries:
+        if found_entry := associate_entry_to_job(entry):
+            match_entries.append(found_entry)
+    my_uploads = get_all_my_uploads(use_prod=project.nomad_use_prod_database)
+    for upload in my_uploads:
+        upload_entries = get_entries_of_upload(upload.upload_id)
+        for entry in upload_entries:
+            if found_entry := associate_entry_to_job(entry):
+                match_entries.append(found_entry)
+    if len(match_entries) > 0 and not all([entry.upload_id == match_entries[0].upload_id for entry in match_entries]):
+        raise ValueError(f"Inconsistent upload IDs in entries:\n{match_entries}")
+    return match_entries
+
+
+def _get_raw_data_of_entry_by_id(
+    entry_id: str, use_prod: bool = False, timeout_in_sec: int = 10, with_authentication: bool = False
+) -> ByteString:
+    logger.info(f"retrieving raw data of entry ID {entry_id} on {'prod' if use_prod else 'test'} server")
+    response = get_nomad_request(
+        f"/entries/{entry_id}/raw?compress=true",
+        with_authentication=with_authentication,
+        use_prod=use_prod,
+        timeout_in_sec=timeout_in_sec,
+        return_json=False,
+        accept_field="application/zip",
+    )
+    return response

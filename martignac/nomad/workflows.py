@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Dict
@@ -7,6 +8,8 @@ import yaml
 from signac.job import Job
 
 from martignac.utils.martini_flow_projects import MartiniFlowProject
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -27,6 +30,7 @@ class NomadWorkflow:
         graph = nx.DiGraph()
         operations = self.project._collect_operations()
         if "gromacs_logs" not in self.job.document:
+            logger.error(f"no 'gromacs_logs' in job.document {self.job.id}")
             return nx.DiGraph()
         for op_name, _op_func in operations:
             if op_name in self.gromacs_logs:
@@ -41,10 +45,12 @@ class NomadWorkflow:
 
     def build_workflow_yaml(self, destination_filename: str) -> None:
         graph = self.graph
+        logger.info(f"building workflow graph for {destination_filename}")
         workflow_output = {"workflow2": {}}
         sub_dict = workflow_output["workflow2"]
         if len(graph.nodes) == 0:
-            return None
+            logger.error(f"no graph nodes for workflow {destination_filename}")
+            raise ValueError(f"empty graph for {self.project}: {graph}")
         node_name, node_dict = list(graph.nodes.items())[0]
         sub_dict["inputs"] = [_construct_yaml_section("input system", node_dict["label"], 0)]
         node_name, node_dict = list(graph.nodes.items())[-1]
@@ -90,20 +96,23 @@ class NomadWorkflow:
 @dataclass
 class NomadTopLevelWorkflow:
     projects: Dict[str, MartiniFlowProject]
-    job: Job
+    jobs: Dict[str, Job]
     graph: nx.DiGraph
 
     def build_workflow_yaml(self, destination_filename: str) -> None:
         workflow_output = {"workflow2": {}}
+        logger.info(f"building top-level workflow graph for {destination_filename}")
         sub_dict = workflow_output["workflow2"]
         if len(self.graph.nodes) == 0:
+            logger.error(f"no graph nodes for top-level workflow {destination_filename}")
             return None
         start_nodes = [n for n, d in self.graph.in_degree if d == 0]
         sub_dict["inputs"] = []
         for node in start_nodes:
             project = self.projects[node]
-            input_graph = NomadWorkflow(project, self.job).graph
+            input_graph = NomadWorkflow(project, self.jobs[node]).graph
             if len(input_graph) == 0:
+                logger.error(f"no graph start nodes for {node}: {input_graph}")
                 return None
             _, node_dict = list(input_graph.nodes.items())[0]
             sub_dict["inputs"].append(_construct_yaml_section(f"Input for {node}", node_dict["label"], 0))
@@ -112,8 +121,9 @@ class NomadTopLevelWorkflow:
         sub_dict["outputs"] = []
         for node in end_nodes:
             project = self.projects[node]
-            input_graph = NomadWorkflow(project, self.job).graph
+            input_graph = NomadWorkflow(project, self.jobs[node]).graph
             if len(input_graph) == 0:
+                logger.error(f"no graph end nodes for top-level workflow {destination_filename}")
                 return None
             _, node_dict = list(input_graph.nodes.items())[-1]
             sub_dict["outputs"].append(_construct_yaml_section(f"Output for {node}", node_dict["label"], -1))
@@ -126,10 +136,12 @@ class NomadTopLevelWorkflow:
                 else [n2 for _, n2 in self.graph.edges(node_first)]
             )
             for node_next in other_nodes:
-                workflow_name = self.job.document["nomad_workflow"][node_first]
-                input_graph = NomadWorkflow(self.projects[node_first], self.job).graph
+                job = self.jobs[node_first]
+                workflow_name = job.document["nomad_workflow"][node_first]
+                input_graph = NomadWorkflow(self.projects[node_first], job).graph
                 input_file = list(input_graph.nodes.values())[0]["label"]
-                output_graph = NomadWorkflow(self.projects[node_next], self.job).graph
+                job = self.jobs[node_next]
+                output_graph = NomadWorkflow(self.projects[node_next], job).graph
                 snapshot_number = -1 if node_first == node_next else 0
                 output_file = list(output_graph.nodes.values())[snapshot_number]["label"]
                 snapshot_number = 0 if self.graph.in_degree[node_first] == 0 else -1

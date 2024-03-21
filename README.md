@@ -16,10 +16,13 @@ git remote add origin git@lin0.thphys.uni-heidelberg.de:bereau/martignac.git
 git push -u origin main
 ```
 
-Finally, install the environment and the pre-commit hooks with 
+Finally, setup a virtual environment (Python 3.9 recommended) and install the package 
 
 ```bash
-make install
+virtualenv --python="/path/to/python/version" .venv
+pip install --upgrade pip
+python setup.py install
+pip install -e .
 ```
 
 You are now ready to start development on your project! The CI/CD
@@ -40,6 +43,12 @@ Update `requirements.txt` from `pyproject.toml` with piptools, and then install 
 pip install pip-tools
 python -m piptools compile -o requirements.txt pyproject.toml
 pip install -r requirements.txt
+```
+
+For development:
+
+```bash
+pip install -r test_requirements.txt
 ```
 
 If you don't already have Gromacs installed, you can quickly install with conda via:
@@ -80,5 +89,3 @@ The results can be found in `workspace/`
 
 
 ---
-
-Repository initiated with [fpgmaas/cookiecutter-poetry](https://github.com/fpgmaas/cookiecutter-poetry).

@@ -5,12 +5,22 @@ nomad:
   coauthors:
     - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
 
+local:
+  workspaces:
+    absolute_path: "/Users/bereau/work/projects/martignac/workspaces"
+  input_files:
+    absolute_path: "/Users/bereau/work/projects/martignac/scripts"
 
 solute_generation:
+  relative_paths:
+    workspaces: "solute_generation"
+    itp_files: "martini_v300"
+    mdp_files: "solute_generation/mdp_files"
   itp_files:
-    particle_definition: "../../../martini_v300/martini_v3.0.0.itp"
+    particle_definition: "martini_v3.0.0.itp"
   mdp_files:
-    minimize: "../../../martini_solute_gen/mdp_files/min.mdp"
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
   settings:
     n_threads: 1
   output_names:
@@ -19,19 +29,24 @@ solute_generation:
     states:
       generate: "gen_mol"
       minimize: "min"
+      equilibrate: "equ"
   parameters:
     bond_length: 0.360
     bond_constant: 100000
     number_excl: 3
 
 solvent_generation:
+  relative_paths:
+    workspaces: "solvent_generation"
+    itp_files: "martini_v300"
+    mdp_files: "solvent_generation/mdp_files"
   itp_files:
-    - "../../../martini_v300/martini_v3.0.0.itp"
-    - "../../../martini_v300/martini_v3.0.0_solvents_v1.itp"
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
   mdp_files:
-    minimize: "../../../martini_solvent_gen/mdp_files/min.mdp"
-    equilibrate: "../../../martini_solvent_gen/mdp_files/equ.mdp"
-    production: "../../../martini_solvent_gen/mdp_files/run.mdp"
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+    production: "run.mdp"
   settings:
     n_threads: 1
     box_length: 5.0
@@ -46,11 +61,18 @@ solvent_generation:
       prod: "prod"
 
 solute_solvation:
+  relative_paths:
+    workspaces: "solute_solvation"
+    itp_files: "martini_v300"
+    mdp_files: "solute_solvation/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
   settings:
     n_threads: 1
   mdp_files:
-    minimize: "../../../martini_solvate/mdp_files/min.mdp"
-    equilibrate: "../../../martini_solvate/mdp_files/equ.mdp"
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
   output_names:
     system: "solute_solvent"
     nomad_workflow: "solute_solvation.archive.yaml"
@@ -61,11 +83,13 @@ solute_solvation:
       equilibrate: "equ"
 
 alchemical_transformation:
+  workspaces:
+    relative_path: "alchemical_transformation"
   settings:
     n_threads: 2
     temperature: 300.
   mdp_files:
-    run: "../../../martini_fep/mdp_files/run_lambda.mdp"
+    run: "martini_fep/mdp_files/run_lambda.mdp"
   output_names:
     system: "fep"
     nomad_workflow: "alchemical_transformation.archive.yaml"
@@ -74,13 +98,15 @@ alchemical_transformation:
       run: "run"
 
 bilayer_generation:
+  workspaces:
+    relative_path: "bilayer_generation"
   itp_files:
-    - "../../../martini_v300/martini_v3.0.0.itp"
-    - "../../../martini_v300/martini_v3.0.0_solvents_v1.itp"
-    - "../../../martini_v300/martini_v3.0.0_phospholipids_v1.itp"
+    - "martini_v300/martini_v3.0.0.itp"
+    - "martini_v300/martini_v3.0.0_solvents_v1.itp"
+    - "martini_v300/martini_v3.0.0_phospholipids_v1.itp"
   mdp_files:
-    minimize: "../../../martini_bilayers/mdp_files/min.mdp"
-    equilibrate: "../../../martini_bilayers/mdp_files/equ.mdp"
+    minimize: "martini_bilayers/mdp_files/min.mdp"
+    equilibrate: "martini_bilayers/mdp_files/equ.mdp"
   settings:
     n_threads: 1
     box_length_xy: 10

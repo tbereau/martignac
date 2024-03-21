@@ -2,6 +2,7 @@ import datetime as dt
 import logging
 from typing import Any, Optional
 
+from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
@@ -32,7 +33,6 @@ class NomadUpload:
     last_status_message: str
     errors: list[Any]
     warnings: list[Any]
-    complete_time: dt.datetime
     coauthors: list[str]
     coauthor_groups: list[Any]
     reviewers: list[NomadUser]
@@ -55,13 +55,23 @@ class NomadUpload:
     external_db: Optional[str] = None
     upload_name: Optional[str] = None
     comment: Optional[str] = None
-    base_url: Optional[str] = None
+    use_prod: Optional[bool] = None
+    complete_time: Optional[dt.datetime] = None
+
+    @property
+    def base_url(self) -> Optional[str]:
+        if self.use_prod is not None:
+            return get_nomad_base_url(self.use_prod)
+        return None
 
     @property
     def nomad_gui_url(self) -> str:
+        if self.base_url is None:
+            raise ValueError(f"missing attribute 'use_prod' for upload {self}")
         return f"{self.base_url}/gui/user/uploads/upload/id/{self.upload_id}"
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadUpload]:
     logger.info(f"retrieving all uploads on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
@@ -70,7 +80,7 @@ def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list
         timeout_in_sec=timeout_in_sec,
     )
     upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
-    return [upload_class_schema().load({**r, "base_url": get_nomad_base_url(use_prod)}) for r in response["data"]]
+    return [upload_class_schema().load({**r, "use_prod": use_prod}) for r in response["data"]]
 
 
 def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> NomadUpload:
@@ -81,7 +91,7 @@ def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int
         timeout_in_sec=timeout_in_sec,
     )
     upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
-    return upload_class_schema().load({**response["data"], "base_url": get_nomad_base_url(use_prod)})
+    return upload_class_schema().load({**response["data"], "use_prod": use_prod})
 
 
 def upload_files_to_nomad(filename: str, use_prod: bool = False, timeout_in_sec: int = 30) -> str:

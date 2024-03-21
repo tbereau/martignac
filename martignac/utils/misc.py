@@ -1,7 +1,9 @@
 import logging
 import os
 import shutil
-from os.path import abspath, basename, join
+from collections.abc import Mapping
+from os.path import abspath, basename, islink, join
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import regex
 from MDAnalysis import Universe
@@ -51,14 +53,30 @@ def convert_pdb_to_gro(pdb_file: str, output_gro: str, box_length: float) -> Non
 def zip_directory(directory_name: str, output_file_name: str) -> str:
     # Determine the parent directory to initially save the archive
     parent_dir = abspath(join(directory_name, os.pardir))
-    intermediate_output_path = os.path.join(parent_dir, os.path.basename(output_file_name))
+    intermediate_output_path = join(parent_dir, basename(output_file_name)) + ".zip"
 
-    logger.info(f"Zipping {directory_name} to {intermediate_output_path}.zip")
-    archive_path = shutil.make_archive(intermediate_output_path, "zip", directory_name)
+    logger.info(f"Zipping {directory_name} to {intermediate_output_path}")
+
+    with ZipFile(intermediate_output_path, "w", ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(directory_name):
+            for file in files:
+                file_path = join(root, file)
+                # Exclude symlinks
+                if not islink(file_path):
+                    zipf.write(file_path, os.path.relpath(file_path, directory_name))
 
     # Move the archive to the original directory
-    final_output_path = os.path.join(directory_name, os.path.basename(output_file_name) + ".zip")
-    shutil.move(archive_path, final_output_path)
+    final_output_path = join(directory_name, basename(output_file_name) + ".zip")
+    os.rename(intermediate_output_path, final_output_path)
 
     logger.info(f"Moved archive to {final_output_path}")
     return final_output_path
+
+
+def update_nested_dict(d, u):
+    for k, v in u.items():
+        if isinstance(v, Mapping):
+            d[k] = update_nested_dict(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d

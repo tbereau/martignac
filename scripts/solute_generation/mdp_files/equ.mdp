@@ -1,0 +1,41 @@
+integrator               = md
+tinit                    = 0
+dt                       = 0.020
+
+nsteps                   = 1000
+
+comm-mode                = Linear
+nstcomm                  = 10
+
+nstxout                  = 0
+nstvout                  = 0
+nstfout                  = 0
+nstlog                   = 10000
+nstenergy                = 10000
+nstcalcenergy            = 10
+nstxtcout                = 10000
+
+cutoff-scheme            = Verlet
+nstlist                  = 20
+ns_type                  = grid
+pbc                      = xyz
+verlet-buffer-tolerance  = 0.005
+
+coulombtype              = reaction-field
+rcoulomb                 = 1.1
+epsilon_r                = 15   ; 2.5 (with polarizable water)
+epsilon_rf               = 0
+vdw_type                 = cutoff
+vdw-modifier             = Potential-shift-verlet
+rvdw                     = 1.1
+
+gen-vel                  = yes
+tc-grps                  = System
+tcoupl                   = v-rescale
+tau_t                    = 1.0
+ref_t                    = 300
+
+Pcoupl                   = No
+tau_p                    = 4.0
+compressibility          = 3e-5
+ref_p                    = 1.0

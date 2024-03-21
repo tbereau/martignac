@@ -9,7 +9,7 @@ from martignac.parsers.gromacs_structures import get_number_of_molecules_from_gr
 from martignac.utils.gromacs import (
     gromacs_simulation_command,
 )
-from martignac.utils.martini_flow_projects import MartiniFlowProject
+from martignac.utils.martini_flow_projects import MartiniFlowProject, fetched_from_nomad, uploaded_to_nomad
 from martignac.utils.misc import convert_pdb_to_gro
 from martignac.utils.packmol import generate_solvent_with_packmol
 
@@ -17,112 +17,62 @@ conf = config()["solvent_generation"]
 
 
 class SolventGenFlow(MartiniFlowProject):
-    itp_files: list[str] = [str(e) for e in conf["itp_files"].get()]
-    n_threads: int = conf["settings"]["n_threads"].get(int)
-    box_length: float = conf["settings"]["box_length"].get(float)
-    minimize_mdp: str = conf["mdp_files"]["minimize"].get(str)
-    equilibrate_mdp: str = conf["mdp_files"]["equilibrate"].get(str)
-    production_mdp: str = conf["mdp_files"]["production"].get(str)
-    system_name: str = conf["output_names"]["system"].get(str)
+    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
+    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
+    mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
+    simulation_settings = {
+        "n_threads": conf["settings"]["n_threads"].get(int),
+        "box_length": conf["settings"]["box_length"].get(float),
+    }
+    system_name = conf["output_names"]["system"].get(str)
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
-    gen_mol_name: str = conf["output_names"]["states"]["mol"].get(str)
-    gen_box_name: str = conf["output_names"]["states"]["box"].get(str)
-    min_name: str = conf["output_names"]["states"]["min"].get(str)
-    equ_name: str = conf["output_names"]["states"]["equ"].get(str)
-    prod_name: str = conf["output_names"]["states"]["prod"].get(str)
-
-    @classmethod
-    def get_solvent_mol_name(cls) -> str:
-        return f"{cls.system_name}_{cls.gen_mol_name}"
-
-    @classmethod
-    def get_solvent_box_name(cls) -> str:
-        return f"{cls.system_name}_{cls.gen_box_name}"
-
-    @classmethod
-    def get_solvent_min_name(cls) -> str:
-        return f"{cls.system_name}_{cls.min_name}"
-
-    @classmethod
-    def get_solvent_equ_name(cls) -> str:
-        return f"{cls.system_name}_{cls.equ_name}"
-
-    @classmethod
-    def get_solvent_prod_name(cls) -> str:
-        return f"{cls.system_name}_{cls.prod_name}"
-
-    @classmethod
-    def get_solvent_mol_gro(cls) -> str:
-        return f"{cls.get_solvent_mol_name()}.gro"
-
-    @classmethod
-    def get_solvent_box_pdb(cls) -> str:
-        return f"{cls.get_solvent_box_name()}.pdb"
-
-    @classmethod
-    def get_solvent_box_gro(cls) -> str:
-        return f"{cls.get_solvent_box_name()}.gro"
-
-    @classmethod
-    def get_solvent_min_gro(cls) -> str:
-        return f"{cls.get_solvent_min_name()}.gro"
-
-    @classmethod
-    def get_solvent_equ_gro(cls) -> str:
-        return f"{cls.get_solvent_equ_name()}.gro"
-
-    @classmethod
-    def get_solvent_prod_gro(cls) -> str:
-        return f"{cls.get_solvent_prod_name()}.gro"
-
-    @classmethod
-    def get_solvent_mol_top(cls) -> str:
-        return f"{cls.get_solvent_mol_name()}.top"
-
-    @classmethod
-    def get_solvent_box_top(cls) -> str:
-        return f"{cls.get_solvent_box_name()}.top"
+    state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
 
-project = SolventGenFlow().get_project()
+project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)
 
 
 @SolventGenFlow.label
 def generated_box_pdb(job):
-    return job.isfile(SolventGenFlow.get_solvent_box_pdb())
+    return job.isfile(SolventGenFlow.get_state_name("box", "pdb"))
 
 
 @SolventGenFlow.label
 def generated_mol_gro(job):
-    return job.isfile(SolventGenFlow.get_solvent_mol_gro())
+    return job.isfile(SolventGenFlow.get_state_name("mol", "gro"))
 
 
 @SolventGenFlow.label
 def generated_box_gro(job):
-    return job.isfile(SolventGenFlow.get_solvent_box_gro())
+    return job.isfile(SolventGenFlow.get_state_name("box", "gro"))
 
 
 @SolventGenFlow.label
 def generated_min_gro(job):
-    return job.isfile(SolventGenFlow.get_solvent_min_gro())
+    return job.isfile(SolventGenFlow.get_state_name("min", "gro"))
 
 
 @SolventGenFlow.label
 def generated_equ_gro(job):
-    return job.isfile(SolventGenFlow.get_solvent_equ_gro())
+    return job.isfile(SolventGenFlow.get_state_name("equ", "gro"))
 
 
 @SolventGenFlow.label
 def generated_prod_gro(job):
-    return job.isfile(SolventGenFlow.get_solvent_prod_gro())
+    return job.isfile(SolventGenFlow.get_state_name("prod", "gro"))
 
 
+@SolventGenFlow.pre(fetched_from_nomad)
 @SolventGenFlow.post(generated_mol_gro)
 @SolventGenFlow.operation(with_job=True)
 def generate_solvent_molecule(job) -> None:
-    molecule = find_molecule_from_name(SolventGenFlow.itp_files, job.sp.solvent_name)
-    generate_gro_file_for_molecule(molecule, SolventGenFlow.get_solvent_mol_gro())
-    generate_top_file_for_molecule(molecule, SolventGenFlow.itp_files, SolventGenFlow.get_solvent_mol_top())
+    molecule = find_molecule_from_name(list(SolventGenFlow.itp_files.values()), job.sp.solvent_name)
+    generate_gro_file_for_molecule(molecule, SolventGenFlow.get_state_name("mol", "gro"))
+    generate_top_file_for_molecule(
+        molecule, list(SolventGenFlow.itp_files.values()), SolventGenFlow.get_state_name("mol", "top")
+    )
     return None
 
 
@@ -131,9 +81,9 @@ def generate_solvent_molecule(job) -> None:
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def solvate(_):
     return generate_solvent_with_packmol(
-        gro_solvent_mol=SolventGenFlow.get_solvent_mol_gro(),
-        box_length=SolventGenFlow.box_length,
-        output_pdb=SolventGenFlow.get_solvent_box_pdb(),
+        gro_solvent_mol=SolventGenFlow.get_state_name("mol", "gro"),
+        box_length=SolventGenFlow.simulation_settings.get("box_length"),
+        output_pdb=SolventGenFlow.get_state_name("box", "pdb"),
     )
 
 
@@ -142,61 +92,61 @@ def solvate(_):
 @SolventGenFlow.operation(with_job=True)
 def solvate_convert_to_gro(_):
     convert_pdb_to_gro(
-        SolventGenFlow.get_solvent_box_pdb(),
-        SolventGenFlow.get_solvent_box_gro(),
-        SolventGenFlow.box_length,
+        SolventGenFlow.get_state_name("box", "pdb"),
+        SolventGenFlow.get_state_name("box", "gro"),
+        SolventGenFlow.simulation_settings.get("box_length"),
     )
 
 
 @SolventGenFlow.pre(generated_box_gro)
 @SolventGenFlow.post(generated_min_gro)
 @SolventGenFlow.operation(cmd=True, with_job=True)
-@SolventGenFlow.log_gromacs_simulation(SolventGenFlow.get_solvent_min_name())
+@SolventGenFlow.log_gromacs_simulation(SolventGenFlow.get_state_name("min"))
 def minimize(job):
-    molecule = find_molecule_from_name(SolventGenFlow.itp_files, job.sp.solvent_name)
+    molecule = find_molecule_from_name(list(SolventGenFlow.itp_files.values()), job.sp.solvent_name)
     generate_top_file_for_molecule(
         molecule,
-        SolventGenFlow.itp_files,
-        SolventGenFlow.get_solvent_box_top(),
-        num_molecules=get_number_of_molecules_from_gro(SolventGenFlow.get_solvent_box_gro()),
+        list(SolventGenFlow.itp_files.values()),
+        SolventGenFlow.get_state_name("box", "top"),
+        num_molecules=get_number_of_molecules_from_gro(SolventGenFlow.get_state_name("box", "gro")),
     )
-    job.document["solvent_top"] = SolventGenFlow.get_solvent_box_top()
+    job.document["solvent_top"] = SolventGenFlow.get_state_name("box", "top")
     job.document["solvent_name"] = job.sp.solvent_name
     return gromacs_simulation_command(
-        mdp=SolventGenFlow.minimize_mdp,
-        top=SolventGenFlow.get_solvent_box_top(),
-        gro=SolventGenFlow.get_solvent_box_gro(),
-        name=SolventGenFlow.get_solvent_min_name(),
-        n_threads=SolventGenFlow.n_threads,
+        mdp=SolventGenFlow.mdp_files.get("minimize"),
+        top=SolventGenFlow.get_state_name("box", "top"),
+        gro=SolventGenFlow.get_state_name("box", "gro"),
+        name=SolventGenFlow.get_state_name("min"),
+        n_threads=SolventGenFlow.simulation_settings.get("n_threads"),
     )
 
 
 @SolventGenFlow.pre(generated_min_gro)
 @SolventGenFlow.post(generated_equ_gro)
 @SolventGenFlow.operation(cmd=True, with_job=True)
-@SolventGenFlow.log_gromacs_simulation(SolventGenFlow.get_solvent_equ_name())
+@SolventGenFlow.log_gromacs_simulation(SolventGenFlow.get_state_name("equ"))
 def equilibrate(_):
     return gromacs_simulation_command(
-        mdp=SolventGenFlow.equilibrate_mdp,
-        top=SolventGenFlow.get_solvent_box_top(),
-        gro=SolventGenFlow.get_solvent_min_gro(),
-        name=SolventGenFlow.get_solvent_equ_name(),
-        n_threads=SolventGenFlow.n_threads,
+        mdp=SolventGenFlow.mdp_files.get("equilibrate"),
+        top=SolventGenFlow.get_state_name("box", "top"),
+        gro=SolventGenFlow.get_state_name("min", "gro"),
+        name=SolventGenFlow.get_state_name("equ"),
+        n_threads=SolventGenFlow.simulation_settings.get("n_threads"),
     )
 
 
 @SolventGenFlow.pre(generated_equ_gro)
 @SolventGenFlow.post(generated_prod_gro)
 @SolventGenFlow.operation(cmd=True, with_job=True)
-@SolventGenFlow.log_gromacs_simulation(SolventGenFlow.get_solvent_prod_name())
+@SolventGenFlow.log_gromacs_simulation(SolventGenFlow.get_state_name("prod"))
 def run_production(job):
-    job.document["solvent_gro"] = SolventGenFlow.get_solvent_prod_gro()
+    job.document["solvent_gro"] = SolventGenFlow.get_state_name("prod", "gro")
     return gromacs_simulation_command(
-        mdp=SolventGenFlow.production_mdp,
-        top=SolventGenFlow.get_solvent_box_top(),
-        gro=SolventGenFlow.get_solvent_equ_gro(),
-        name=SolventGenFlow.get_solvent_prod_name(),
-        n_threads=SolventGenFlow.n_threads,
+        mdp=SolventGenFlow.mdp_files.get("production"),
+        top=SolventGenFlow.get_state_name("box", "top"),
+        gro=SolventGenFlow.get_state_name("equ", "gro"),
+        name=SolventGenFlow.get_state_name("prod"),
+        n_threads=SolventGenFlow.simulation_settings.get("n_threads"),
     )
 
 
@@ -209,7 +159,7 @@ def generate_nomad_workflow(job):
 
 
 @SolventGenFlow.pre(lambda job: job.isfile(SolventGenFlow.nomad_workflow))
-@SolventGenFlow.post(lambda job: job.document.get("nomad_upload_id", False))
+@SolventGenFlow.post(lambda job: uploaded_to_nomad(job))
 @SolventGenFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return SolventGenFlow.upload_to_nomad(job)

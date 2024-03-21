@@ -40,7 +40,9 @@ def get_nomad_request(
     timeout_in_sec: int = TIMEOUT_IN_SEC,
     headers: dict = None,
     with_authentication: bool = False,
-) -> json:
+    return_json: bool = True,
+    accept_field: str = "application/json",
+) -> Any:
     url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending get request @ {url}")
@@ -50,12 +52,14 @@ def get_nomad_request(
         token = get_authentication_token(use_prod=use_prod)
         headers |= {
             "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
+            "Accept": accept_field,
         }
     response = requests.get(url, headers=headers, timeout=timeout_in_sec)
     if not response.status_code == 200:
         raise ValueError(f"Unexpected response {response.json()}")
-    return response.json()
+    if return_json:
+        return response.json()
+    return response.content
 
 
 def get_nomad_base_url(use_prod: bool) -> str:

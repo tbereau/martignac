@@ -1,74 +1,57 @@
-from flow import FlowProject
-
 from martignac import config
 from martignac.liquid_models.mixtures import LiquidMixture
+from martignac.nomad.workflows import Job, NomadWorkflow
 from martignac.parsers.gromacs_topologies import Topology
 from martignac.utils.gromacs import gromacs_simulation_command
 from martignac.utils.insane import generate_bilayer_with_insane
+from martignac.utils.martini_flow_projects import MartiniFlowProject, fetched_from_nomad, uploaded_to_nomad
+from martignac.utils.misc import sub_template_mdp
 
 conf = config()["bilayer_generation"]
 
 
-class BilayerGenFlow(FlowProject):
-    itp_files: list[str] = [str(e) for e in conf["itp_files"].get()]
-    n_threads: int = conf["settings"]["n_threads"].get(int)
-    box_length_xy: float = conf["settings"]["box_length_xy"].get(float)
-    box_length_z: float = conf["settings"]["box_length_z"].get(float)
+class BilayerGenFlow(MartiniFlowProject):
+    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
+    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
+    mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
+    simulation_settings = {
+        "n_threads": conf["settings"]["n_threads"].get(int),
+        "box_length_xy": conf["settings"]["box_length_xy"].get(float),
+        "box_length_z": conf["settings"]["box_length_z"].get(float),
+    }
     solvent: LiquidMixture = LiquidMixture.from_list_of_dicts([s.get(dict) for s in conf["settings"]["solvent"]])
-    minimize_mdp: str = conf["mdp_files"]["minimize"].get(str)
-    equilibrate_mdp: str = conf["mdp_files"]["equilibrate"].get(str)
-    system_name: str = conf["output_names"]["system"].get(str)
-    gen_name: str = conf["output_names"]["states"]["generate"].get(str)
-    min_name: str = conf["output_names"]["states"]["minimize"].get(str)
-    equ_name: str = conf["output_names"]["states"]["equilibrate"].get(str)
-
-    @classmethod
-    def get_bilayer_gen_name(cls) -> str:
-        return f"{cls.system_name}_{cls.gen_name}"
-
-    @classmethod
-    def get_bilayer_min_name(cls) -> str:
-        return f"{cls.system_name}_{cls.min_name}"
-
-    @classmethod
-    def get_bilayer_equ_name(cls) -> str:
-        return f"{cls.system_name}_{cls.equ_name}"
-
-    @classmethod
-    def get_bilayer_gen_gro(cls) -> str:
-        return f"{cls.get_bilayer_gen_name()}.gro"
-
-    @classmethod
-    def get_bilayer_top(cls) -> str:
-        return f"{cls.system_name}.top"
-
-    @classmethod
-    def get_bilayer_min_gro(cls) -> str:
-        return f"{cls.get_bilayer_min_name()}.gro"
-
-    @classmethod
-    def get_bilayer_equ_gro(cls) -> str:
-        return f"{cls.get_bilayer_equ_name()}.gro"
+    system_name = conf["output_names"]["system"].get(str)
+    nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
+    state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
 
-project = BilayerGenFlow().get_project()
+def lipid_names(job) -> list[str]:
+    return [lip.get("name") for lip in job.sp.get("lipids")]
 
 
 @BilayerGenFlow.label
 def generated_gen_gro(job):
-    return job.isfile(BilayerGenFlow.get_bilayer_gen_gro())
+    return job.isfile(BilayerGenFlow.get_state_name("generate", "gro"))
 
 
 @BilayerGenFlow.label
 def generated_min_gro(job):
-    return job.isfile(BilayerGenFlow.get_bilayer_min_gro())
+    return job.isfile(BilayerGenFlow.get_state_name("minimize", "gro"))
 
 
 @BilayerGenFlow.label
 def generated_equ_gro(job):
-    return job.isfile(BilayerGenFlow.get_bilayer_equ_gro())
+    return job.isfile(BilayerGenFlow.get_state_name("equilibrate", "gro"))
 
 
+@BilayerGenFlow.label
+def generated_prod_gro(job):
+    return job.isfile(BilayerGenFlow.get_state_name("production", "gro"))
+
+
+@BilayerGenFlow.pre(fetched_from_nomad)
 @BilayerGenFlow.post(generated_gen_gro)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def generate_initial_bilayer(job):
@@ -76,37 +59,80 @@ def generate_initial_bilayer(job):
     return generate_bilayer_with_insane(
         lipids=lipid_mixture,
         solvent=BilayerGenFlow.solvent,
-        box_length_xy=BilayerGenFlow.box_length_xy,
-        box_length_z=BilayerGenFlow.box_length_z,
-        gro_bilayer_gen=BilayerGenFlow.get_bilayer_gen_gro(),
-        top_bilayer=BilayerGenFlow.get_bilayer_top(),
+        box_length_xy=BilayerGenFlow.simulation_settings.get("box_length_xy"),
+        box_length_z=BilayerGenFlow.simulation_settings.get("box_length_z"),
+        gro_bilayer_gen=BilayerGenFlow.get_state_name("generate", "gro"),
+        top_bilayer=BilayerGenFlow.get_state_name(extension="top"),
     )
 
 
 @BilayerGenFlow.pre(generated_gen_gro)
 @BilayerGenFlow.post(generated_min_gro)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
+@BilayerGenFlow.log_gromacs_simulation(BilayerGenFlow.get_state_name("minimize"))
 def minimize(job):
-    top = Topology.parse_top_file(BilayerGenFlow.get_bilayer_top())
-    top.includes = BilayerGenFlow.itp_files
-    top.output_top(BilayerGenFlow.get_bilayer_top())
+    top = Topology.parse_top_file(BilayerGenFlow.get_state_name(extension="top"))
+    top.includes = BilayerGenFlow.itp_files.values()
+    top.output_top(BilayerGenFlow.get_state_name(extension="top"))
     return gromacs_simulation_command(
-        mdp=BilayerGenFlow.minimize_mdp,
-        top=BilayerGenFlow.get_bilayer_top(),
-        gro=BilayerGenFlow.get_bilayer_gen_gro(),
-        name=BilayerGenFlow.get_bilayer_min_name(),
-        n_threads=BilayerGenFlow.n_threads,
+        mdp=BilayerGenFlow.mdp_files.get("minimize"),
+        top=BilayerGenFlow.get_state_name(extension="top"),
+        gro=BilayerGenFlow.get_state_name("generate", "gro"),
+        name=BilayerGenFlow.get_state_name("minimize"),
+        n_threads=BilayerGenFlow.simulation_settings.get("n_threads"),
+        verbose=False,
     )
 
 
 @BilayerGenFlow.pre(generated_min_gro)
 @BilayerGenFlow.post(generated_equ_gro)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
+@BilayerGenFlow.log_gromacs_simulation(BilayerGenFlow.get_state_name("equilibrate"))
 def equilibrate(job):
+    mdp_file_template = BilayerGenFlow.mdp_files.get("equilibrate")
+    mdp_file = job.fn(BilayerGenFlow.get_state_name("equilibrate", "mdp"))
+    sub_template_mdp(mdp_file_template, "sedlipids", " ".join(lipid_names(job)), mdp_file)
+    sub_template_mdp(mdp_file, "sedsolvent", " ".join(BilayerGenFlow.solvent.solvent_names), mdp_file)
     return gromacs_simulation_command(
-        mdp=BilayerGenFlow.equilibrate_mdp,
-        top=BilayerGenFlow.get_bilayer_top(),
-        gro=BilayerGenFlow.get_bilayer_min_gro(),
-        name=BilayerGenFlow.get_bilayer_equ_name(),
-        n_threads=BilayerGenFlow.n_threads,
+        mdp=mdp_file,
+        top=BilayerGenFlow.get_state_name(extension="top"),
+        gro=BilayerGenFlow.get_state_name("minimize", "gro"),
+        name=BilayerGenFlow.get_state_name("equilibrate"),
+        n_threads=BilayerGenFlow.simulation_settings.get("n_threads"),
     )
+
+
+@BilayerGenFlow.pre(generated_equ_gro)
+@BilayerGenFlow.post(generated_prod_gro)
+@BilayerGenFlow.operation(cmd=True, with_job=True)
+@BilayerGenFlow.log_gromacs_simulation(BilayerGenFlow.get_state_name("production"))
+def production(job):
+    mdp_file_template = BilayerGenFlow.mdp_files.get("production")
+    mdp_file = job.fn(BilayerGenFlow.get_state_name("production", "mdp"))
+    sub_template_mdp(mdp_file_template, "sedlipids", " ".join(lipid_names(job)), mdp_file)
+    sub_template_mdp(mdp_file, "sedsolvent", " ".join(BilayerGenFlow.solvent.solvent_names), mdp_file)
+    return gromacs_simulation_command(
+        mdp=mdp_file,
+        top=BilayerGenFlow.get_state_name(extension="top"),
+        gro=BilayerGenFlow.get_state_name("equilibrate", "gro"),
+        name=BilayerGenFlow.get_state_name("production"),
+        n_threads=BilayerGenFlow.simulation_settings.get("n_threads"),
+    )
+
+
+@BilayerGenFlow.pre(generated_prod_gro)
+@BilayerGenFlow.post(lambda job: job.isfile(BilayerGenFlow.nomad_workflow))
+@BilayerGenFlow.operation(with_job=True)
+def generate_nomad_workflow(job: Job):
+    workflow = NomadWorkflow(project, job)
+    workflow.build_workflow_yaml(BilayerGenFlow.nomad_workflow)
+
+
+@BilayerGenFlow.pre(lambda job: job.isfile(BilayerGenFlow.nomad_workflow))
+@BilayerGenFlow.post(lambda job: uploaded_to_nomad(job))
+@BilayerGenFlow.operation(with_job=True)
+def upload_to_nomad(job: Job):
+    return BilayerGenFlow.upload_to_nomad(job)
+
+
+project = BilayerGenFlow.get_project(path=BilayerGenFlow.workspace_path)

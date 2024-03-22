@@ -83,32 +83,40 @@ solute_solvation:
       equilibrate: "equ"
 
 alchemical_transformation:
-  workspaces:
-    relative_path: "alchemical_transformation"
+  relative_paths:
+    workspaces: "alchemical_transformation"
+    itp_files: "martini_v300"
+    mdp_files: "alchemical_transformation/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
   settings:
     n_threads: 2
     temperature: 300.
   mdp_files:
-    run: "martini_fep/mdp_files/run_lambda.mdp"
+    run: "run_lambda.mdp"
   output_names:
-    system: "fep"
+    system: "alchemical_transformation"
     nomad_workflow: "alchemical_transformation.archive.yaml"
     nomad_top_level_workflow: "full_workflow.alchemical_transformation.archive.yaml"
     states:
       run: "run"
 
 bilayer_generation:
-  workspaces:
-    relative_path: "bilayer_generation"
+  relative_paths:
+    workspaces: "bilayer_generation"
+    itp_files: "martini_v300"
+    mdp_files: "bilayer_generation/mdp_files"
   itp_files:
-    - "martini_v300/martini_v3.0.0.itp"
-    - "martini_v300/martini_v3.0.0_solvents_v1.itp"
-    - "martini_v300/martini_v3.0.0_phospholipids_v1.itp"
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    phospholipids: "martini_v3.0.0_phospholipids_v1.itp"
   mdp_files:
-    minimize: "martini_bilayers/mdp_files/min.mdp"
-    equilibrate: "martini_bilayers/mdp_files/equ.mdp"
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+    production: "prod.mdp"
   settings:
-    n_threads: 1
+    n_threads: 2
     box_length_xy: 10
     box_length_z: 7
     solvent:
@@ -117,7 +125,9 @@ bilayer_generation:
         fraction: 1.0
   output_names:
     system: "bilayer"
+    nomad_workflow: "bilayer_generation.archive.yaml"
     states:
       generate: "gen"
       minimize: "min"
       equilibrate: "equ"
+      production: "prod"

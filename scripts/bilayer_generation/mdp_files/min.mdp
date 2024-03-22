@@ -1,13 +1,14 @@
 define           = -DFLEXIBLE
-integrator       =  steep 
-dt               =  0.02 
-nsteps           =  500 
+integrator       =  steep
+emstep           =  0.01
+nsteps           =  1000
 nstxout          =  0 
 nstvout          =  0
-nstlog           =  100 
+nstlog           =  100
+nstenergy        =  100
 nstxtcout        =  100 
 xtc-precision    =  10 
-rlist            =  1.2
+rlist            =  1.1
 
 coulombtype              = reaction-field
 rcoulomb                 = 1.1
@@ -17,7 +18,3 @@ vdw_type                 = cutoff
 vdw-modifier             = Potential-shift-verlet
 rvdw                     = 1.1
 
-tcoupl           =  v-rescale 
-tc-grps          =  System 
-tau-t            =  1.0 
-ref-t            =  300 

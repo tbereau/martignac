@@ -10,9 +10,14 @@ from martignac.utils.gromacs import (
     gromacs_simulation_command,
     solvate_solute_command,
 )
-from martignac.utils.martini_flow_projects import MartiniFlowProject, import_job_from_other_flow, uploaded_to_nomad
-from martignac.workflows.solute_generation import project as solute_gen_project
-from martignac.workflows.solvent_generation import project as solvent_gen_project
+from martignac.utils.martini_flow_projects import (
+    MartiniFlowProject,
+    fetched_from_nomad,
+    import_job_from_other_flow,
+    uploaded_to_nomad,
+)
+from martignac.workflows.solute_generation import SoluteGenFlow, get_solute_job
+from martignac.workflows.solvent_generation import SolventGenFlow, get_solvent_job
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +37,6 @@ class SoluteSolvationFlow(MartiniFlowProject):
     state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
 
-project = SoluteSolvationFlow.get_project(path=SoluteSolvationFlow.workspace_path)
-
-
-def get_solute_job(job: Job) -> Job:
-    sp = {"type": "solute", "solute_name": job.sp.get("solute_name")}
-    return solute_gen_project.open_job(sp).init()
-
-
-def get_solvent_job(job: Job) -> Job:
-    sp = {"type": "solvent", "solvent_name": job.sp.get("solvent_name")}
-    return solvent_gen_project.open_job(sp).init()
-
-
 @SoluteSolvationFlow.label
 def solute_generated(job) -> bool:
     return job.document.get("solute_gro") and job.document.get("solute_top")
@@ -55,26 +47,24 @@ def solvent_generated(job) -> bool:
     return job.document.get("solvent_gro")
 
 
+@SoluteSolvationFlow.pre(fetched_from_nomad)
 @SoluteSolvationFlow.post(solute_generated)
 @SoluteSolvationFlow.operation
 def generate_solute(job: Job):
     solute_job: Job = get_solute_job(job)
-    files_to_copy = [
-        solute_job.document["solute_gro"],
-        solute_job.document["solute_top"],
-        solute_job.document["solute_itp"],
-    ]
+    keys_for_files_to_copy = ["solute_gro", "solute_top", "solute_itp"]
     update_keys = ["solute_gro", "solute_top", "solute_itp", "solute_name"]
-    import_job_from_other_flow(job, solute_gen_project, solute_job, files_to_copy, update_keys)
+    import_job_from_other_flow(job, solute_gen_project, solute_job, keys_for_files_to_copy, update_keys)
 
 
+@SoluteSolvationFlow.pre(fetched_from_nomad)
 @SoluteSolvationFlow.post(solvent_generated)
 @SoluteSolvationFlow.operation
 def generate_solvent(job):
     solvent_job: Job = get_solvent_job(job)
-    files_to_copy = [solvent_job.document["solvent_gro"], solvent_job.document["solvent_top"]]
+    keys_for_files_to_copy = ["solvent_gro", "solvent_top"]
     update_keys = ["solvent_gro", "solvent_top", "solvent_name"]
-    import_job_from_other_flow(job, solvent_gen_project, solvent_job, files_to_copy, update_keys)
+    import_job_from_other_flow(job, solvent_gen_project, solvent_job, keys_for_files_to_copy, update_keys)
 
 
 @SoluteSolvationFlow.label
@@ -161,7 +151,7 @@ def generate_nomad_workflow(job):
     }
     for workflow_name in projects:
         workflow = NomadWorkflow(projects[workflow_name], job)
-        workflow_flow = cast(MartiniFlowProject, locals()[workflow_name])
+        workflow_flow = cast(MartiniFlowProject, globals()[workflow_name])
         workflow.build_workflow_yaml(workflow_flow.nomad_workflow)
     graph = nx.DiGraph([("SoluteGenFlow", "SoluteSolvationFlow"), ("SolventGenFlow", "SoluteSolvationFlow")])
     top_level_workflow = NomadTopLevelWorkflow(projects, jobs, graph)
@@ -173,3 +163,17 @@ def generate_nomad_workflow(job):
 @SoluteSolvationFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return SoluteSolvationFlow.upload_to_nomad(job)
+
+
+def get_solvation_job(job: Job) -> Job:
+    sp = {
+        "type": "solute_solvation",
+        "solvent_name": job.sp.get("solvent_name"),
+        "solute_name": job.sp.get("solute_name"),
+    }
+    return project.open_job(sp).init()
+
+
+project = SoluteSolvationFlow.get_project(path=SoluteSolvationFlow.workspace_path)
+solute_gen_project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
+solvent_gen_project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)

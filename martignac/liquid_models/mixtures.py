@@ -47,3 +47,7 @@ class LiquidMixture:
     def to_insane_format(self) -> str:
         self.set_integer_contributions()
         return " ".join([c.to_insane_format() for c in self.components])
+
+    @property
+    def solvent_names(self) -> list[str]:
+        return [c.name for c in self.components]

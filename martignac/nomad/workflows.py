@@ -105,7 +105,7 @@ class NomadTopLevelWorkflow:
         sub_dict = workflow_output["workflow2"]
         if len(self.graph.nodes) == 0:
             logger.error(f"no graph nodes for top-level workflow {destination_filename}")
-            return None
+            raise ValueError(f"empty graph for {self.project}: {self.graph}")
         start_nodes = [n for n, d in self.graph.in_degree if d == 0]
         sub_dict["inputs"] = []
         for node in start_nodes:
@@ -113,7 +113,7 @@ class NomadTopLevelWorkflow:
             input_graph = NomadWorkflow(project, self.jobs[node]).graph
             if len(input_graph) == 0:
                 logger.error(f"no graph start nodes for {node}: {input_graph}")
-                return None
+                raise ValueError(f"empty graph for {self.project}: {input_graph}")
             _, node_dict = list(input_graph.nodes.items())[0]
             sub_dict["inputs"].append(_construct_yaml_section(f"Input for {node}", node_dict["label"], 0))
 
@@ -124,7 +124,7 @@ class NomadTopLevelWorkflow:
             input_graph = NomadWorkflow(project, self.jobs[node]).graph
             if len(input_graph) == 0:
                 logger.error(f"no graph end nodes for top-level workflow {destination_filename}")
-                return None
+                raise ValueError(f"empty graph for {self.project}: {input_graph}")
             _, node_dict = list(input_graph.nodes.items())[-1]
             sub_dict["outputs"].append(_construct_yaml_section(f"Output for {node}", node_dict["label"], -1))
 
@@ -156,6 +156,11 @@ class NomadTopLevelWorkflow:
                 )
         with open(destination_filename, "w") as f:
             yaml.dump(workflow_output, f)
+
+
+def build_nomad_workflow(job: Job, project_path: str, nomad_workflow: str):
+    workflow = NomadWorkflow(MartiniFlowProject.get_project(project_path), job)
+    workflow.build_workflow_yaml(nomad_workflow)
 
 
 def _construct_yaml_section(name: str, log_file: str, number: int) -> dict:

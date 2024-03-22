@@ -4,7 +4,7 @@ import os
 import shutil
 from functools import wraps
 from hashlib import md5
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional, TypeVar, cast
 
 from flow import FlowProject
 from signac.job import Job
@@ -17,6 +17,8 @@ from martignac.utils.nomad import generate_user_metadata
 
 logger = logging.getLogger(__name__)
 
+MartiniTypeFlow = TypeVar("MartiniTypeFlow", bound="MartiniFlowProject")
+
 
 class MartiniFlowProject(FlowProject):
     workspaces_path: str = config()["local"]["workspaces"]["absolute_path"].get(str)
@@ -24,6 +26,7 @@ class MartiniFlowProject(FlowProject):
     nomad_use_prod_database: bool = config()["nomad"]["use_prod"].get(bool)
     nomad_dataset_id: str = config()["nomad"]["dataset"]["id"].get(str)
     nomad_coauthors: list[str] = [c.get(str) for c in config()["nomad"]["coauthors"]]
+    workspace_path: str = ""
     itp_path: str
     itp_files: Dict[str, str] = {}
     mdp_path: str
@@ -31,6 +34,7 @@ class MartiniFlowProject(FlowProject):
     simulation_settings: Dict[str, Any] = {}
     system_name: str
     output_names: Dict[str, str] = {}
+    nomad_workflow: str = ""
     ff_parameters: Dict[str, Any] = {}
 
     @classmethod
@@ -120,7 +124,7 @@ class MartiniFlowProject(FlowProject):
         job.document["files_symlinked"][project.__class__.__name__] = False
 
 
-@FlowProject.label
+@MartiniFlowProject.label
 def uploaded_to_nomad(job: Job) -> bool:
     if job.document.get("nomad_upload_id"):
         return job.document["nomad_upload_id"].get(job.project.__class__.__name__, False)
@@ -161,7 +165,8 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
     project = cast("MartiniFlowProject", job.project)
     logger.info(f"generating symbolic links for {job.id} @ {project.__class__.__name__}")
     for itp_file in project.itp_files.values():
-        os.symlink(f"{project.itp_path}/{itp_file}", job.fn(os.path.basename(itp_file)))
+        if not job.isfile(os.path.basename(itp_file)):
+            os.symlink(f"{project.itp_path}/{itp_file}", job.fn(os.path.basename(itp_file)))
     for mdp_file in project.mdp_files.values():
         os.symlink(f"{project.mdp_path}/{mdp_file}", job.fn(os.path.basename(mdp_file)))
     if "files_symlinked" not in job.document:
@@ -171,18 +176,26 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
 
 def import_job_from_other_flow(
     job: Job,
-    child_project: MartiniFlowProject,
+    child_project: MartiniTypeFlow,
     child_job: Job,
-    files_to_copy: list[str],
+    keys_for_files_to_copy: list[str],
     update_keys: Optional[list[str]] = None,
+    run_child_job: bool = True,
 ) -> None:
     job.document["upload_to_nomad"] = False
-    logger.info(f"Running {child_project.__class__.__name__} job {child_job.id}")
-    child_project.run(jobs=[child_job])
-    for file in files_to_copy:
+    if run_child_job:
+        logger.info(f"Running job {child_job.id} @  {child_project.__class__.__name__}")
+        child_project.run(jobs=[child_job])
+        logger.info(f"Finished running job {child_job.id} @ {child_project.__class__.__name__}")
+    for key in keys_for_files_to_copy:
+        shutil.copy(child_job.fn(child_job.document.get(key)), job.path)
+    log_files = []
+    for cls_name in child_job.doc["gromacs_logs"]:
+        log_files = [*log_files, *list(child_job.doc["gromacs_logs"][cls_name].values())]
+    for file in log_files:
         shutil.copy(child_job.fn(file), job.path)
     update_keys = ["gromacs_logs", "nomad_workflow", "nomad_upload_id", *update_keys]
     job.document = update_nested_dict(
-        job.document, {k: child_job.document[k] for k in update_keys if k in child_job.document}
+        job.document, {k: child_job.document.get(k) for k in update_keys if k in child_job.document}
     )
     job.document["upload_to_nomad"] = True

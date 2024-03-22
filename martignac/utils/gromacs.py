@@ -35,8 +35,10 @@ def solvate_solute_command(
 
 
 def gromacs_simulation_command(
-    mdp: str, top: str, gro: str, name: str, n_max_warn: int = 10, n_threads: int = 1
+    mdp: str, top: str, gro: str, name: str, n_max_warn: int = 10, n_threads: int = 1, verbose: bool = True
 ) -> str:
     grompp_cmd = f"gmx grompp -f {mdp} -p {top} -c {gro} -o {name}.tpr -po {name}_out.mdp -maxwarn {n_max_warn}"
-    mdrun_cmd = f"gmx mdrun -nt {n_threads} -v -deffnm {name}"
+    mdrun_cmd = f"gmx mdrun -nt {n_threads} -deffnm {name}"
+    if verbose:
+        mdrun_cmd += " -v"
     return f"{grompp_cmd} && {mdrun_cmd}"

@@ -32,9 +32,6 @@ class SoluteGenFlow(MartiniFlowProject):
     }
 
 
-project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
-
-
 @SoluteGenFlow.label
 def generated(job: Job):
     return (
@@ -109,7 +106,7 @@ def equilibrate(job: Job):
 @SoluteGenFlow.pre(equilibrated)
 @SoluteGenFlow.post(lambda job: job.isfile(SoluteGenFlow.nomad_workflow))
 @SoluteGenFlow.operation(with_job=True)
-def generate_nomad_workflow(job: Job):
+def generate_nomad_workflow(job):
     workflow = NomadWorkflow(project, job)
     workflow.build_workflow_yaml(SoluteGenFlow.nomad_workflow)
 
@@ -119,3 +116,11 @@ def generate_nomad_workflow(job: Job):
 @SoluteGenFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return SoluteGenFlow.upload_to_nomad(job)
+
+
+def get_solute_job(job: Job) -> Job:
+    sp = {"type": "solute", "solute_name": job.sp.get("solute_name")}
+    return project.open_job(sp).init()
+
+
+project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)

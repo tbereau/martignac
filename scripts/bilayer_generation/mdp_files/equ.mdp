@@ -1,0 +1,55 @@
+; RUN CONTROL PARAMETERS
+integrator               = sd
+tinit                    = 0.0
+dt                       = 0.020
+nsteps                   = 5000
+nstcomm                  = 1
+comm-grps		         = sedlipids sedsolvent
+
+; OUTPUT CONTROL OPTIONS
+nstxout                  = 0
+nstvout                  = 0
+nstfout                  = 0
+nstlog                   = 10000
+nstenergy                = 10000
+nstxtcout                = 10000
+xtc_precision            = 1000
+xtc-grps                 =
+
+; NEIGHBORSEARCHING PARAMETERS
+cutoff-scheme            = Verlet
+nstlist                  = 20
+ns_type                  = grid ; Grid search
+pbc                      = xyz ; 3D PBC
+rlist                    = 1.2 ; Cut-off for the neighbor list
+
+; OPTIONS FOR ELECTROSTATICS AND VDW
+coulombtype              = PME ; Particle Mesh Ewald for long-range electrostatics
+rcoulomb                 = 1.2 ; Cut-off for electrostatics
+epsilon_r                = 15 ; Relative permittivity for the medium
+vdw_type                 = Cut-off ; VdW cut-off
+rvdw_switch              = 0.9 ; Switching distance for VdW potential
+rvdw                     = 1.2 ; Cut-off for van der Waals
+
+; OPTIONS FOR WEAK COUPLING ALGORITHMS
+tcoupl                   = V-rescale ; Modified Berendsen thermostat
+tc-grps                  = sedlipids sedsolvent ; Two separate groups
+tau_t                    = 1.0 1.0 ; Time constant for temperature coupling
+ref_t                    = 300 300 ; Reference temperatures for POPC and W
+Pcoupl                   = Berendsen ; Pressure coupling
+Pcoupltype               = semiisotropic ; Semi-isotropic pressure coupling
+tau_p                    = 4.0 ; Time constant for pressure coupling
+compressibility          = 4.5e-5 4.5e-5 ; Compressibility for semiisotropic coupling
+ref_p                    = 1.0 1.0 ; Reference pressures
+
+; GENERATE VELOCITIES FOR STARTUP RUN
+gen_vel                  = yes
+gen_temp                 = 100
+gen_seed                 = -1
+
+; OPTIONS FOR BONDS
+constraints              = none
+constraint_algorithm     = lincs
+unconstrained_start      = no
+lincs_order              = 4
+lincs_warnangle          = 30

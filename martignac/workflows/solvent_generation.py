@@ -31,9 +31,6 @@ class SolventGenFlow(MartiniFlowProject):
     state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
 
-project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)
-
-
 @SolventGenFlow.label
 def generated_box_pdb(job):
     return job.isfile(SolventGenFlow.get_state_name("box", "pdb"))
@@ -163,3 +160,11 @@ def generate_nomad_workflow(job):
 @SolventGenFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return SolventGenFlow.upload_to_nomad(job)
+
+
+def get_solvent_job(job: Job) -> Job:
+    sp = {"type": "solvent", "solvent_name": job.sp.get("solvent_name")}
+    return project.open_job(sp).init()
+
+
+project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)

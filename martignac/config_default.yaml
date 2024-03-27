@@ -56,9 +56,9 @@ solvent_generation:
     states:
       mol: "gen_mol"
       box: "gen_box"
-      min: "min"
-      equ: "equ"
-      prod: "prod"
+      minimize: "minimize"
+      equilibrate: "equilibrate"
+      production: "production"
 
 solute_solvation:
   relative_paths:
@@ -94,13 +94,13 @@ alchemical_transformation:
     n_threads: 2
     temperature: 300.
   mdp_files:
-    run: "run_lambda.mdp"
+    production: "run_lambda.mdp"
   output_names:
     system: "alchemical_transformation"
     nomad_workflow: "alchemical_transformation.archive.yaml"
     nomad_top_level_workflow: "full_workflow.alchemical_transformation.archive.yaml"
     states:
-      run: "run"
+      production: "production"
 
 bilayer_generation:
   relative_paths:

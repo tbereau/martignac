@@ -1,3 +1,4 @@
+import inspect
 import logging
 import os
 import shutil
@@ -9,6 +10,10 @@ import regex
 from MDAnalysis import Universe
 
 logger = logging.getLogger(__name__)
+
+
+def func_name():
+    return inspect.stack()[1][3]
 
 
 def copy_files_to(files: list[str], destination_dir: str) -> None:
@@ -50,23 +55,29 @@ def convert_pdb_to_gro(pdb_file: str, output_gro: str, box_length: float) -> Non
     universe.atoms.write(output_gro)
 
 
-def zip_directory(directory_name: str, output_file_name: str) -> str:
-    # Determine the parent directory to initially save the archive
-    parent_dir = abspath(join(directory_name, os.pardir))
+def zip_directories(directory_names: list, output_file_name: str) -> str:
+    if not directory_names:
+        raise ValueError("directory_names list cannot be empty")
+
+    # Assume all directories are at the same parent level for the output path
+    parent_dir = abspath(join(directory_names[0], os.pardir))
     intermediate_output_path = join(parent_dir, basename(output_file_name)) + ".zip"
 
-    logger.info(f"Zipping {directory_name} to {intermediate_output_path}")
+    logger.info(f"Zipping directories {directory_names} to {intermediate_output_path}")
 
     with ZipFile(intermediate_output_path, "w", ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(directory_name):
-            for file in files:
-                file_path = join(root, file)
-                # Exclude symlinks
-                if not islink(file_path):
-                    zipf.write(file_path, os.path.relpath(file_path, directory_name))
+        for directory_name in directory_names:
+            for root, _, files in os.walk(directory_name):
+                for file in files:
+                    file_path = join(root, file)
+                    # Exclude symlinks
+                    if not islink(file_path):
+                        # Calculate archive name based on the file's relative path to the directory being zipped
+                        arcname = os.path.relpath(file_path, start=os.path.commonpath(directory_names))
+                        zipf.write(file_path, arcname=arcname)
 
-    # Move the archive to the original directory
-    final_output_path = join(directory_name, basename(output_file_name) + ".zip")
+    # The final output path could be in the same directory as the script or a specific directory
+    final_output_path = join(os.getcwd(), basename(output_file_name) + ".zip")
     os.rename(intermediate_output_path, final_output_path)
 
     logger.info(f"Moved archive to {final_output_path}")

@@ -7,7 +7,7 @@ from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
 from martignac.nomad.users import NomadUser, get_user_by_id
-from martignac.nomad.utils import get_nomad_base_url, get_nomad_request, post_nomad_request
+from martignac.nomad.utils import delete_nomad_request, get_nomad_base_url, get_nomad_request, post_nomad_request
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,17 @@ def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list
 def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> NomadUpload:
     logger.info(f"retrieving upload {upload_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
+        f"/uploads/{upload_id}",
+        with_authentication=True,
+        timeout_in_sec=timeout_in_sec,
+    )
+    upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
+    return upload_class_schema().load({**response["data"], "use_prod": use_prod})
+
+
+def delete_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> NomadUpload:
+    logger.info(f"deleting upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    response = delete_nomad_request(
         f"/uploads/{upload_id}",
         with_authentication=True,
         timeout_in_sec=timeout_in_sec,

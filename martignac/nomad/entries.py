@@ -235,7 +235,11 @@ def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
     project = cast("MartiniFlowProject", job.project)
 
     def associate_entry_to_job(entry_: NomadEntry) -> Optional[NomadEntry]:
-        if entry_.comment is not None and entry_.job_id == job.id and entry_.mdp_files == project.get_mdp_hash(job):
+        if (
+            entry_.comment is not None
+            and entry_.job_id == job.id
+            and entry_.mdp_files == project.get_hash_for_files(job, list(project.mdp_files.values()))
+        ):
             return entry_
 
     match_entries = []

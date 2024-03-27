@@ -1,6 +1,6 @@
 from martignac import config
 from martignac.liquid_models.mixtures import LiquidMixture
-from martignac.nomad.workflows import Job, NomadWorkflow
+from martignac.nomad.workflows import Job, build_nomad_workflow
 from martignac.parsers.gromacs_topologies import Topology
 from martignac.utils.gromacs import gromacs_simulation_command
 from martignac.utils.insane import generate_bilayer_with_insane
@@ -124,8 +124,8 @@ def production(job):
 @BilayerGenFlow.post(lambda job: job.isfile(BilayerGenFlow.nomad_workflow))
 @BilayerGenFlow.operation(with_job=True)
 def generate_nomad_workflow(job: Job):
-    workflow = NomadWorkflow(project, job)
-    workflow.build_workflow_yaml(BilayerGenFlow.nomad_workflow)
+    build_nomad_workflow(job, is_top_level=False)
+    raise NotImplementedError()
 
 
 @BilayerGenFlow.pre(lambda job: job.isfile(BilayerGenFlow.nomad_workflow))

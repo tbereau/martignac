@@ -1,17 +1,24 @@
 import logging
-from typing import cast
 
-import networkx as nx
 import pandas as pd
 from alchemlyb.estimators import MBAR
 from alchemlyb.parsing.gmx import extract_u_nk
 from flow import aggregator
 
 from martignac import config
-from martignac.nomad.workflows import NomadTopLevelWorkflow, NomadWorkflow
+from martignac.nomad.workflows import build_nomad_workflow, build_nomad_workflow_with_multiple_jobs
 from martignac.utils.gromacs import gromacs_simulation_command
-from martignac.utils.martini_flow_projects import Job, MartiniFlowProject, import_job_from_other_flow, uploaded_to_nomad
-from martignac.utils.misc import sub_template_mdp
+from martignac.utils.martini_flow_projects import (
+    Job,
+    MartiniFlowProject,
+    fetched_from_nomad,
+    import_job_from_other_flow,
+    store_gromacs_log_to_doc_with_state_point,
+    store_task_for_many_jobs,
+    store_workflow_for_many_jobs,
+    uploaded_to_nomad,
+)
+from martignac.utils.misc import func_name, sub_template_mdp, update_nested_dict
 from martignac.workflows.solute_generation import SoluteGenFlow, get_solute_job
 from martignac.workflows.solute_solvation import SoluteSolvationFlow, get_solvation_job
 from martignac.workflows.solvent_generation import SolventGenFlow, get_solvent_job
@@ -38,7 +45,10 @@ class AlchemicalTransformationFlow(MartiniFlowProject):
 
     @classmethod
     def get_system_run_name(cls, lambda_state: str) -> str:
-        return AlchemicalTransformationFlow.get_state_name(state_name=f"run-{lambda_state}")
+        return AlchemicalTransformationFlow.get_state_name(state_name=f"production-{lambda_state}")
+
+
+project_name = AlchemicalTransformationFlow.class_name()
 
 
 def solvent_and_solute_aggregator(jobs):
@@ -57,8 +67,8 @@ def lowest_lambda_job(jobs) -> Job:
 
 @AlchemicalTransformationFlow.label
 def system_prepared(job) -> bool:
-    if "AlchemicalTransformationFlow" in job.document:
-        return job.document["AlchemicalTransformationFlow"].get("system_prepared", False)
+    if project_name in job.document:
+        return job.doc[project_name].get("system_prepared", False)
     return False
 
 
@@ -82,39 +92,40 @@ def any_uploaded_to_nomad(*jobs) -> bool:
     return any(uploaded_to_nomad(job) for job in jobs)
 
 
-@AlchemicalTransformationFlow.post(all_jobs_prepared)
+@AlchemicalTransformationFlow.pre(fetched_from_nomad)
+@AlchemicalTransformationFlow.post(all_jobs_prepared, tag="system_prepared")
+@AlchemicalTransformationFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
 @AlchemicalTransformationFlow.operation(aggregator=aggregator(aggregator_function=solvent_and_solute_aggregator))
 def prepare_system(*jobs):
     job = lowest_lambda_job(jobs)
     logger.info(f"Preparing system for {job.id} @ AlchemicalTransformationFlow")
+    solute_job: Job = get_solute_job(job)
+    solute_keys = ["solute_itp"]
+    import_job_from_other_flow(job, solute_gen_project, solute_job, solute_keys)
+    solvent_job: Job = get_solvent_job(job)
+    import_job_from_other_flow(job, solvent_gen_project, solvent_job, [])
     solvation_job: Job = get_solvation_job(job)
-    keys_for_files_to_copy = [
-        "solute_solvent_gro",
-        "solute_solvent_top",
-        "solute_itp",
-    ]
-    update_key = [
-        "solute_solvent_gro",
-        "solute_solvent_top",
-        "solute_name",
-        "solute_itp",
-        "solvent_name",
-    ]
-    import_job_from_other_flow(job, solute_solvation_project, solvation_job, keys_for_files_to_copy, update_key)
+    solvation_keys = ["solute_solvent_gro", "solute_solvent_top"]
+    project.operation_to_workflow[func_name()] = solute_solvation_project.class_name()
+    import_job_from_other_flow(job, solute_solvation_project, solvation_job, solvation_keys)
 
     for other_job in [j for j in jobs if j != job]:
         logger.info(f"Importing data to job {other_job.id} @ AlchemicalTransformationFlow")
-        import_job_from_other_flow(other_job, project, job, keys_for_files_to_copy, update_key, run_child_job=False)
+        import_job_from_other_flow(other_job, solute_gen_project, solute_job, solute_keys, run_child_job=False)
+        import_job_from_other_flow(other_job, solvent_gen_project, solvent_job, [], run_child_job=False)
+        import_job_from_other_flow(
+            other_job, solute_solvation_project, solvation_job, solvation_keys, run_child_job=False
+        )
 
     for job in jobs:
-        if "AlchemicalTransformationFlow" not in job.document:
-            job.document["AlchemicalTransformationFlow"] = {}
-        job.document["AlchemicalTransformationFlow"]["system_prepared"] = True
+        job.doc = update_nested_dict(job.doc, {project_name: {"system_prepared": True}})
 
 
 @AlchemicalTransformationFlow.label
 def lambda_sampled(job):
-    log_file = job.document.get("alchemical_log", None)
+    if project_name not in job.doc:
+        return False
+    log_file = job.doc[project_name].get("alchemical_log", None)
     if log_file and job.isfile(log_file):
         with open(job.fn(log_file)) as file:
             lines = file.read()
@@ -124,50 +135,57 @@ def lambda_sampled(job):
 
 @AlchemicalTransformationFlow.label
 def all_lambda_states_sampled(*jobs):
-    result = all([job.isfile(job.fn(job.document.get("alchemical_xvg", default=""))) for job in jobs])
+    result = all(
+        [
+            job.doc.get(project_name, False)
+            and job.isfile(job.fn(job.doc[project_name].get("alchemical_xvg", default="")))
+            for job in jobs
+        ]
+    )
     return result
 
 
 @AlchemicalTransformationFlow.label
 def free_energy_already_calculated(*jobs):
-    solvent_name, solute_name = job_system_keys(jobs[0])
-    return any(
+    return all(
         [
-            e
-            for e in project.document.get("free_energies", [])
-            if e["solute_name"] == solute_name and e["solvent_name"] == solvent_name
+            job.doc.get(project_name, False)
+            and job.doc[project_name].get("free_energy", False)
+            and job.doc[project_name]["free_energy"].get("mean", False)
+            for job in jobs
         ]
     )
 
 
-@AlchemicalTransformationFlow.pre(system_prepared)
-@AlchemicalTransformationFlow.post(lambda_sampled)
+@AlchemicalTransformationFlow.pre(system_prepared, tag="system_prepared")
+@AlchemicalTransformationFlow.post(lambda_sampled, tag="lambda_sampled")
+@AlchemicalTransformationFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_state_point)
 @AlchemicalTransformationFlow.operation(cmd=True, with_job=True)
-@AlchemicalTransformationFlow.log_gromacs_simulation(AlchemicalTransformationFlow.get_system_run_name(""), True)
-def sample_lambda(job):
+def production(job):
     lambda_state = str(job.sp.lambda_state)
     lambda_mdp = f"{AlchemicalTransformationFlow.get_system_run_name(job.sp.lambda_state)}.mdp"
-    sub_template_mdp(AlchemicalTransformationFlow.mdp_files.get("run"), "sedstate", lambda_state, lambda_mdp)
-    sub_template_mdp(lambda_mdp, "sedmolecule", job.document["solute_name"], lambda_mdp)
-    job.document["alchemical_xvg"] = f"{AlchemicalTransformationFlow.get_system_run_name(job.sp.lambda_state)}.xvg"
-    job.document["alchemical_log"] = f"{AlchemicalTransformationFlow.get_system_run_name(job.sp.lambda_state)}.log"
+    sub_template_mdp(AlchemicalTransformationFlow.mdp_files.get("production"), "sedstate", lambda_state, lambda_mdp)
+    sub_template_mdp(lambda_mdp, "sedmolecule", job.sp["solute_name"], lambda_mdp)
+    job.doc[project_name]["alchemical_xvg"] = f"{AlchemicalTransformationFlow.get_system_run_name(lambda_state)}.xvg"
+    job.doc[project_name]["alchemical_log"] = f"{AlchemicalTransformationFlow.get_system_run_name(lambda_state)}.log"
     return gromacs_simulation_command(
         mdp=lambda_mdp,
-        top=job.document.get("solute_solvent_top"),
-        gro=job.document.get("solute_solvent_gro"),
+        top=job.doc[solute_solvation_project.class_name()].get("solute_solvent_top"),
+        gro=job.doc[solute_solvation_project.class_name()].get("solute_solvent_gro"),
         name=AlchemicalTransformationFlow.get_system_run_name(lambda_state),
         n_threads=AlchemicalTransformationFlow.simulation_settings.get("n_threads"),
     )
 
 
-@AlchemicalTransformationFlow.pre(all_lambda_states_sampled)
-@AlchemicalTransformationFlow.post(free_energy_already_calculated)
+@AlchemicalTransformationFlow.pre(all_lambda_states_sampled, tag="lambda_sampled")
+@AlchemicalTransformationFlow.post(free_energy_already_calculated, tag="mbar")
+@AlchemicalTransformationFlow.operation_hooks.on_success(store_task_for_many_jobs)
 @AlchemicalTransformationFlow.operation(
     aggregator=aggregator(aggregator_function=solvent_and_solute_aggregator, sort_by="lambda_state")
 )
 def compute_free_energy(*jobs):
     logger.info("calculating free energies using pyMBAR}")
-    xvg_files = [job.fn(job.document["alchemical_xvg"]) for job in jobs]
+    xvg_files = [job.fn(job.doc[project_name]["alchemical_xvg"]) for job in jobs]
     u_nk_list = [
         extract_u_nk(f, T=AlchemicalTransformationFlow.simulation_settings.get("temperature")) for f in xvg_files
     ]
@@ -176,58 +194,30 @@ def compute_free_energy(*jobs):
     free_energy = float(mbar.delta_f_.iloc[0, -1])
     d_free_energy = float(mbar.d_delta_f_.iloc[0, -1])
     solvent_name, solute_name = job_system_keys(jobs[0])
-    logger.info(f"free energy {solvent_name}_{solute_name}: {free_energy:+6.2f} +- {d_free_energy:5.2f} kT")
-    f_contrib = {
-        "solvent_name": solvent_name,
-        "solute_name": solute_name,
-        "f_mean": free_energy,
-        "f_std": d_free_energy,
-    }
-    if "free_energies" not in project.document:
-        project.document["free_energies"] = []
-    project.document["free_energies"].append(f_contrib)
+    logger.info(f"free energy {solvent_name}_{solute_name}: {free_energy:+6.2f} +/- {d_free_energy:5.2f} kT")
+    for job in jobs:
+        job.doc = update_nested_dict(
+            job.doc, {project_name: {"free_energy": {"mean": free_energy, "std": d_free_energy}}}
+        )
 
 
-@AlchemicalTransformationFlow.pre(free_energy_already_calculated)
+@AlchemicalTransformationFlow.pre(free_energy_already_calculated, tag="mbar")
 @AlchemicalTransformationFlow.post(nomad_workflow_built)
 @AlchemicalTransformationFlow.operation(aggregator=aggregator(aggregator_function=solvent_and_solute_aggregator))
 def generate_nomad_workflow(*jobs):
+    for job in jobs:
+        with job:
+            build_nomad_workflow(job, is_top_level=False, add_job_id=True)
     job = lowest_lambda_job(jobs)
-    projects = {
-        "SoluteSolvationFlow": solute_solvation_project,
-        "SoluteGenFlow": solute_gen_project,
-        "SolventGenFlow": solvent_gen_project,
-        "AlchemicalTransformationFlow": project,
-    }
-    project_jobs = {
-        "SoluteSolvationFlow": get_solvation_job(job),
-        "SoluteGenFlow": get_solute_job(job),
-        "SolventGenFlow": get_solvent_job(job),
-        "AlchemicalTransformationFlow": job,
-    }
     with job:
-        for workflow_name in projects:
-            workflow = NomadWorkflow(projects[workflow_name], job)
-            workflow_flow = cast(MartiniFlowProject, globals()[workflow_name])
-            workflow.build_workflow_yaml(workflow_flow.nomad_workflow)
-        graph = nx.DiGraph(
-            [
-                ("SoluteGenFlow", "SoluteSolvationFlow"),
-                ("SolventGenFlow", "SoluteSolvationFlow"),
-                ("SoluteSolvationFlow", "AlchemicalTransformationFlow"),
-            ]
-        )
-        top_level_workflow = NomadTopLevelWorkflow(projects, project_jobs, graph)
-        top_level_workflow.build_workflow_yaml(AlchemicalTransformationFlow.nomad_top_level_workflow)
+        build_nomad_workflow_with_multiple_jobs(project, list(jobs))
 
 
 @AlchemicalTransformationFlow.pre(nomad_workflow_built)
 @AlchemicalTransformationFlow.post(any_uploaded_to_nomad)
 @AlchemicalTransformationFlow.operation(aggregator=aggregator(aggregator_function=solvent_and_solute_aggregator))
 def upload_to_nomad(*jobs):
-    for job in jobs:
-        if job == lowest_lambda_job(jobs):
-            return AlchemicalTransformationFlow.upload_to_nomad(job)
+    return AlchemicalTransformationFlow.upload_to_nomad_multiple_jobs(list(jobs))
 
 
 project = AlchemicalTransformationFlow.get_project(path=AlchemicalTransformationFlow.workspace_path)

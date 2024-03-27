@@ -196,6 +196,8 @@ def query_entries(
 
 
 def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
+    # TODO: Fix when upload contains multiple directories
+
     entries = find_entries_corresponding_to_job(job)
     if len(entries) == 0:
         return False

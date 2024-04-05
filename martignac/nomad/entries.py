@@ -19,6 +19,7 @@ from martignac.nomad.uploads import get_all_my_uploads
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import get_nomad_base_url, get_nomad_request, post_nomad_request
 from martignac.utils.martini_flow_projects import MartiniFlowProject
+from martignac.utils.misc import update_nested_dict
 
 logger = logging.getLogger(__name__)
 
@@ -196,8 +197,6 @@ def query_entries(
 
 
 def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
-    # TODO: Fix when upload contains multiple directories
-
     entries = find_entries_corresponding_to_job(job)
     if len(entries) == 0:
         return False
@@ -220,14 +219,14 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
     if "signac_job_document.json" in os.listdir(archive_path):
         with open(archive_path + "/signac_job_document.json") as fp:
             json_data = json.load(fp)
-            job.document.update(json_data)
+            job.doc = update_nested_dict(job.doc, dict(json_data))
     for file_name in os.listdir(archive_path):
         os.remove(archive_path + "/" + file_name)
     os.removedirs(archive_path)
     job.document["nomad_dataset_id"] = MartiniFlowProject.nomad_dataset_id
-    if "nomad_upload_id" not in job.document:
-        job.document["nomad_upload_id"] = {}
-    job.document["nomad_upload_id"][entry.workflow_name] = entry.upload_id
+    if entry.workflow_name not in job.document:
+        job.document[entry.workflow_name] = {}
+    job.document[entry.workflow_name]["nomad_upload_id"] = entry.upload_id
     return True
 
 

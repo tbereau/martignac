@@ -13,7 +13,6 @@ from martignac.utils.martini_flow_projects import (
     MartiniFlowProject,
     fetched_from_nomad,
     flag_ready_for_upload,
-    is_ready_for_upload,
     store_gromacs_log_to_doc,
     store_task,
     uploaded_to_nomad,
@@ -73,7 +72,8 @@ def generated_prod_gro(job):
 
 
 @SolventGenFlow.pre(fetched_from_nomad)
-@SolventGenFlow.post(generated_mol_gro)
+@SolventGenFlow.post(generated_mol_gro, tag="generated_mol_gro")
+@SolventGenFlow.operation_hooks.on_success(store_task)
 @SolventGenFlow.operation(with_job=True)
 def generate_solvent_molecule(job) -> None:
     molecule = find_molecule_from_name(list(SolventGenFlow.itp_files.values()), job.sp.solvent_name)
@@ -84,8 +84,8 @@ def generate_solvent_molecule(job) -> None:
     return None
 
 
-@SolventGenFlow.pre(generated_mol_gro)
-@SolventGenFlow.post(generated_box_pdb)
+@SolventGenFlow.pre(generated_mol_gro, tag="generated_mol_gro")
+@SolventGenFlow.post(generated_box_pdb, tag="generated_box_pdb")
 @SolventGenFlow.operation_hooks.on_success(store_task)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def solvate(_):
@@ -96,8 +96,8 @@ def solvate(_):
     )
 
 
-@SolventGenFlow.pre(generated_box_pdb)
-@SolventGenFlow.post(generated_box_gro)
+@SolventGenFlow.pre(generated_box_pdb, tag="generated_box_pdb")
+@SolventGenFlow.post(generated_box_gro, tag="generated_box_gro")
 @SolventGenFlow.operation_hooks.on_success(store_task)
 @SolventGenFlow.operation(with_job=True)
 def solvate_convert_to_gro(_):
@@ -108,8 +108,8 @@ def solvate_convert_to_gro(_):
     )
 
 
-@SolventGenFlow.pre(generated_box_gro)
-@SolventGenFlow.post(generated_min_gro)
+@SolventGenFlow.pre(generated_box_gro, tag="generated_box_gro")
+@SolventGenFlow.post(generated_min_gro, tag="generated_min_gro")
 @SolventGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def minimize(job):
@@ -131,8 +131,8 @@ def minimize(job):
     )
 
 
-@SolventGenFlow.pre(generated_min_gro)
-@SolventGenFlow.post(generated_equ_gro)
+@SolventGenFlow.pre(generated_min_gro, tag="generated_min_gro")
+@SolventGenFlow.post(generated_equ_gro, tag="generated_equ_gro")
 @SolventGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def equilibrate(_):
@@ -145,8 +145,8 @@ def equilibrate(_):
     )
 
 
-@SolventGenFlow.pre(generated_equ_gro)
-@SolventGenFlow.post(generated_prod_gro)
+@SolventGenFlow.pre(generated_equ_gro, tag="generated_equ_gro")
+@SolventGenFlow.post(generated_prod_gro, tag="generated_prod_gro")
 @SolventGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def production(job):
@@ -160,7 +160,7 @@ def production(job):
     )
 
 
-@SolventGenFlow.pre(generated_prod_gro)
+@SolventGenFlow.pre(generated_prod_gro, tag="generated_prod_gro")
 @SolventGenFlow.post(nomad_workflow_is_built)
 @SolventGenFlow.operation_hooks.on_success(flag_ready_for_upload)
 @SolventGenFlow.operation(with_job=True)
@@ -168,7 +168,7 @@ def generate_nomad_workflow(job):
     build_nomad_workflow(job, is_top_level=False)
 
 
-@SolventGenFlow.pre(is_ready_for_upload)
+@SolventGenFlow.pre(nomad_workflow_is_built)
 @SolventGenFlow.post(uploaded_to_nomad)
 @SolventGenFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):

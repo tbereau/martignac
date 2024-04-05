@@ -100,24 +100,25 @@ class MartiniFlowProject(FlowProject):
 
     @classmethod
     def upload_to_nomad_multiple_jobs(cls, jobs: list[Job]) -> None:
+        dataset = get_dataset_by_id(cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database)
+        logger.info(f"made connection to dataset {dataset.dataset_id}")
         for job in jobs:
             if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
                 logger.info(f"Workflow {cls.class_name()} already uploaded to {upload_id}")
                 return None
-        dataset = get_dataset_by_id(cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database)
-        logger.info(f"made connection to dataset {dataset.dataset_id}")
-        generate_user_metadata(
-            file_name=job.fn("nomad.yaml"),
-            comment=json.dumps(cls.nomad_comment(job)),
-            coauthors=cls.nomad_coauthors,
-            datasets=[dataset.dataset_id],
-        )
-        zip_file = zip_directories([job.path for job in jobs], job.id)
+            generate_user_metadata(
+                file_name=job.fn("nomad.yaml"),
+                comment=json.dumps(cls.nomad_comment(job)),
+                coauthors=cls.nomad_coauthors,
+                datasets=[dataset.dataset_id],
+            )
+        zip_file = zip_directories([job.path for job in jobs], jobs[0].id)
         upload_id = upload_files_to_nomad(zip_file, cls.nomad_use_prod_database)
-        job.doc = update_nested_dict(
-            job.doc, {"nomad_dataset_id": dataset.dataset_id, cls.class_name(): {"nomad_upload_id": upload_id}}
-        )
         os.remove(zip_file)
+        for job in jobs:
+            job.doc = update_nested_dict(
+                job.doc, {"nomad_dataset_id": dataset.dataset_id, cls.class_name(): {"nomad_upload_id": upload_id}}
+            )
 
     @classmethod
     def unlink_itp_and_mdp_files(cls, job: Job) -> None:
@@ -248,7 +249,8 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
         if not job.isfile(os.path.basename(itp_file)):
             os.symlink(f"{project.itp_path}/{itp_file}", job.fn(os.path.basename(itp_file)))
     for mdp_file in project.mdp_files.values():
-        os.symlink(f"{project.mdp_path}/{mdp_file}", job.fn(os.path.basename(mdp_file)))
+        if not job.isfile(os.path.basename(mdp_file)):
+            os.symlink(f"{project.mdp_path}/{mdp_file}", job.fn(os.path.basename(mdp_file)))
     job.doc = update_nested_dict(job.doc, {project.class_name(): {"files_symlinked": True}})
 
 

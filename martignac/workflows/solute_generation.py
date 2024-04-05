@@ -1,5 +1,3 @@
-import logging
-
 from martignac import config
 from martignac.nomad.workflows import Job, build_nomad_workflow, nomad_workflow_is_built
 from martignac.parsers.gromacs_forcefields import (
@@ -15,10 +13,10 @@ from martignac.utils.martini_flow_projects import (
     flag_ready_for_upload,
     store_gromacs_log_to_doc,
     store_task,
+    uploaded_to_nomad,
 )
 
 conf = config()["solute_generation"]
-logger = logging.getLogger(__name__)
 
 
 class SoluteGenFlow(MartiniFlowProject):
@@ -80,7 +78,7 @@ def solvate(job: Job) -> None:
 
 
 @SoluteGenFlow.pre(generated)
-@SoluteGenFlow.post(minimized)
+@SoluteGenFlow.post(minimized, tag="minimized")
 @SoluteGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SoluteGenFlow.operation(cmd=True, with_job=True)
 def minimize(job: Job):
@@ -98,8 +96,8 @@ def equilibrated(job: Job) -> bool:
     return job.isfile(SoluteGenFlow.get_state_name("equilibrate", "gro"))
 
 
-@SoluteGenFlow.pre(minimized)
-@SoluteGenFlow.post(equilibrated)
+@SoluteGenFlow.pre(minimized, tag="minimized")
+@SoluteGenFlow.post(equilibrated, tag="equilibrated")
 @SoluteGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SoluteGenFlow.operation(cmd=True, with_job=True)
 def equilibrate(job: Job):
@@ -113,7 +111,7 @@ def equilibrate(job: Job):
     )
 
 
-@SoluteGenFlow.pre(equilibrated)
+@SoluteGenFlow.pre(equilibrated, tag="equilibrated")
 @SoluteGenFlow.post(nomad_workflow_is_built)
 @SoluteGenFlow.operation_hooks.on_success(flag_ready_for_upload)
 @SoluteGenFlow.operation(with_job=True)
@@ -121,11 +119,11 @@ def generate_nomad_workflow(job):
     build_nomad_workflow(job, is_top_level=False)
 
 
-# @SoluteGenFlow.pre(is_ready_for_upload)
-# @SoluteGenFlow.post(uploaded_to_nomad)
-# @SoluteGenFlow.operation(with_job=True)
-# def upload_to_nomad(job: Job):
-#     return SoluteGenFlow.upload_to_nomad(job)
+@SoluteGenFlow.pre(nomad_workflow_is_built)
+@SoluteGenFlow.post(uploaded_to_nomad)
+@SoluteGenFlow.operation(with_job=True)
+def upload_to_nomad(job: Job):
+    return SoluteGenFlow.upload_to_nomad(job)
 
 
 def get_solute_job(job: Job) -> Job:

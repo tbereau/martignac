@@ -60,7 +60,7 @@ def solvent_generated(job) -> bool:
 
 
 @SoluteSolvationFlow.pre(fetched_from_nomad)
-@SoluteSolvationFlow.post(solute_generated)
+@SoluteSolvationFlow.post(solute_generated, tag="solute_generated")
 @SoluteSolvationFlow.operation_hooks.on_success(store_workflow)
 @SoluteSolvationFlow.operation
 def generate_solute(job: Job):
@@ -71,7 +71,7 @@ def generate_solute(job: Job):
 
 
 @SoluteSolvationFlow.pre(fetched_from_nomad)
-@SoluteSolvationFlow.post(solvent_generated)
+@SoluteSolvationFlow.post(solvent_generated, tag="solvent_generated")
 @SoluteSolvationFlow.operation_hooks.on_success(store_workflow)
 @SoluteSolvationFlow.operation
 def generate_solvent(job):
@@ -96,9 +96,9 @@ def system_equilibrated(job):
     return job.isfile(SoluteSolvationFlow.get_state_name("equilibrate", "gro"))
 
 
-@SoluteSolvationFlow.pre(solute_generated)
-@SoluteSolvationFlow.pre(solvent_generated)
-@SoluteSolvationFlow.post(system_generated)
+@SoluteSolvationFlow.pre(solute_generated, tag="solute_generated")
+@SoluteSolvationFlow.pre(solvent_generated, tag="solvent_generated")
+@SoluteSolvationFlow.post(system_generated, tag="system_generated")
 @SoluteSolvationFlow.operation_hooks.on_success(store_task)
 @SoluteSolvationFlow.operation(cmd=True, with_job=True)
 def solvate(job):
@@ -111,8 +111,8 @@ def solvate(job):
     )
 
 
-@SoluteSolvationFlow.pre(system_generated)
-@SoluteSolvationFlow.post(system_minimized)
+@SoluteSolvationFlow.pre(system_generated, tag="system_generated")
+@SoluteSolvationFlow.post(system_minimized, tag="system_minimized")
 @SoluteSolvationFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SoluteSolvationFlow.operation(cmd=True, with_job=True)
 def minimize(job):
@@ -131,8 +131,8 @@ def minimize(job):
     )
 
 
-@SoluteSolvationFlow.pre(system_minimized)
-@SoluteSolvationFlow.post(system_equilibrated)
+@SoluteSolvationFlow.pre(system_minimized, tag="system_minimized")
+@SoluteSolvationFlow.post(system_equilibrated, tag="system_equilibrated")
 @SoluteSolvationFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SoluteSolvationFlow.operation(cmd=True, with_job=True)
 def equilibrate(job):
@@ -146,11 +146,12 @@ def equilibrate(job):
     )
 
 
-@SoluteSolvationFlow.pre(system_equilibrated)
+@SoluteSolvationFlow.pre(system_equilibrated, tag="system_equilibrated")
 @SoluteSolvationFlow.post(
     lambda job: all(
         [job.isfile(SoluteSolvationFlow.nomad_workflow), job.isfile(SoluteSolvationFlow.nomad_top_level_workflow)]
-    )
+    ),
+    tag="generated_nomad_workflow",
 )
 @SoluteSolvationFlow.operation_hooks.on_success(flag_ready_for_upload)
 @SoluteSolvationFlow.operation(with_job=True)
@@ -159,7 +160,7 @@ def generate_nomad_workflow(job):
     build_nomad_workflow(job, is_top_level=True)
 
 
-@SoluteSolvationFlow.pre(is_ready_for_upload)
+@SoluteSolvationFlow.pre(is_ready_for_upload, tag="generated_nomad_workflow")
 @SoluteSolvationFlow.post(uploaded_to_nomad)
 @SoluteSolvationFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):

@@ -7,9 +7,9 @@ nomad:
 
 local:
   workspaces:
-    absolute_path: "/Users/bereau/work/projects/martignac/workspaces"
+    absolute_path: "/Users/tbereau/work/research/martignac/workspaces"
   input_files:
-    absolute_path: "/Users/bereau/work/projects/martignac/scripts"
+    absolute_path: "/Users/tbereau/work/research/martignac/scripts"
 
 solute_generation:
   relative_paths:

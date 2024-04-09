@@ -2,15 +2,20 @@ from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
+from martignac.workflows.solute_generation import project as solute_gen_project
 from martignac.nomad.entries import (
     NomadEntry,
     get_entries_of_my_uploads,
 )
+from martignac.utils.dashboard import generate_gravis_network
 
 st.set_page_config(page_title="Solute generation", page_icon="📊")
 
 st.title("Martignac: Solute generation")
+
+components.html(generate_gravis_network(solute_gen_project).to_html(), height=400)
 
 # uploads
 upload_entries: list[NomadEntry] = get_entries_of_my_uploads()

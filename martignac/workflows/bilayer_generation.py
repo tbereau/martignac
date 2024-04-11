@@ -4,7 +4,13 @@ from martignac.nomad.workflows import Job, build_nomad_workflow
 from martignac.parsers.gromacs_topologies import Topology
 from martignac.utils.gromacs import gromacs_simulation_command
 from martignac.utils.insane import generate_bilayer_with_insane
-from martignac.utils.martini_flow_projects import MartiniFlowProject, fetched_from_nomad, uploaded_to_nomad
+from martignac.utils.martini_flow_projects import (
+    MartiniFlowProject,
+    fetched_from_nomad,
+    uploaded_to_nomad,
+    store_task,
+    store_gromacs_log_to_doc,
+)
 from martignac.utils.misc import sub_template_mdp
 
 conf = config()["bilayer_generation"]
@@ -52,7 +58,8 @@ def generated_prod_gro(job):
 
 
 @BilayerGenFlow.pre(fetched_from_nomad)
-@BilayerGenFlow.post(generated_gen_gro)
+@BilayerGenFlow.post(generated_gen_gro, tag="generated_gen_gro")
+@BilayerGenFlow.operation_hooks.on_success(store_task)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def generate_initial_bilayer(job):
     lipid_mixture = LiquidMixture.from_list_of_dicts(job.sp.lipids)
@@ -66,10 +73,10 @@ def generate_initial_bilayer(job):
     )
 
 
-@BilayerGenFlow.pre(generated_gen_gro)
-@BilayerGenFlow.post(generated_min_gro)
+@BilayerGenFlow.pre(generated_gen_gro, tag="generated_gen_gro")
+@BilayerGenFlow.post(generated_min_gro, tag="generated_min_gro")
+@BilayerGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
-@BilayerGenFlow.log_gromacs_simulation(BilayerGenFlow.get_state_name("minimize"))
 def minimize(job):
     top = Topology.parse_top_file(BilayerGenFlow.get_state_name(extension="top"))
     top.includes = BilayerGenFlow.itp_files.values()
@@ -84,10 +91,10 @@ def minimize(job):
     )
 
 
-@BilayerGenFlow.pre(generated_min_gro)
-@BilayerGenFlow.post(generated_equ_gro)
+@BilayerGenFlow.pre(generated_min_gro, tag="generated_min_gro")
+@BilayerGenFlow.post(generated_equ_gro, tag="generated_equ_gro")
+@BilayerGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
-@BilayerGenFlow.log_gromacs_simulation(BilayerGenFlow.get_state_name("equilibrate"))
 def equilibrate(job):
     mdp_file_template = BilayerGenFlow.mdp_files.get("equilibrate")
     mdp_file = job.fn(BilayerGenFlow.get_state_name("equilibrate", "mdp"))
@@ -102,10 +109,10 @@ def equilibrate(job):
     )
 
 
-@BilayerGenFlow.pre(generated_equ_gro)
-@BilayerGenFlow.post(generated_prod_gro)
+@BilayerGenFlow.pre(generated_equ_gro, tag="generated_equ_gro")
+@BilayerGenFlow.post(generated_prod_gro, tag="generated_prod_gro")
+@BilayerGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
-@BilayerGenFlow.log_gromacs_simulation(BilayerGenFlow.get_state_name("production"))
 def production(job):
     mdp_file_template = BilayerGenFlow.mdp_files.get("production")
     mdp_file = job.fn(BilayerGenFlow.get_state_name("production", "mdp"))
@@ -120,16 +127,16 @@ def production(job):
     )
 
 
-@BilayerGenFlow.pre(generated_prod_gro)
-@BilayerGenFlow.post(lambda job: job.isfile(BilayerGenFlow.nomad_workflow))
+@BilayerGenFlow.pre(generated_prod_gro, tag="generated_prod_gro")
+@BilayerGenFlow.post(lambda job: job.isfile(BilayerGenFlow.nomad_workflow), tag="generated_nomad_workflow")
 @BilayerGenFlow.operation(with_job=True)
 def generate_nomad_workflow(job: Job):
     build_nomad_workflow(job, is_top_level=False)
-    raise NotImplementedError()
+    build_nomad_workflow(job, is_top_level=True)
 
 
-@BilayerGenFlow.pre(lambda job: job.isfile(BilayerGenFlow.nomad_workflow))
-@BilayerGenFlow.post(lambda job: uploaded_to_nomad(job))
+@BilayerGenFlow.pre(lambda job: job.isfile(BilayerGenFlow.nomad_workflow), tag="generated_nomad_workflow")
+@BilayerGenFlow.post(uploaded_to_nomad)
 @BilayerGenFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
     return BilayerGenFlow.upload_to_nomad(job)

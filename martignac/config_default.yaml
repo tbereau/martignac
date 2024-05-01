@@ -7,14 +7,14 @@ nomad:
 
 local:
   workspaces:
-    absolute_path: "/Users/tbereau/work/research/martignac/workspaces"
+    absolute_path: "/Users/bereau/work/projects/martignac/workspaces"
   input_files:
-    absolute_path: "/Users/tbereau/work/research/martignac/scripts"
+    absolute_path: "/Users/bereau/work/projects/martignac/scripts"
+    itp_files: "/Users/bereau/work/projects/martignac/scripts/martini_v300"
 
 solute_generation:
   relative_paths:
     workspaces: "solute_generation"
-    itp_files: "martini_v300"
     mdp_files: "solute_generation/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
@@ -38,7 +38,6 @@ solute_generation:
 solvent_generation:
   relative_paths:
     workspaces: "solvent_generation"
-    itp_files: "martini_v300"
     mdp_files: "solvent_generation/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
@@ -60,11 +59,10 @@ solvent_generation:
       equilibrate: "equilibrate"
       production: "production"
 
-solute_solvation:
+solute_in_solvent:
   relative_paths:
-    workspaces: "solute_solvation"
-    itp_files: "martini_v300"
-    mdp_files: "solute_solvation/mdp_files"
+    workspaces: "solute_in_solvent"
+    mdp_files: "solute_in_solvent/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
     solvents: "martini_v3.0.0_solvents_v1.itp"
@@ -74,9 +72,9 @@ solute_solvation:
     minimize: "min.mdp"
     equilibrate: "equ.mdp"
   output_names:
-    system: "solute_solvent"
-    nomad_workflow: "solute_solvation.archive.yaml"
-    nomad_top_level_workflow: "full_workflow.solute_solvation.archive.yaml"
+    system: "solute_in_solvent"
+    nomad_workflow: "solute_in_solvent.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_solvent.archive.yaml"
     states:
       generate: "gen"
       minimize: "min"
@@ -85,7 +83,6 @@ solute_solvation:
 alchemical_transformation:
   relative_paths:
     workspaces: "alchemical_transformation"
-    itp_files: "martini_v300"
     mdp_files: "alchemical_transformation/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
@@ -105,7 +102,6 @@ alchemical_transformation:
 bilayer_generation:
   relative_paths:
     workspaces: "bilayer_generation"
-    itp_files: "martini_v300"
     mdp_files: "bilayer_generation/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
@@ -131,3 +127,25 @@ bilayer_generation:
       minimize: "min"
       equilibrate: "equ"
       production: "prod"
+
+solute_in_bilayer:
+  relative_paths:
+    workspaces: "solute_in_bilayer"
+    mdp_files: "solute_in_bilayer/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    phospholipids: "martini_v3.0.0_phospholipids_v1.itp"
+  settings:
+    n_threads: 1
+  mdp_files:
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+  output_names:
+    system: "solute_in_bilayer"
+    nomad_workflow: "solute_in_bilayer.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_bilayer.archive.yaml"
+    states:
+      generate: "gen"
+      minimize: "min"
+      equilibrate: "equ"

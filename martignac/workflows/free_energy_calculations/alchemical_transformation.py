@@ -19,9 +19,9 @@ from martignac.utils.martini_flow_projects import (
     uploaded_to_nomad,
 )
 from martignac.utils.misc import func_name, sub_template_mdp, update_nested_dict
-from martignac.workflows.solute_generation import SoluteGenFlow, get_solute_job
-from martignac.workflows.solute_solvation import SoluteSolvationFlow, get_solvation_job
-from martignac.workflows.solvent_generation import SolventGenFlow, get_solvent_job
+from martignac.workflows.system_generation.solute import SoluteGenFlow, get_solute_job
+from martignac.workflows.system_generation.solute_in_solvent import SoluteInSolventFlow, get_solvation_job
+from martignac.workflows.system_generation.solvent import SolventGenFlow, get_solvent_job
 
 logger = logging.getLogger(__name__)
 
@@ -223,4 +223,4 @@ def upload_to_nomad(*jobs):
 project = AlchemicalTransformationFlow.get_project(path=AlchemicalTransformationFlow.workspace_path)
 solute_gen_project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
 solvent_gen_project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)
-solute_solvation_project = SoluteSolvationFlow.get_project(path=SoluteSolvationFlow.workspace_path)
+solute_solvation_project = SoluteInSolventFlow.get_project(path=SoluteInSolventFlow.workspace_path)

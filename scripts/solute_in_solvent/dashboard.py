@@ -1,6 +1,6 @@
 from signac_dashboard import Dashboard
 
-from martignac.workflows.solute_solvation import SoluteSolvationFlow
+from martignac.workflows.system_generation.solute_solvation import SoluteSolvationFlow
 
 
 class MyDashboard(Dashboard):

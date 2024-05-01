@@ -34,6 +34,16 @@ def solvate_solute_command(
     return cmd
 
 
+def insert_solute_molecule_in_box(
+    gro_solute: str, gro_box: str, replaceable_group: str, output_name: str, num_extra_molecules: int = 1
+) -> str:
+    cmd = (
+        f"gmx insert-molecules -ci {gro_solute} -f {gro_box} -o {output_name} -replace {replaceable_group} "
+        f"-nmol {num_extra_molecules}"
+    )
+    return cmd
+
+
 def gromacs_simulation_command(
     mdp: str, top: str, gro: str, name: str, n_max_warn: int = 10, n_threads: int = 1, verbose: bool = True
 ) -> str:

@@ -22,11 +22,11 @@ MartiniTypeFlow = TypeVar("MartiniTypeFlow", bound="MartiniFlowProject")
 class MartiniFlowProject(FlowProject):
     workspaces_path: str = config()["local"]["workspaces"]["absolute_path"].get(str)
     input_files_path: str = config()["local"]["input_files"]["absolute_path"].get(str)
+    itp_path: str = config()["local"]["input_files"]["itp_files"].get(str)
     nomad_use_prod_database: bool = config()["nomad"]["use_prod"].get(bool)
     nomad_dataset_id: str = config()["nomad"]["dataset"]["id"].get(str)
     nomad_coauthors: list[str] = [c.get(str) for c in config()["nomad"]["coauthors"]]
     workspace_path: str = ""
-    itp_path: str
     itp_files: Dict[str, str] = {}
     mdp_path: str
     mdp_files: Dict[str, str] = {}
@@ -73,7 +73,7 @@ class MartiniFlowProject(FlowProject):
         return {
             "job_id": job.id,
             "workflow_name": cls.class_name(),
-            "state_point": dict(job.sp),
+            "state_point": job.sp(),
             "mdp_files": job.doc[cls.class_name()]["mdp_files"],
             "itp_files": job.doc[cls.class_name()]["itp_files"],
         }

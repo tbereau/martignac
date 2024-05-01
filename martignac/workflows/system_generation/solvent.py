@@ -25,7 +25,6 @@ conf = config()["solvent_generation"]
 
 class SolventGenFlow(MartiniFlowProject):
     workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
-    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
     mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
@@ -88,7 +87,7 @@ def generate_solvent_molecule(job) -> None:
 @SolventGenFlow.post(generated_box_pdb, tag="generated_box_pdb")
 @SolventGenFlow.operation_hooks.on_success(store_task)
 @SolventGenFlow.operation(cmd=True, with_job=True)
-def solvate(_):
+def build_solvent_box(_):
     return generate_solvent_with_packmol(
         gro_solvent_mol=SolventGenFlow.get_state_name("mol", "gro"),
         box_length=SolventGenFlow.simulation_settings.get("box_length"),
@@ -100,7 +99,7 @@ def solvate(_):
 @SolventGenFlow.post(generated_box_gro, tag="generated_box_gro")
 @SolventGenFlow.operation_hooks.on_success(store_task)
 @SolventGenFlow.operation(with_job=True)
-def solvate_convert_to_gro(_):
+def convert_box_to_gro(_):
     convert_pdb_to_gro(
         SolventGenFlow.get_state_name("box", "pdb"),
         SolventGenFlow.get_state_name("box", "gro"),

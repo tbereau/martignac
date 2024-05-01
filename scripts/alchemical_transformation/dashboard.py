@@ -1,6 +1,6 @@
 from signac_dashboard import Dashboard
 
-from martignac.workflows.alchemical_transformation import AlchemicalTransformationFlow
+from martignac.workflows.free_energy_calculations.alchemical_transformation import AlchemicalTransformationFlow
 
 
 class MyDashboard(Dashboard):

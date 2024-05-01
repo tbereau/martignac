@@ -21,7 +21,6 @@ conf = config()["solute_generation"]
 
 class SoluteGenFlow(MartiniFlowProject):
     workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
-    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
     mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
@@ -57,7 +56,7 @@ def minimized(job: Job):
 @SoluteGenFlow.post(generated)
 @SoluteGenFlow.operation_hooks.on_success(store_task)
 @SoluteGenFlow.operation(with_job=True)
-def solvate(job: Job) -> None:
+def build(job: Job) -> None:
     molecule = get_molecule_from_name(
         job.sp.solute_name,
         bond_length=SoluteGenFlow.ff_parameters["bond_length"],

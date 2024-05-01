@@ -1,8 +1,8 @@
 import signac
 
-from martignac.workflows.solute_solvation import SoluteSolvationFlow
+from martignac.workflows.system_generation.solute_in_solvent import SoluteInSolventFlow
 
-project = signac.init_project(path=SoluteSolvationFlow.workspace_path)
+project = signac.init_project(path=SoluteInSolventFlow.workspace_path)
 
 solvent_names = ["HD"]
 solute_names = ["P6"]

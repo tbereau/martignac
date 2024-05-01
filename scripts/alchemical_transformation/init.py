@@ -2,7 +2,7 @@ import itertools
 
 import signac
 
-from martignac.workflows.alchemical_transformation import AlchemicalTransformationFlow
+from martignac.workflows.free_energy_calculations.alchemical_transformation import AlchemicalTransformationFlow
 
 project = signac.init_project(path=AlchemicalTransformationFlow.workspace_path)
 

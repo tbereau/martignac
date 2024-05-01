@@ -1,7 +1,7 @@
 import signac
 
 from martignac.liquid_models.mixtures import LiquidComponent, LiquidMixture
-from martignac.workflows.bilayer_generation import BilayerGenFlow
+from martignac.workflows.system_generation.bilayer import BilayerGenFlow
 
 project = signac.init_project(path=BilayerGenFlow.workspace_path)
 

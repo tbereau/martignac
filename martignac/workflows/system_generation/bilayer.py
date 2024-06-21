@@ -121,6 +121,7 @@ def production(job):
     sub_template_mdp(mdp_file, "sedsolvent", " ".join(BilayerGenFlow.solvent.solvent_names), mdp_file)
     job.doc[project_name]["bilayer_gro"] = BilayerGenFlow.get_state_name("production", "gro")
     job.doc[project_name]["bilayer_top"] = BilayerGenFlow.get_state_name(extension="top")
+    job.doc[project_name]["lipid_names"] = lipid_names(job)
     return gromacs_simulation_command(
         mdp=mdp_file,
         top=BilayerGenFlow.get_state_name(extension="top"),

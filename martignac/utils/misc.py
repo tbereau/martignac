@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from os.path import abspath, basename, islink, join
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import numpy as np
 import regex
 from MDAnalysis import Universe
 
@@ -91,3 +92,23 @@ def update_nested_dict(d, u):
         else:
             d[k] = v
     return d
+
+
+def calculate_average_com(gro_file_path: str, molecule_names: list[str]) -> np.ndarray:
+    u = Universe(gro_file_path)
+    if not molecule_names:
+        molecule_atoms = u.atoms
+    else:
+        selection_str = " or ".join([f"resname {mol}" for mol in molecule_names])
+        molecule_atoms = u.select_atoms(selection_str)
+
+    if len(molecule_atoms) > 0:
+        return molecule_atoms.center_of_mass()
+    else:
+        raise ValueError(f"No atoms found for the types {molecule_names} in {gro_file_path}")
+
+
+def translate_gro_by_vector(gro_file_path, output_gro_file_path, com_diff_vector):
+    u = Universe(gro_file_path)
+    u.atoms.positions += com_diff_vector
+    u.atoms.write(output_gro_file_path)

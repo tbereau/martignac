@@ -1,6 +1,6 @@
-# martignac
+# Martignac
 
-This is a template repository for Python projects that use Poetry for their dependency management.
+Martignac: Coarse-grained Martini simulation worfklows
 
 - **GitLab repository**: <https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac/>
 
@@ -24,16 +24,6 @@ pip install --upgrade pip
 python setup.py install
 pip install -e .
 ```
-
-You are now ready to start development on your project! The CI/CD
-pipeline will be triggered when you open a pull request, merge to main,
-or when you create a new release.
-
-To finalize the set-up for publishing to PyPi or Artifactory, see
-[here](https://fpgmaas.github.io/cookiecutter-poetry/features/publishing/#set-up-for-pypi).
-For activating the automatic documentation with MkDocs, see
-[here](https://fpgmaas.github.io/cookiecutter-poetry/features/mkdocs/#enabling-the-documentation-on-github).
-To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/codecov/).
 
 ## Martignac dependencies installation 
 
@@ -74,18 +64,41 @@ and gromacs
 conda install -c conda-forge gromacs
 ```
 
-## Examples 
+## NOMAD
 
-Examples are found in `martini_fep/` and  `martini_solvate/`. In each case execute the following commands:
+Martignac will need to connect to NOMAD. Create an account on https://nomad-lab.eu/. 
+Store your credentials in a `.env` file at the root of the `martignac` directory, with the following content
+```bash
+NOMAD_USERNAME="MyLogin"
+NOMAD_PASSWORD="MyPassWord"
+```
+and insert your username and password. 
+
+> [!CAUTION]
+> Never push your `.env` file to a repository. This would expose your password.
+
+## Config file
+
+Martignac is controlled through a `config.yaml`. You can find an example file in `martignac/config_default.yaml`. 
+All aspects of simulation input files and parameters can be controlled from the yaml file. 
+
+## Workflow paths 
+
+You can set the directories for input and output of your workflows in the `config.yaml`. 
+
+- Output directory: set the key `local > workspaces > absolute_path`
+- Input directories: set the keys 
+  - `local > input_files > absolute_path` (default: `scripts/`), containing python scripts and mdp files 
+  - `local > input_files > itp_files`, containing force-field itp files
+
+For each workflow, run the python scripts. 
+For instance, to generate solutes in bilayers, go to the input absolute path (e.g., `scripts/solute_in_bilayer`) 
+and execute the following commands:
 ```bash
 python init.py
 python project.py run
 ``` 
 
-The results can be found in `workspace/`
-
-## Releasing a new version
-
-
+The results can be found in your output `workspace/` directory.
 
 ---

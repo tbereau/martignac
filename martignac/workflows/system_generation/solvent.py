@@ -15,6 +15,9 @@ from martignac.utils.martini_flow_projects import (
     flag_ready_for_upload,
     store_gromacs_log_to_doc,
     store_task,
+    system_equilibrated,
+    system_minimized,
+    system_sampled,
     uploaded_to_nomad,
 )
 from martignac.utils.misc import convert_pdb_to_gro
@@ -55,21 +58,6 @@ def generated_box_gro(job):
     return job.isfile(SolventGenFlow.get_state_name("box", "gro"))
 
 
-@SolventGenFlow.label
-def generated_min_gro(job):
-    return job.isfile(SolventGenFlow.get_state_name("minimize", "gro"))
-
-
-@SolventGenFlow.label
-def generated_equ_gro(job):
-    return job.isfile(SolventGenFlow.get_state_name("equilibrate", "gro"))
-
-
-@SolventGenFlow.label
-def generated_prod_gro(job):
-    return job.isfile(SolventGenFlow.get_state_name("production", "gro"))
-
-
 @SolventGenFlow.pre(fetched_from_nomad)
 @SolventGenFlow.post(generated_mol_gro, tag="generated_mol_gro")
 @SolventGenFlow.operation_hooks.on_success(store_task)
@@ -108,7 +96,7 @@ def convert_box_to_gro(_):
 
 
 @SolventGenFlow.pre(generated_box_gro, tag="generated_box_gro")
-@SolventGenFlow.post(generated_min_gro, tag="generated_min_gro")
+@SolventGenFlow.post(system_minimized, tag="system_minimized")
 @SolventGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def minimize(job):
@@ -130,8 +118,8 @@ def minimize(job):
     )
 
 
-@SolventGenFlow.pre(generated_min_gro, tag="generated_min_gro")
-@SolventGenFlow.post(generated_equ_gro, tag="generated_equ_gro")
+@SolventGenFlow.pre(system_minimized, tag="system_minimized")
+@SolventGenFlow.post(system_equilibrated, tag="system_equilibrated")
 @SolventGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def equilibrate(_):
@@ -144,8 +132,8 @@ def equilibrate(_):
     )
 
 
-@SolventGenFlow.pre(generated_equ_gro, tag="generated_equ_gro")
-@SolventGenFlow.post(generated_prod_gro, tag="generated_prod_gro")
+@SolventGenFlow.pre(system_equilibrated, tag="system_equilibrated")
+@SolventGenFlow.post(system_sampled, tag="system_sampled")
 @SolventGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SolventGenFlow.operation(cmd=True, with_job=True)
 def production(job):
@@ -159,7 +147,7 @@ def production(job):
     )
 
 
-@SolventGenFlow.pre(generated_prod_gro, tag="generated_prod_gro")
+@SolventGenFlow.pre(system_sampled, tag="system_sampled")
 @SolventGenFlow.post(nomad_workflow_is_built)
 @SolventGenFlow.operation_hooks.on_success(flag_ready_for_upload)
 @SolventGenFlow.operation(with_job=True)

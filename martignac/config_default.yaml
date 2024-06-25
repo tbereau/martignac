@@ -1,4 +1,5 @@
 nomad:
+  upload_to_nomad: false
   use_prod: false
   dataset:
     id: "HJdEI1q4SV-c5Di43BTT_Q"
@@ -139,8 +140,9 @@ solute_in_bilayer:
   settings:
     n_threads: 1
   mdp_files:
-    minimize: "min.mdp"
-    equilibrate: "equ.mdp"
+    minimize: "min_z0.mdp"
+    equilibrate: "equ_z0.mdp"
+    production: "run_z0.mdp"
   output_names:
     system: "solute_in_bilayer"
     nomad_workflow: "solute_in_bilayer.archive.yaml"
@@ -149,3 +151,4 @@ solute_in_bilayer:
       generate: "gen"
       minimize: "min"
       equilibrate: "equ"
+      production: "prod"

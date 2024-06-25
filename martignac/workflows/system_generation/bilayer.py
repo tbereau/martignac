@@ -9,6 +9,10 @@ from martignac.utils.martini_flow_projects import (
     fetched_from_nomad,
     flag_ready_for_upload,
     store_gromacs_log_to_doc,
+    system_equilibrated,
+    system_generated,
+    system_minimized,
+    system_sampled,
     uploaded_to_nomad,
 )
 from martignac.utils.misc import sub_template_mdp
@@ -39,28 +43,8 @@ def lipid_names(job) -> list[str]:
     return [lip.get("name") for lip in job.sp.get("lipids")]
 
 
-@BilayerGenFlow.label
-def generated_gen_gro(job):
-    return job.isfile(BilayerGenFlow.get_state_name("generate", "gro"))
-
-
-@BilayerGenFlow.label
-def generated_min_gro(job):
-    return job.isfile(BilayerGenFlow.get_state_name("minimize", "gro"))
-
-
-@BilayerGenFlow.label
-def generated_equ_gro(job):
-    return job.isfile(BilayerGenFlow.get_state_name("equilibrate", "gro"))
-
-
-@BilayerGenFlow.label
-def generated_prod_gro(job):
-    return job.isfile(BilayerGenFlow.get_state_name("production", "gro"))
-
-
 @BilayerGenFlow.pre(fetched_from_nomad)
-@BilayerGenFlow.post(generated_gen_gro, tag="generated_gen_gro")
+@BilayerGenFlow.post(system_generated, tag="system_generated")
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def generate_initial_bilayer(job):
     lipid_mixture = LiquidMixture.from_list_of_dicts(job.sp.lipids)
@@ -74,8 +58,8 @@ def generate_initial_bilayer(job):
     )
 
 
-@BilayerGenFlow.pre(generated_gen_gro, tag="generated_gen_gro")
-@BilayerGenFlow.post(generated_min_gro, tag="generated_min_gro")
+@BilayerGenFlow.pre(system_generated, tag="system_generated")
+@BilayerGenFlow.post(system_minimized, tag="system_minimized")
 @BilayerGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def minimize(job):
@@ -92,8 +76,8 @@ def minimize(job):
     )
 
 
-@BilayerGenFlow.pre(generated_min_gro, tag="generated_min_gro")
-@BilayerGenFlow.post(generated_equ_gro, tag="generated_equ_gro")
+@BilayerGenFlow.pre(system_minimized, tag="system_minimized")
+@BilayerGenFlow.post(system_equilibrated, tag="system_equilibrated")
 @BilayerGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def equilibrate(job):
@@ -110,8 +94,8 @@ def equilibrate(job):
     )
 
 
-@BilayerGenFlow.pre(generated_equ_gro, tag="generated_equ_gro")
-@BilayerGenFlow.post(generated_prod_gro, tag="generated_prod_gro")
+@BilayerGenFlow.pre(system_equilibrated, tag="system_equilibrated")
+@BilayerGenFlow.post(system_sampled, tag="system_sampled")
 @BilayerGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def production(job):
@@ -131,7 +115,7 @@ def production(job):
     )
 
 
-@BilayerGenFlow.pre(generated_prod_gro, tag="generated_prod_gro")
+@BilayerGenFlow.pre(system_sampled, tag="system_sampled")
 @BilayerGenFlow.post(nomad_workflow_is_built)
 @BilayerGenFlow.operation_hooks.on_success(flag_ready_for_upload)
 @BilayerGenFlow.operation(with_job=True)

@@ -1,0 +1,82 @@
+integrator               = md
+; start time and timestep in ps = 
+tinit                    = 0
+dt                       = 0.020
+
+nsteps               = 5000
+
+; We remove center of mass motion.  In periodic boundary conditions, the center of mass motion is spurious; the periodic system is the same in all translational directions.
+comm-mode                = Linear
+; number of steps for center of mass motion removal = 
+nstcomm                  = 10
+
+; Output frequency for energies to log file and energy file = 
+nstxout                  = 0
+nstvout                  = 0
+nstfout                  = 0
+nstlog                   = 10000
+nstenergy                = 10000
+nstcalcenergy            = 10
+nstxtcout                = 10000
+
+cutoff-scheme            = Verlet
+nstlist                  = 20
+;rlist                    = 1.2
+
+coulombtype              = reaction-field
+rcoulomb                 = 1.1
+epsilon_r                = 15   ; 2.5 (with polarizable water)
+epsilon_rf               = 0
+vdw_type                 = cutoff  
+vdw-modifier             = Potential-shift-verlet
+rvdw                     = 1.1
+
+gen-vel                  = no
+tc-grps                  = System
+tcoupl                   = v-rescale
+tau_t                    = 1.0
+ref_t                    = 300
+; Pressure coupling      = 
+Pcoupl                   = Parrinello-Rahman
+tau_p                    = 4.0
+compressibility          = 4.5e-5
+ref_p                    = 1.0
+
+;lincs-iter = 2
+;lincs-order = 8
+
+
+
+; MARTINI and CONSTRAINTS
+; for ring systems and stiff bonds constraints are defined
+; which are best handled using Lincs.
+
+constraints              = hbonds
+constraint_algorithm     = Lincs; COM PULLING
+; Pull type: no, umbrella, constraint or constant_force
+pull                     = yes
+
+; Pull geometry: distance, direction, cylinder or position
+pull-coord1-type            = umbrella
+pull-coord1-geometry        = distance
+; Select components for the pull vector. default: Y Y Y
+pull-coord1-dim                 = N N Y
+; Switch from r1 to r0 in case of dynamic reaction force
+pull_constr_tol          = 1e-06
+pull-coord1-start               = no
+pull_nstxout             = 100
+pull_nstfout             = 100
+; Number of pull groups
+pull_ngroups             = 2
+; Group name, weight (default all 1), vector, init, rate (nm/ps), kJ/(mol*nm^2)
+pull-group1-name  = W
+pull-group2-name  = sedmolecule
+pull-coord1-groups              = 1 2
+pull-coord1-init               = sedstate
+pull-coord1-rate               = 0
+pull-coord1-k                  = 1000
+pull-coord1-kB                 = 1000
+
+pull-pbc-ref-prev-step-com = yes
+pull-group1-pbcatom      = 1281
+pull-group2-pbcatom      = 0

@@ -13,6 +13,8 @@ from martignac.utils.martini_flow_projects import (
     flag_ready_for_upload,
     store_gromacs_log_to_doc,
     store_task,
+    system_equilibrated,
+    system_minimized,
     uploaded_to_nomad,
 )
 
@@ -39,7 +41,7 @@ project_name = SoluteGenFlow.class_name()
 
 
 @SoluteGenFlow.label
-def generated(job: Job):
+def system_generated(job: Job):
     return (
         job.isfile(SoluteGenFlow.get_state_name("generate", "gro"))
         and job.isfile(SoluteGenFlow.get_state_name("", "itp"))
@@ -47,13 +49,8 @@ def generated(job: Job):
     )
 
 
-@SoluteGenFlow.label
-def minimized(job: Job):
-    return job.isfile(SoluteGenFlow.get_state_name("minimize", "gro"))
-
-
 @SoluteGenFlow.pre(fetched_from_nomad)
-@SoluteGenFlow.post(generated)
+@SoluteGenFlow.post(system_generated, tag="system_generated")
 @SoluteGenFlow.operation_hooks.on_success(store_task)
 @SoluteGenFlow.operation(with_job=True)
 def build(job: Job) -> None:
@@ -76,8 +73,8 @@ def build(job: Job) -> None:
     return None
 
 
-@SoluteGenFlow.pre(generated)
-@SoluteGenFlow.post(minimized, tag="minimized")
+@SoluteGenFlow.pre(system_generated, tag="system_generated")
+@SoluteGenFlow.post(system_minimized, tag="system_minimized")
 @SoluteGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SoluteGenFlow.operation(cmd=True, with_job=True)
 def minimize(job: Job):
@@ -90,13 +87,8 @@ def minimize(job: Job):
     )
 
 
-@SoluteGenFlow.label
-def equilibrated(job: Job) -> bool:
-    return job.isfile(SoluteGenFlow.get_state_name("equilibrate", "gro"))
-
-
-@SoluteGenFlow.pre(minimized, tag="minimized")
-@SoluteGenFlow.post(equilibrated, tag="equilibrated")
+@SoluteGenFlow.pre(system_minimized, tag="system_minimized")
+@SoluteGenFlow.post(system_equilibrated, tag="system_equilibrated")
 @SoluteGenFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
 @SoluteGenFlow.operation(cmd=True, with_job=True)
 def equilibrate(job: Job):
@@ -110,7 +102,7 @@ def equilibrate(job: Job):
     )
 
 
-@SoluteGenFlow.pre(equilibrated, tag="equilibrated")
+@SoluteGenFlow.pre(system_equilibrated, tag="system_equilibrated")
 @SoluteGenFlow.post(nomad_workflow_is_built)
 @SoluteGenFlow.operation_hooks.on_success(flag_ready_for_upload)
 @SoluteGenFlow.operation(with_job=True)

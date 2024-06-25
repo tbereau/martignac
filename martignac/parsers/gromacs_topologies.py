@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
 from copy import copy
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Topology:
 
     @classmethod
     def parse_top_file(cls, top_filename: str) -> "Topology":
-        with open(top_filename, 'r') as file:
+        with open(top_filename) as file:
             lines = file.readlines()
 
         includes = []
@@ -57,7 +57,7 @@ class Topology:
         return Topology(includes=includes, system=system, molecules=molecules)
 
     def output_top(self, filename: str) -> None:
-        with open(filename, 'w') as file:
+        with open(filename, "w") as file:
             # Write includes
             for include in self.includes:
                 file.write(f'#include "{include}"\n')
@@ -82,3 +82,14 @@ def append_all_includes_to_top(main_top: Topology, others: list[Topology]) -> To
             if i not in new_top.includes:
                 new_top.includes.append(i)
     return new_top
+
+
+def combine_multiple_topology_files(topology_files: list[str], system_name: str) -> Topology:
+    comb_topology = Topology(system_name, molecules=[], includes=[])
+    for top_file in topology_files:
+        top = Topology.parse_top_file(top_file)
+        comb_topology.molecules.extend(top.molecules)
+        for include in top.includes:
+            if include not in comb_topology.includes:
+                comb_topology.includes.append(include)
+    return comb_topology

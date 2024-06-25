@@ -17,6 +17,7 @@ from martignac.utils.nomad import generate_user_metadata
 logger = logging.getLogger(__name__)
 
 MartiniTypeFlow = TypeVar("MartiniTypeFlow", bound="MartiniFlowProject")
+UPLOAD_TO_NOMAD: bool = config()["nomad"]["upload_to_nomad"].get(bool)
 
 
 class MartiniFlowProject(FlowProject):
@@ -80,6 +81,9 @@ class MartiniFlowProject(FlowProject):
 
     @classmethod
     def upload_to_nomad(cls, job: Job) -> None:
+        if not UPLOAD_TO_NOMAD:
+            logger.info("NOMAD upload turned off")
+            return None
         if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
             logger.info(f"Workflow {cls.class_name()} already uploaded to {upload_id}")
             return None
@@ -100,6 +104,9 @@ class MartiniFlowProject(FlowProject):
 
     @classmethod
     def upload_to_nomad_multiple_jobs(cls, jobs: list[Job]) -> None:
+        if not UPLOAD_TO_NOMAD:
+            logger.info("NOMAD upload turned off")
+            return None
         dataset = get_dataset_by_id(cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database)
         logger.info(f"made connection to dataset {dataset.dataset_id}")
         for job in jobs:
@@ -140,10 +147,16 @@ def store_gromacs_log_to_doc_with_state_point(operation_name: str, job: Job):
     _store_gromacs_log_to_doc_flexible(operation_name, job, True)
 
 
-def _store_gromacs_log_to_doc_flexible(operation_name: str, job: Job, with_state_point):
+def store_gromacs_log_to_doc_with_depth_from_bilayer_core(operation_name: str, job: Job):
+    _store_gromacs_log_to_doc_flexible(operation_name, job, True, state_point_key="depth_from_bilayer_core")
+
+
+def _store_gromacs_log_to_doc_flexible(
+    operation_name: str, job: Job, with_state_point: bool, state_point_key: str = "lambda_state"
+):
     logger.info(f"logging log file for gromacs simulation {operation_name} @ {job.id}")
     project_ = cast(MartiniFlowProject, job.project)
-    file_name = f"{operation_name}-{job.sp.lambda_state}" if with_state_point else operation_name
+    file_name = f"{operation_name}-{job.sp.get(state_point_key)}" if with_state_point else operation_name
     job.doc = update_nested_dict(
         job.doc,
         {
@@ -268,3 +281,27 @@ def import_job_from_other_flow(
     for key in keys_for_files_to_copy:
         shutil.copy(child_job.fn(child_job.doc[child_project.class_name()].get(key)), job.path)
     job.doc = update_nested_dict(job.doc, {child_project.class_name(): child_job.doc[child_project.class_name()]})
+
+
+@MartiniFlowProject.label
+def system_generated(job):
+    project = cast("MartiniFlowProject", job.project)
+    return job.isfile(project.get_state_name("generate", "gro"))
+
+
+@MartiniFlowProject.label
+def system_minimized(job):
+    project = cast("MartiniFlowProject", job.project)
+    return job.isfile(project.get_state_name("minimize", "gro"))
+
+
+@MartiniFlowProject.label
+def system_equilibrated(job):
+    project = cast("MartiniFlowProject", job.project)
+    return job.isfile(project.get_state_name("equilibrate", "gro"))
+
+
+@MartiniFlowProject.label
+def system_sampled(job):
+    project = cast("MartiniFlowProject", job.project)
+    return job.isfile(project.get_state_name("production", "gro"))

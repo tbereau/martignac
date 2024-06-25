@@ -2,7 +2,7 @@ import logging
 
 from martignac import config
 from martignac.nomad.workflows import Job, build_nomad_workflow
-from martignac.parsers.gromacs_topologies import Topology, append_all_includes_to_top
+from martignac.parsers.gromacs_topologies import combine_multiple_topology_files
 from martignac.utils.gromacs import (
     gromacs_simulation_command,
     insert_solute_molecule_in_box,
@@ -13,12 +13,16 @@ from martignac.utils.martini_flow_projects import (
     flag_ready_for_upload,
     import_job_from_other_flow,
     is_ready_for_upload,
-    store_gromacs_log_to_doc,
+    store_gromacs_log_to_doc_with_depth_from_bilayer_core,
     store_task,
     store_workflow,
+    system_equilibrated,
+    system_generated,
+    system_minimized,
+    system_sampled,
     uploaded_to_nomad,
 )
-from martignac.utils.misc import calculate_average_com, func_name, translate_gro_by_vector
+from martignac.utils.misc import calculate_average_com, func_name, sub_template_mdp, translate_gro_by_vector
 from martignac.workflows.system_generation.bilayer import BilayerGenFlow, get_solvent_job
 from martignac.workflows.system_generation.solute import SoluteGenFlow, get_solute_job
 
@@ -37,6 +41,10 @@ class SoluteInBilayerFlow(MartiniFlowProject):
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
     nomad_top_level_workflow: str = conf["output_names"]["nomad_top_level_workflow"].get(str)
     state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
+
+    @classmethod
+    def get_system_run_name(cls, depth_state: str) -> str:
+        return SoluteInBilayerFlow.get_state_name(state_name=f"production-{depth_state}")
 
 
 project_name = SoluteInBilayerFlow.class_name()
@@ -110,28 +118,18 @@ def generate_bilayer(job):
     import_job_from_other_flow(job, bilayer_gen_project, solvent_job, keys_for_files_to_copy)
 
 
-@SoluteInBilayerFlow.label
-def system_generated(job):
-    return job.isfile(SoluteInBilayerFlow.get_state_name("generate", "gro"))
-
-
-@SoluteInBilayerFlow.label
-def system_minimized(job):
-    return job.isfile(SoluteInBilayerFlow.get_state_name("minimize", "gro"))
-
-
-@SoluteInBilayerFlow.label
-def system_equilibrated(job):
-    return job.isfile(SoluteInBilayerFlow.get_state_name("equilibrate", "gro"))
-
-
 @SoluteInBilayerFlow.pre(solute_translated, tag="solute_translated")
 @SoluteInBilayerFlow.pre(bilayer_generated, tag="bilayer_generated")
 @SoluteInBilayerFlow.post(system_generated, tag="system_generated")
 @SoluteInBilayerFlow.operation_hooks.on_success(store_task)
 @SoluteInBilayerFlow.operation(cmd=True, with_job=True)
 def insert_solute_in_box(job):
-    # TODO: Generate top file afterwards
+    comb_topology = combine_multiple_topology_files(
+        [job.doc[bilayer_gen_name]["bilayer_top"], job.doc[solute_gen_name]["solute_top"]], "solute in bilayer"
+    )
+    top_file_name = SoluteInBilayerFlow.get_state_name(extension="top")
+    job.doc[project_name]["solute_bilayer_top"] = top_file_name
+    comb_topology.output_top(top_file_name)
     return insert_solute_molecule_in_box(
         gro_solute=job.doc[project_name]["solute_translated_gro"],
         gro_box=job.doc[bilayer_gen_name]["bilayer_gro"],
@@ -142,15 +140,9 @@ def insert_solute_in_box(job):
 
 @SoluteInBilayerFlow.pre(system_generated, tag="system_generated")
 @SoluteInBilayerFlow.post(system_minimized, tag="system_minimized")
-@SoluteInBilayerFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
+@SoluteInBilayerFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_depth_from_bilayer_core)
 @SoluteInBilayerFlow.operation(cmd=True, with_job=True)
 def minimize(job):
-    solute_top = Topology.parse_top_file(job.doc[solute_gen_name]["solute_top"])
-    bilayer_top = Topology.parse_top_file(job.doc[bilayer_gen_name]["bilayer_top"])
-    system_top = Topology.parse_top_file(SoluteInBilayerFlow.get_state_name(extension="top"))
-    new_top = append_all_includes_to_top(system_top, [bilayer_top, solute_top])
-    new_top.output_top(SoluteInBilayerFlow.get_state_name(extension="top"))
-    job.doc[project_name]["solute_bilayer_top"] = SoluteInBilayerFlow.get_state_name(extension="top")
     return gromacs_simulation_command(
         mdp=SoluteInBilayerFlow.mdp_files.get("minimize"),
         top=SoluteInBilayerFlow.get_state_name(extension="top"),
@@ -162,12 +154,15 @@ def minimize(job):
 
 @SoluteInBilayerFlow.pre(system_minimized, tag="system_minimized")
 @SoluteInBilayerFlow.post(system_equilibrated, tag="system_equilibrated")
-@SoluteInBilayerFlow.operation_hooks.on_success(store_gromacs_log_to_doc)
+@SoluteInBilayerFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_depth_from_bilayer_core)
 @SoluteInBilayerFlow.operation(cmd=True, with_job=True)
 def equilibrate(job):
-    job.doc[project_name]["solute_bilayer_gro"] = SoluteInBilayerFlow.get_state_name("equilibrate", "gro")
+    depth_state = str(job.sp.depth_from_bilayer_core)
+    depth_mdp = f"{SoluteInBilayerFlow.get_system_run_name(depth_state)}.mdp"
+    sub_template_mdp(SoluteInBilayerFlow.mdp_files.get("equilibrate"), "sedstate", depth_state, depth_mdp)
+    sub_template_mdp(depth_mdp, "sedmolecule", job.sp["solute_name"], depth_mdp)
     return gromacs_simulation_command(
-        mdp=SoluteInBilayerFlow.mdp_files.get("equilibrate"),
+        mdp=depth_mdp,
         top=SoluteInBilayerFlow.get_state_name(extension="top"),
         gro=SoluteInBilayerFlow.get_state_name("minimize", "gro"),
         name=SoluteInBilayerFlow.get_state_name("equilibrate"),
@@ -176,6 +171,27 @@ def equilibrate(job):
 
 
 @SoluteInBilayerFlow.pre(system_equilibrated, tag="system_equilibrated")
+@SoluteInBilayerFlow.post(system_sampled, tag="system_sampled")
+@SoluteInBilayerFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_depth_from_bilayer_core)
+@SoluteInBilayerFlow.operation(cmd=True, with_job=True)
+def production(job):
+    depth_state = str(job.sp.depth_from_bilayer_core)
+    depth_mdp = f"{SoluteInBilayerFlow.get_system_run_name(depth_state)}.mdp"
+    sub_template_mdp(SoluteInBilayerFlow.mdp_files.get("production"), "sedstate", depth_state, depth_mdp)
+    sub_template_mdp(depth_mdp, "sedmolecule", job.sp["solute_name"], depth_mdp)
+    job.doc[project_name]["umbrella_pullf_xvg"] = f"{SoluteInBilayerFlow.get_system_run_name(depth_state)}_pullf.xvg"
+    job.doc[project_name]["umbrella_pullx_xvg"] = f"{SoluteInBilayerFlow.get_system_run_name(depth_state)}_pullx.xvg"
+    job.doc[project_name]["umbrella_log"] = f"{SoluteInBilayerFlow.get_system_run_name(depth_state)}.log"
+    return gromacs_simulation_command(
+        mdp=depth_mdp,
+        top=SoluteInBilayerFlow.get_state_name(extension="top"),
+        gro=SoluteInBilayerFlow.get_state_name("equilibrate", "gro"),
+        name=SoluteInBilayerFlow.get_state_name("production"),
+        n_threads=SoluteInBilayerFlow.simulation_settings.get("n_threads"),
+    )
+
+
+@SoluteInBilayerFlow.pre(system_sampled, tag="system_sampled")
 @SoluteInBilayerFlow.post(
     lambda job: all(
         [job.isfile(SoluteInBilayerFlow.nomad_workflow), job.isfile(SoluteInBilayerFlow.nomad_top_level_workflow)]
@@ -193,8 +209,7 @@ def generate_nomad_workflow(job):
 @SoluteInBilayerFlow.post(uploaded_to_nomad)
 @SoluteInBilayerFlow.operation(with_job=True)
 def upload_to_nomad(job: Job):
-    # return SoluteInBilayerFlow.upload_to_nomad(job)
-    pass
+    return SoluteInBilayerFlow.upload_to_nomad(job)
 
 
 def get_solvation_job(job: Job) -> Job:
@@ -202,6 +217,7 @@ def get_solvation_job(job: Job) -> Job:
         "type": "solute_solvation",
         "lipids": job.sp.get("lipids"),
         "solute_name": job.sp.get("solute_name"),
+        "depth_from_bilayer_core": job.sp.get("depth_from_bilayer_core"),
     }
     return project.open_job(sp).init()
 

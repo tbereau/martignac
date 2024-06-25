@@ -11,7 +11,7 @@ lipids = [LiquidMixture([LiquidComponent("POPC", 1.0)])]
 lipid_names = []
 for lipid in lipids:
     lipid_names.append([{"name": c.name, "fraction": c.fraction} for c in lipid.components])
-solute_names = ["P6"]
+solute_names = ["C4"]
 depths_from_bilayer_core = [0.0]  # in nm
 
 triplets = list(itertools.product(solute_names, lipid_names, depths_from_bilayer_core))

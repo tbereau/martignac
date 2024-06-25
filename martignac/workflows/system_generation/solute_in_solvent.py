@@ -16,6 +16,9 @@ from martignac.utils.martini_flow_projects import (
     store_gromacs_log_to_doc,
     store_task,
     store_workflow,
+    system_equilibrated,
+    system_generated,
+    system_minimized,
     uploaded_to_nomad,
 )
 from martignac.utils.misc import func_name
@@ -78,21 +81,6 @@ def generate_solvent(job):
     keys_for_files_to_copy = ["solvent_gro", "solvent_top"]
     project.operation_to_workflow[func_name()] = solvent_gen_name
     import_job_from_other_flow(job, solvent_gen_project, solvent_job, keys_for_files_to_copy)
-
-
-@SoluteInSolventFlow.label
-def system_generated(job):
-    return job.isfile(SoluteInSolventFlow.get_state_name("generate", "gro"))
-
-
-@SoluteInSolventFlow.label
-def system_minimized(job):
-    return job.isfile(SoluteInSolventFlow.get_state_name("minimize", "gro"))
-
-
-@SoluteInSolventFlow.label
-def system_equilibrated(job):
-    return job.isfile(SoluteInSolventFlow.get_state_name("equilibrate", "gro"))
 
 
 @SoluteInSolventFlow.pre(solute_generated, tag="solute_generated")

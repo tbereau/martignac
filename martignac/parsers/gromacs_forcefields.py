@@ -202,8 +202,8 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
     u = Universe.empty(n_atoms=n_atoms, n_residues=1, atom_resindex=residue_indices, trajectory=True)
     u.add_TopologyAttr("name", atom_data["name"])
     u.add_TopologyAttr("type", atom_data["type"])
-    u.add_TopologyAttr("resid", [atom_data["resid"][0]])
-    u.add_TopologyAttr("resname", [atom_data["resname"][0]])
+    u.add_TopologyAttr("resid", atom_data["resid"])
+    u.add_TopologyAttr("resname", atom_data["resname"])
     u.add_TopologyAttr("charge", atom_data["charge"])
     u.add_TopologyAttr("id", atom_data["id"])
 
@@ -215,7 +215,7 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
     box_size = [box_length, box_length, box_length, 90.0, 90.0, 90.0]
     u.dimensions = box_size
 
-    logger.info(f"generating {gro_filename} for molecule {molecule.name}")
+    logger.info(f"Generating {gro_filename} for molecule {molecule.name}")
     u.atoms.write(gro_filename)
 
 
@@ -225,7 +225,7 @@ def generate_top_file_for_molecule(
     return generate_top_file_for_generic_molecule(molecule.name, force_field_filenames, top_filename, num_molecules)
 
 
-def _get_atom_from_string(atom_string: str, i: int) -> Atom:
+def _get_atom_from_string(atom_string: str, i: int, mol_name: str) -> Atom:
     charge = 0
     if "+" in atom_string:
         particle_info = atom_string.split("+")
@@ -239,7 +239,7 @@ def _get_atom_from_string(atom_string: str, i: int) -> Atom:
         i + 1,  # id
         atom_string,  # type
         1,  # residue_number
-        "UNK",  # residue
+        mol_name,  # residue
         atom_string,  # atom
         i + 1,  # charge_number
         charge,  # charge
@@ -256,7 +256,7 @@ def get_molecule_from_name(
 ) -> Molecule:
     particle_names = molecule_name.split(",")[0].split()
     # Construct list of atoms
-    atoms = [_get_atom_from_string(name, i) for i, name in enumerate(particle_names)]
+    atoms = [_get_atom_from_string(name, i, molecule_name) for i, name in enumerate(particle_names)]
     # Construct molecule with atoms
     if molecule_label is None:
         molecule_label = "".join(particle_names)

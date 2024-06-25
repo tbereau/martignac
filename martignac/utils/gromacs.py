@@ -6,6 +6,7 @@ VOLUME_PER_CG_BEAD_IN_NM3 = 0.08
 __all__ = [
     "generate_solvent_with_gromacs",
     "solvate_solute_command",
+    "insert_solute_molecule_in_box",
     "gromacs_simulation_command",
 ]
 

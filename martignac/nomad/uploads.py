@@ -162,6 +162,7 @@ def edit_upload_metadata(
         metadata["metadata"]["comment"] = comment
     response = post_nomad_request(
         f"/uploads/{upload_id}/edit",
+        use_prod=use_prod,
         with_authentication=True,
         json_dict=metadata,
         timeout_in_sec=timeout_in_sec,

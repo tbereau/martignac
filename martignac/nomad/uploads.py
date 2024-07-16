@@ -76,6 +76,7 @@ def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list
     logger.info(f"retrieving all uploads on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         "/uploads",
+        use_prod=use_prod,
         with_authentication=True,
         timeout_in_sec=timeout_in_sec,
     )
@@ -87,6 +88,7 @@ def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int
     logger.info(f"retrieving upload {upload_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         f"/uploads/{upload_id}",
+        use_prod=use_prod,
         with_authentication=True,
         timeout_in_sec=timeout_in_sec,
     )
@@ -160,6 +162,7 @@ def edit_upload_metadata(
         metadata["metadata"]["comment"] = comment
     response = post_nomad_request(
         f"/uploads/{upload_id}/edit",
+        use_prod=use_prod,
         with_authentication=True,
         json_dict=metadata,
         timeout_in_sec=timeout_in_sec,

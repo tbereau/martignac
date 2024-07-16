@@ -73,7 +73,7 @@ class NomadEntry:
     entry_create_time: dt.datetime
     with_embargo: bool
     files: list[str] = field(repr=False)
-    entry_type: str
+    entry_type: Optional[str]
     authors: list[NomadUser] = field(repr=False)
     license: str
     domain: Optional[str] = None
@@ -136,11 +136,14 @@ def get_entry_by_id(
 
 
 @ttl_cache(maxsize=128, ttl=180)
-def get_entries_of_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
+def get_entries_of_upload(
+    upload_id: str, use_prod: bool = False, with_authentication: bool = False, timeout_in_sec: int = 10
+) -> list[NomadEntry]:
     logger.info(f"retrieving entries for upload {upload_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         f"/uploads/{upload_id}/entries",
-        with_authentication=True,
+        with_authentication=with_authentication,
+        use_prod=use_prod,
         timeout_in_sec=timeout_in_sec,
     )
     nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
@@ -151,7 +154,7 @@ def get_entries_of_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) 
     return [
         upload_entry
         for u in get_all_my_uploads(use_prod=use_prod, timeout_in_sec=timeout_in_sec)
-        for upload_entry in get_entries_of_upload(u.upload_id)
+        for upload_entry in get_entries_of_upload(u.upload_id, with_authentication=True, use_prod=use_prod)
     ]
 
 

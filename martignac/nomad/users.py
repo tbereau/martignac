@@ -31,6 +31,13 @@ class NomadUser:
 
 
 @ttl_cache(maxsize=128, ttl=180)
+def search_users_by_name(user_name: str, use_prod: bool = True, timeout_in_sec: int = 10) -> NomadUser:
+    logger.info(f"retrieving user {user_name} on {'prod' if use_prod else 'test'} server")
+    response = get_nomad_request(f"/users?prefix={user_name}", timeout_in_sec=timeout_in_sec).get("data", [])
+    return [class_schema(NomadUser)().load(user) for user in response]
+
+
+@ttl_cache(maxsize=128, ttl=180)
 def get_user_by_id(user_id: str, use_prod: bool = True, timeout_in_sec: int = 10) -> NomadUser:
     logger.info(f"retrieving user {user_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(f"/users/{user_id}", timeout_in_sec=timeout_in_sec)

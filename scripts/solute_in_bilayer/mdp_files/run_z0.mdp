@@ -3,7 +3,7 @@ integrator               = md
 tinit                    = 0
 dt                       = 0.020
 
-nsteps               = 5000
+nsteps               = 20000
 
 ; We remove center of mass motion.  In periodic boundary conditions, the center of mass motion is spurious; the periodic system is the same in all translational directions.
 comm-mode                = Linear
@@ -69,7 +69,7 @@ pull_nstfout             = 100
 ; Number of pull groups
 pull_ngroups             = 2
 ; Group name, weight (default all 1), vector, init, rate (nm/ps), kJ/(mol*nm^2)
-pull-group1-name  = W
+pull-group1-name  = sedlipid
 pull-group2-name  = sedmolecule
 pull-coord1-groups              = 1 2
 pull-coord1-init               = sedstate

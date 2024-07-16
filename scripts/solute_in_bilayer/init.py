@@ -12,7 +12,11 @@ lipid_names = []
 for lipid in lipids:
     lipid_names.append([{"name": c.name, "fraction": c.fraction} for c in lipid.components])
 solute_names = ["C4"]
-depths_from_bilayer_core = [0.0]  # in nm
+depths_from_bilayer_core = [
+    # 1.2, 1.4,
+    1.6,
+    # 1.8, 2.0
+]  # in nm
 
 triplets = list(itertools.product(solute_names, lipid_names, depths_from_bilayer_core))
 

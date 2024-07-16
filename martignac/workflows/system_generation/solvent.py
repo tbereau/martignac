@@ -1,3 +1,5 @@
+import numpy as np
+
 from martignac import config
 from martignac.nomad.workflows import Job, build_nomad_workflow, nomad_workflow_is_built
 from martignac.parsers.gromacs_forcefields import (
@@ -88,10 +90,12 @@ def build_solvent_box(_):
 @SolventGenFlow.operation_hooks.on_success(store_task)
 @SolventGenFlow.operation(with_job=True)
 def convert_box_to_gro(_):
+    box_length = SolventGenFlow.simulation_settings.get("box_length")
+    box_vector = np.array([box_length * 10.0, box_length * 10.0, box_length * 10.0, 90.0, 90.0, 90.0])
     convert_pdb_to_gro(
         SolventGenFlow.get_state_name("box", "pdb"),
         SolventGenFlow.get_state_name("box", "gro"),
-        SolventGenFlow.simulation_settings.get("box_length"),
+        box_vector,
     )
 
 

@@ -1,5 +1,10 @@
+import logging
 from copy import copy
 from dataclasses import dataclass, field
+
+import MDAnalysis as mda
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -55,6 +60,19 @@ class Topology:
                 includes.append(line.split('"')[1])
 
         return Topology(includes=includes, system=system, molecules=molecules)
+
+    def update_counts_against_gro(self, gro_filename: str) -> None:
+        u = mda.Universe(gro_filename)
+        existing_mol_names = []
+        final_list_of_molecules = []
+        for molecule in self.molecules:
+            if molecule.name not in existing_mol_names:
+                atom_selection = u.select_atoms(f"resname {molecule.name}")
+                molecule.number_elements = atom_selection.residues.n_residues
+                logger.info(f"found {molecule.number_elements} {molecule.name} in {gro_filename}")
+                existing_mol_names.append(molecule.name)
+                final_list_of_molecules.append(molecule)
+        self.molecules = final_list_of_molecules
 
     def output_top(self, filename: str) -> None:
         with open(filename, "w") as file:

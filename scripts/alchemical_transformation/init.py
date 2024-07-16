@@ -11,7 +11,7 @@ solvent_names = [
     "OCO"
 ]
 solute_names = ["P6"]
-lambda_states = range(4)  # 11
+lambda_states = range(2)  # 11
 
 triplets = list(itertools.product(solvent_names, solute_names, lambda_states))
 

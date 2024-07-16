@@ -49,10 +49,9 @@ def sub_template_mdp(mdp_source: str, template: str, new_entry: str, mdp_dest: s
         pipe.write(mdp_content)
 
 
-def convert_pdb_to_gro(pdb_file: str, output_gro: str, box_length: float) -> None:
+def convert_pdb_to_gro(pdb_file: str, output_gro: str, box_vector: np.ndarray) -> None:
     universe = Universe(pdb_file)
-    box_size = [box_length * 10.0, box_length * 10.0, box_length * 10.0, 90.0, 90.0, 90.0]
-    universe.dimensions = box_size
+    universe.dimensions = box_vector
     universe.atoms.write(output_gro)
 
 

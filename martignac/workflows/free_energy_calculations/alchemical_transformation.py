@@ -30,7 +30,6 @@ conf = config()["alchemical_transformation"]
 
 class AlchemicalTransformationFlow(MartiniFlowProject):
     workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
-    itp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['itp_files']}"
     mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
@@ -184,7 +183,7 @@ def production(job):
     aggregator=aggregator(aggregator_function=solvent_and_solute_aggregator, sort_by="lambda_state")
 )
 def compute_free_energy(*jobs):
-    logger.info("calculating free energies using pyMBAR}")
+    logger.info("calculating free energies using pyMBAR")
     xvg_files = [job.fn(job.doc[project_name]["alchemical_xvg"]) for job in jobs]
     u_nk_list = [
         extract_u_nk(f, T=AlchemicalTransformationFlow.simulation_settings.get("temperature")) for f in xvg_files

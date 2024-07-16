@@ -38,6 +38,7 @@ requirements = [
     "isort>=5.8.0",
     "insane>=1.2.0",
     "anyio>=3.0.0,<4.0",
+    "GromacsWrapper",
 ]
 
 setup(

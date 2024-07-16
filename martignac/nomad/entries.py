@@ -58,8 +58,6 @@ class NomadEntry:
     nomad_commit: str
     section_defs: list[NomadSectionDefinition] = field(repr=False)
     processing_errors: list[Any]
-    results: dict = field(repr=False)
-    entry_name: str
     last_processing_time: dt.datetime
     parser_name: str
     calc_id: str
@@ -73,9 +71,11 @@ class NomadEntry:
     entry_create_time: dt.datetime
     with_embargo: bool
     files: list[str] = field(repr=False)
-    entry_type: Optional[str]
     authors: list[NomadUser] = field(repr=False)
     license: str
+    results: Optional[dict] = field(repr=False, default=None)
+    entry_name: Optional[str] = None
+    entry_type: Optional[str] = None
     domain: Optional[str] = None
     optimade: Optional[dict] = field(repr=False, default=None)
     comment: Optional[str] = None

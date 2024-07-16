@@ -6,8 +6,9 @@ VOLUME_PER_CG_BEAD_IN_NM3 = 0.08
 __all__ = [
     "generate_solvent_with_gromacs",
     "solvate_solute_command",
-    "insert_solute_molecule_in_box",
     "gromacs_simulation_command",
+    "run_gmx_wham",
+    "VOLUME_PER_CG_BEAD_IN_NM3",
 ]
 
 logger = logging.getLogger(__name__)
@@ -35,12 +36,20 @@ def solvate_solute_command(
     return cmd
 
 
-def insert_solute_molecule_in_box(
-    gro_solute: str, gro_box: str, replaceable_group: str, output_name: str, num_extra_molecules: int = 1
+def run_gmx_wham(
+    tpr_files: str,
+    pullf_files: str,
+    output_profile: str,
+    output_hist: str,
+    output_bstrap: str,
+    output_bsprof: str,
+    num_boostrap: int = 100,
+    unit: str = "kT",
 ) -> str:
     cmd = (
-        f"gmx insert-molecules -ci {gro_solute} -f {gro_box} -o {output_name} -replace {replaceable_group} "
-        f"-nmol {num_extra_molecules}"
+        f"gmx wham -it {tpr_files} -if {pullf_files} -o {output_profile} "
+        f"-hist {output_hist} -bsres {output_bstrap} -bsprof {output_bsprof} "
+        f"-nBootstrap {num_boostrap} -unit {unit}"
     )
     return cmd
 

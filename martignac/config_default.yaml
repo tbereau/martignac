@@ -1,10 +1,12 @@
 nomad:
-  upload_to_nomad: false
+  upload_to_nomad: true
   use_prod: false
   dataset:
     id: "HJdEI1q4SV-c5Di43BTT_Q"
   coauthors:
     - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
+    - "173d8320-c897-44c4-92d7-fe2fb1a2c5bd" # Bernadette Mohr
+    - "39e50f2e-1eca-444e-8716-bfbb7907080b" # Jose Pizarro Blanco
 
 local:
   workspaces:
@@ -115,7 +117,7 @@ bilayer_generation:
   settings:
     n_threads: 2
     box_length_xy: 10
-    box_length_z: 7
+    box_length_z: 10
     solvent:
       -
         name: W
@@ -138,7 +140,7 @@ solute_in_bilayer:
     solvents: "martini_v3.0.0_solvents_v1.itp"
     phospholipids: "martini_v3.0.0_phospholipids_v1.itp"
   settings:
-    n_threads: 1
+    n_threads: 2
   mdp_files:
     minimize: "min_z0.mdp"
     equilibrate: "equ_z0.mdp"

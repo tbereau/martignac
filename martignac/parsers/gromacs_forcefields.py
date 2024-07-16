@@ -202,8 +202,12 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
     u = Universe.empty(n_atoms=n_atoms, n_residues=1, atom_resindex=residue_indices, trajectory=True)
     u.add_TopologyAttr("name", atom_data["name"])
     u.add_TopologyAttr("type", atom_data["type"])
-    u.add_TopologyAttr("resid", atom_data["resid"])
-    u.add_TopologyAttr("resname", atom_data["resname"])
+    resid = atom_data["resid"][0] if len(atom_data["resid"]) > 1 else atom_data["resid"]
+    resname = atom_data["resname"][0] if len(atom_data["resname"]) > 1 else atom_data["resname"]
+    resid = [resid] if type(resid) not in [list, np.ndarray] else resid
+    resname = [resname] if type(resname) not in [list, np.ndarray] else resname
+    u.add_TopologyAttr("resid", resid)
+    u.add_TopologyAttr("resname", resname)
     u.add_TopologyAttr("charge", atom_data["charge"])
     u.add_TopologyAttr("id", atom_data["id"])
 

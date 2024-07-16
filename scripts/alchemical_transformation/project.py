@@ -1,4 +1,4 @@
-from martignac.workflows.free_energy_calculations.alchemical_transformation import AlchemicalTransformationFlow
+from martignac.workflows.solute_in_solvent_alchemical import SoluteInSolventAlchemicalFlow
 
 if __name__ == "__main__":
-    AlchemicalTransformationFlow(path=AlchemicalTransformationFlow.workspace_path).main()
+    SoluteInSolventAlchemicalFlow(path=SoluteInSolventAlchemicalFlow.workspace_path).main()

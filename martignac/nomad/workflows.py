@@ -21,6 +21,35 @@ SectionType = Literal["task", "workflow", "default"]
 
 @dataclass
 class NomadSection:
+    """
+    Represents a section within a NOMAD workflow or task.
+
+    This class is used to define and manage the properties of a section, which can be a task, a workflow, or a default
+    type within the NOMAD system. It includes attributes to specify the section's name, type, label, snapshot number,
+    run number, and an optional upload ID. Additional properties provide convenience methods to determine if the
+    section is a task or workflow, to generate a log file path, to construct the section's URL, and to convert the
+    section information into a dictionary format.
+
+    Attributes:
+        name (str): The name of the section.
+        section_type (SectionType): The type of the section, which can be 'task', 'workflow', or 'default'.
+        label (str): A label for the section, used in generating paths and URLs.
+        snapshot_number (int): The snapshot number associated with this section, defaulting to 0.
+        run_number (int): The run number associated with this section, defaulting to 0.
+        upload_id (Optional[str]): An optional upload ID for the section, defaulting to None.
+
+    Properties:
+        is_task (bool): Returns True if the section is a task, False otherwise.
+        is_workflow (bool): Returns True if the section is a workflow, False otherwise.
+        log_file (Optional[str]): Returns the log file path if the section is not a task, None otherwise.
+        section (str): Constructs and returns the section's URL based on its properties.
+        upload_prefix (str): Constructs and returns the upload prefix URL for the section.
+
+    Methods:
+        to_dict() -> dict: Converts the section's attributes into a dictionary.
+        add_job_id(job_: Job) -> 'NomadSection': Adds a job ID to the section's label if applicable.
+    """
+
     name: str
     section_type: SectionType
     label: str
@@ -60,6 +89,26 @@ class NomadSection:
 
 @dataclass
 class NomadTask:
+    """
+    Represents a task within a NOMAD workflow.
+
+    This class is designed to encapsulate the details of a task in the NOMAD system, including its name, definition,
+    inputs, outputs, and an optional task-specific section. It provides a structured way to manage tasks within
+    workflows, facilitating the creation, manipulation, and serialization of task-related information.
+
+    Attributes:
+        name (str): The name of the task, serving as a unique identifier within the workflow.
+        m_def (str): The metainfo definition for the task, defaulting to a predefined value.
+        inputs (list[NomadSection]): A list of `NomadSection` instances representing the inputs to the task.
+        outputs (list[NomadSection]): A list of `NomadSection` instances representing the outputs from the task.
+        task_section (Optional[NomadSection]): An optional `NomadSection` instance representing a task-specific section.
+
+    Methods:
+        __post_init__(self): A post-initialization method to set default names for inputs and outputs.
+        task(self) -> Optional[str]: A property that returns the task's URL if it is not a task-specific section.
+        to_dict(self) -> dict: Serializes the task's attributes into a dictionary for easy export and manipulation.
+    """
+
     name: str
     m_def: str = DEFAULT_M_DEF
     inputs: list[NomadSection] = field(default_factory=list)
@@ -92,6 +141,28 @@ class NomadTask:
 
 @dataclass
 class NomadWorkflowArchive:
+    """
+    Represents the archival structure of a NOMAD workflow.
+
+    This class encapsulates the structure necessary for representing a complete NOMAD workflow, including its inputs,
+    outputs, and the tasks that comprise the workflow. It provides methods for serializing the workflow to a dictionary
+    and saving it as a YAML file, which can be used for workflow reconstruction or analysis. Additionally, it offers a
+    class method for creating a workflow archive from multiple jobs, allowing for the aggregation of tasks and data
+    across different computational jobs within the same project.
+
+    Attributes:
+        name (str): The name of the workflow, used as a key in the serialized output.
+        inputs (list[NomadSection]): A list of sections representing the inputs to the workflow.
+        outputs (list[NomadSection]): A list of sections representing the outputs from the workflow.
+        tasks (list[NomadTask]): A list of tasks that are part of the workflow.
+
+    Methods:
+        to_dict(self) -> dict: Serializes the workflow archive to a dictionary.
+        to_yaml(self, destination_filename: str) -> None: Saves the serialized workflow archive as a YAML file to the specified location.
+        from_multiple_jobs(cls, project: MartiniFlowProject, jobs: list[Job], aggregate_same_task_names: bool = True) -> 'NomadWorkflowArchive':
+            Class method to create a workflow archive from multiple jobs, optionally aggregating tasks with the same name.
+    """
+
     name: str = "workflow2"
     inputs: list[NomadSection] = field(default_factory=list)
     outputs: list[NomadSection] = field(default_factory=list)
@@ -155,6 +226,35 @@ class NomadWorkflowArchive:
 
 @dataclass
 class NomadWorkflow:
+    """
+    Manages the construction and serialization of a NOMAD workflow.
+
+    This class is responsible for creating a representation of a workflow within the NOMAD system, which includes
+    tasks, inputs, and outputs as defined by the user's project and job configurations. It utilizes the project's
+    operations and the job's documentation to construct a directed graph representing the workflow, which can then
+    be serialized to a YAML file for use within the NOMAD system.
+
+    Attributes:
+        project (MartiniFlowProject): The project instance containing operations and configurations for the workflow.
+        job (Job): The job instance containing specific execution details and documentation for the workflow.
+        is_top_level (bool): Flag indicating if the workflow is at the top level of the project hierarchy.
+        add_job_id (bool): Flag indicating if the job ID should be added to section labels for uniqueness.
+
+    Properties:
+        project_name (str): Returns the name of the project class.
+        gromacs_logs (dict): Retrieves GROMACS log entries from the job's documentation.
+        tasks (dict): Retrieves task entries from the job's documentation.
+        workflows (dict): Retrieves workflow entries from the job's documentation if `is_top_level` is True.
+        all_tasks (dict): Aggregates all tasks, workflows, and GROMACS logs into a single dictionary.
+        graph (nx.DiGraph): Constructs and returns a directed graph representing the workflow structure.
+
+    Methods:
+        register_section(operation_name: str): Registers a section (task, workflow, or default) based on the operation name.
+        build_workflow_yaml(destination_filename: str): Serializes the workflow to a YAML file.
+        generate_archive() -> NomadWorkflowArchive: Generates a `NomadWorkflowArchive` instance representing the workflow.
+        _section_type(operation_name: str) -> SectionType: Determines the section type (task, workflow, default) for a given operation name.
+    """
+
     project: MartiniFlowProject
     job: Job
     is_top_level: bool
@@ -290,6 +390,22 @@ def nomad_workflow_is_built(job: Job) -> bool:
 
 
 def build_nomad_workflow(job, is_top_level: bool = False, add_job_id: bool = False):
+    """
+    Builds and serializes a NOMAD workflow for a given job.
+
+    This function initializes a `NomadWorkflow` instance with the specified job and configuration flags,
+    then serializes the constructed workflow into a YAML file. The YAML file is saved in a location determined
+    by whether the workflow is considered top-level or not. If `is_top_level` is True, the workflow is saved
+    using the `nomad_top_level_workflow` path from the project; otherwise, it uses the `nomad_workflow` path.
+    The `add_job_id` flag determines whether job IDs should be added to section labels to ensure uniqueness.
+
+    Args:
+        job (Job): The job instance for which the workflow is being built.
+        is_top_level (bool, optional): Flag indicating if the workflow is at the top level of the project hierarchy.
+                                       Defaults to False.
+        add_job_id (bool, optional): Flag indicating if the job ID should be added to section labels for uniqueness.
+                                     Defaults to False.
+    """
     project = cast(MartiniFlowProject, job.project)
     workflow = NomadWorkflow(project, job, is_top_level, add_job_id=add_job_id)
     destination_filename = project.nomad_top_level_workflow if is_top_level else project.nomad_workflow
@@ -297,6 +413,19 @@ def build_nomad_workflow(job, is_top_level: bool = False, add_job_id: bool = Fal
 
 
 def build_nomad_workflow_with_multiple_jobs(project: MartiniFlowProject, jobs: list[Job]):
+    """
+    Builds and serializes a NOMAD workflow archive for multiple jobs within a project.
+
+    This function aggregates the workflows of multiple jobs into a single NOMAD workflow archive. It utilizes the
+    `NomadWorkflowArchive.from_multiple_jobs` class method to create an archive that represents the combined workflow
+    of the specified jobs. The resulting workflow archive is then serialized into a YAML file, which is saved using
+    the `nomad_top_level_workflow` path from the project. This allows for the analysis and reconstruction of complex
+    workflows that span multiple computational jobs within the same project.
+
+    Args:
+        project (MartiniFlowProject): The project instance containing operations and configurations for the workflow.
+        jobs (list[Job]): A list of job instances to be included in the workflow archive.
+    """
     archive = NomadWorkflowArchive.from_multiple_jobs(project, jobs)
     destination_filename = project.nomad_top_level_workflow
     archive.to_yaml(destination_filename)

@@ -9,7 +9,7 @@ from martignac.nomad.entries import (
     get_entries_of_my_uploads,
 )
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflows.system_generation.solute_in_bilayer import project as solute_bilayer_project
+from martignac.workflows.solute_in_bilayer_umbrella import project as solute_bilayer_project
 
 st.set_page_config(page_title="Solute-in-bilayer umbrella sampling", page_icon="📊")
 
@@ -49,7 +49,7 @@ df_u = df_u[
 df_u["entry_create_time"] = pd.to_datetime(df_u["entry_create_time"]).dt.date
 
 df_u = (
-    df_u[(df_u["workflow_name"] == "SoluteInBilayerFlow") & (df_u["entry_type"] == "Workflow")]
+    df_u[(df_u["workflow_name"] == "SoluteInBilayerUmbrellaFlow") & (df_u["entry_type"] == "Workflow")]
     .drop(
         [
             "workflow_name",

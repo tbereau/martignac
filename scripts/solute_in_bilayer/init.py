@@ -3,9 +3,9 @@ import itertools
 import signac
 
 from martignac.liquid_models.mixtures import LiquidComponent, LiquidMixture
-from martignac.workflows.system_generation.solute_in_bilayer import SoluteInBilayerFlow
+from martignac.workflows.solute_in_bilayer_umbrella import SoluteInBilayerUmbrellaFlow
 
-project = signac.init_project(path=SoluteInBilayerFlow.workspace_path)
+project = signac.init_project(path=SoluteInBilayerUmbrellaFlow.workspace_path)
 
 lipids = [LiquidMixture([LiquidComponent("POPC", 1.0)])]
 lipid_names = []

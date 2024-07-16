@@ -1,6 +1,6 @@
 from signac_dashboard import Dashboard
 
-from martignac.workflows.free_energy_calculations.alchemical_transformation import AlchemicalTransformationFlow
+from martignac.workflows.free_energy_calculations.alchemical_transformation import SoluteInSolventAlchemicalFlow
 
 
 class MyDashboard(Dashboard):
@@ -8,4 +8,4 @@ class MyDashboard(Dashboard):
 
 
 if __name__ == "__main__":
-    MyDashboard(project=AlchemicalTransformationFlow()).main()
+    MyDashboard(project=SoluteInSolventAlchemicalFlow()).main()

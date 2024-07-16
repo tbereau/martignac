@@ -1,4 +1,4 @@
-from martignac.workflows.system_generation.solute_in_solvent import SoluteInSolventFlow
+from martignac.workflows.solute_in_solvent_generation import SoluteInSolventGenFlow
 
 if __name__ == "__main__":
-    SoluteInSolventFlow(path=SoluteInSolventFlow.workspace_path).main()
+    SoluteInSolventGenFlow(path=SoluteInSolventGenFlow.workspace_path).main()

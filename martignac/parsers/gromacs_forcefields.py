@@ -28,6 +28,25 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Atom:
+    """
+    Represents an atom within a molecule.
+
+    This class models an atom's properties, including its unique identifier, type, residue information, and charge.
+    It also provides a class method to parse atom information from a topology file entry.
+
+    Attributes:
+        id (int): Unique identifier of the atom within the molecule.
+        type (str): Type of the atom, defining its chemical characteristics.
+        residue_number (int): Identifier of the residue the atom belongs to.
+        residue (str): Name of the residue the atom belongs to.
+        atom (str): Name of the atom.
+        charge_number (int): Identifier for the charge group the atom belongs to.
+        charge (int): The charge of the atom.
+
+    Class Methods:
+        parse_from_itp_entry(cls, entry: list) -> "Atom": Parses atom information from a given topology file entry and returns an Atom instance.
+    """
+
     id: int
     type: str
     residue_number: int
@@ -45,6 +64,23 @@ class Atom:
 
 @dataclass
 class Constraint:
+    """
+    Represents a constraint between two atoms in a molecule.
+
+    This class models a constraint, which is a fixed distance between two atoms, typically used to maintain
+    a certain structure within the molecule. Constraints are often used in molecular dynamics simulations
+    to simplify the model or enforce certain conditions.
+
+    Attributes:
+        id_i (int): The identifier of the first atom in the constraint.
+        id_j (int): The identifier of the second atom in the constraint.
+        funct (int): The function type of the constraint. In GROMACS, this typically refers to the type of constraint algorithm used.
+        length (float): The length of the constraint, usually in nanometers.
+
+    Class Methods:
+        parse_from_itp_entry(cls, entry: list) -> "Constraint": Parses a constraint from a given entry in a topology file.
+    """
+
     id_i: int
     id_j: int
     funct: int
@@ -57,6 +93,25 @@ class Constraint:
 
 @dataclass
 class Bond(Constraint):
+    """
+    Represents a bond between two atoms in a molecule, extending the Constraint class.
+
+    This class models a bond as a specialized type of constraint with an additional attribute for the force constant.
+    Bonds are used to define the fixed distance between two atoms along with the force constant that describes the
+    strength of the bond. This is particularly useful in molecular dynamics simulations for defining the interactions
+    and energy calculations between atoms.
+
+    Attributes:
+        id_i (int): The identifier of the first atom in the bond.
+        id_j (int): The identifier of the second atom in the bond.
+        funct (int): The function type of the bond. In GROMACS, this typically refers to the type of bond algorithm used.
+        length (float): The length of the bond, usually in nanometers.
+        force_constant (float): The force constant of the bond, describing its strength.
+
+    Class Methods:
+        parse_from_itp_entry(cls, entry: list) -> "Bond": Parses a bond from a given entry in a topology file, extending the Constraint class method with an additional parameter for the force constant.
+    """
+
     force_constant: float
 
     @classmethod
@@ -66,6 +121,25 @@ class Bond(Constraint):
 
 @dataclass
 class Angle:
+    """
+    Represents an angle formed by three atoms in a molecule.
+
+    This class models an angle, which is defined by three atoms, typically used to represent the geometric
+    structure of a molecule. Angles are crucial in molecular dynamics simulations for defining the spatial
+    arrangement of atoms and calculating potential energy based on geometric constraints.
+
+    Attributes:
+        id_i (int): The identifier of the first atom forming the angle.
+        id_j (int): The identifier of the second atom (vertex) forming the angle.
+        id_k (int): The identifier of the third atom forming the angle.
+        funct (int): The function type of the angle. In GROMACS, this typically refers to the type of angle potential used.
+        angle (float): The value of the angle, usually in degrees.
+        force_constant (float): The force constant of the angle, describing its stiffness.
+
+    Class Methods:
+        parse_from_itp_entry(cls, entry: list) -> "Angle": Parses angle information from a given entry in a topology file.
+    """
+
     id_i: int
     id_j: int
     id_k: int
@@ -80,6 +154,27 @@ class Angle:
 
 @dataclass
 class Molecule:
+    """
+    Represents a molecule with its constituent atoms, bonds, angles, and constraints.
+
+    This class encapsulates a molecule's structure, including its atoms and the relationships between them
+    (bonds, angles, and constraints). It provides methods for generating molecular coordinates, parsing molecule
+    data from topology files, and generating files for molecular dynamics simulations.
+
+    Attributes:
+        name (str): The name of the molecule.
+        number_excl (int): The number of exclusions for the molecule, used in simulations to define non-bonded interactions.
+        atoms (list[Atom]): A list of `Atom` instances representing the atoms in the molecule.
+        bonds (Optional[list[Bond]]): A list of `Bond` instances representing the bonds in the molecule. Default is None.
+        angles (Optional[list[Angle]]): A list of `Angle` instances representing the angles in the molecule. Default is None.
+        constraints (Optional[list[Constraint]]): A list of `Constraint` instances representing the constraints in the molecule. Default is None.
+
+    Methods:
+        num_atoms (property): Returns the number of atoms in the molecule.
+        generate_coordinates(self, jitter: float = 0.1) -> np.ndarray: Generates 3D coordinates for the atoms in the molecule.
+        parse_from_itp_entry(cls, entry: dict) -> "Molecule": Class method to parse a molecule from a topology file entry.
+    """
+
     name: str
     number_excl: int
     atoms: list[Atom]
@@ -135,6 +230,20 @@ class Molecule:
 
 
 def parse_molecules_from_itp(itp_filename: str) -> list[Molecule]:
+    """
+    Parses molecules from a GROMACS topology (.itp) file.
+
+    This function reads a .itp file, extracts molecule information, and creates a list of Molecule instances
+    based on the data found in the file. It handles multiple molecules within the same file, separating them
+    based on the [moleculetype] directive in the .itp file format. Each molecule's data is parsed and used to
+    instantiate a Molecule object, which is then added to the list of molecules to be returned.
+
+    Parameters:
+        itp_filename (str): The path to the .itp file to be parsed.
+
+    Returns:
+        list[Molecule]: A list of Molecule instances representing each molecule found in the .itp file.
+    """
     with open(itp_filename) as f:
         lines = f.readlines()
 
@@ -173,6 +282,25 @@ def parse_molecules_from_itp(itp_filename: str) -> list[Molecule]:
 
 
 def find_molecule_from_name(itp_filenames: list[str], molecule_name: str) -> Molecule:
+    """
+    Searches for and returns a Molecule instance matching the specified name from a list of .itp files.
+
+    This function iterates over a list of GROMACS topology (.itp) files, parsing each to find a molecule
+    that matches the given name. It leverages the `parse_molecules_from_itp` function to parse the .itp files
+    and then searches through the resulting list of Molecule instances for a name match. The first matching
+    Molecule instance found is returned. If no match is found after all files have been searched, a StopIteration
+    exception is raised.
+
+    Parameters:
+        itp_filenames (list[str]): A list of paths to .itp files to be searched.
+        molecule_name (str): The name of the molecule to find.
+
+    Returns:
+        Molecule: The first Molecule instance found with a name matching `molecule_name`.
+
+    Raises:
+        StopIteration: If no molecule with the specified name is found in the provided .itp files.
+    """
     molecules = []
     for itp_filename in itp_filenames:
         with suppress(KeyError):
@@ -181,6 +309,22 @@ def find_molecule_from_name(itp_filenames: list[str], molecule_name: str) -> Mol
 
 
 def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_length: float = 100.0) -> None:
+    """
+    Generates a GROMACS .gro file for a given molecule.
+
+    This function creates a .gro file, which is a GROMACS file format used to describe the positions of atoms in a molecule.
+    It sets up a simulation box with a specified box length and places the atoms of the molecule within this box. The positions
+    of the atoms are determined by the `generate_coordinates` method of the `Molecule` class, and additional molecular properties
+    such as bonds are also considered if present.
+
+    Parameters:
+        molecule (Molecule): The molecule for which to generate the .gro file.
+        gro_filename (str): The path and name of the .gro file to be generated.
+        box_length (float): The length of the sides of the cubic simulation box in which the molecule is placed. Default is 100.0.
+
+    Returns:
+        None: This function does not return a value but writes directly to a file.
+    """
     n_atoms = len(molecule.atoms)
     dtype = [
         ("name", np.dtype("<U4")),
@@ -226,6 +370,22 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
 def generate_top_file_for_molecule(
     molecule: Molecule, force_field_filenames: list[str], top_filename: str, num_molecules: int = 1
 ) -> None:
+    """
+    Generates a GROMACS topology (.top) file for a given molecule using specified force fields.
+
+    This function delegates the task of generating a .top file to the `generate_top_file_for_generic_molecule`
+    utility function. It prepares the necessary parameters, including the molecule's name, the list of force field
+    filenames, the target .top file name, and the number of molecules to be included in the simulation.
+
+    Parameters:
+        molecule (Molecule): The molecule instance for which to generate the .top file.
+        force_field_filenames (list[str]): A list of strings representing the paths to the force field files to be used.
+        top_filename (str): The path and name of the .top file to be generated.
+        num_molecules (int): The number of molecules to be included in the .top file. Default is 1.
+
+    Returns:
+        None: This function does not return a value but writes directly to a file.
+    """
     return generate_top_file_for_generic_molecule(molecule.name, force_field_filenames, top_filename, num_molecules)
 
 
@@ -258,6 +418,33 @@ def get_molecule_from_name(
     number_excl: int = 3,
     molecule_label: Optional[str] = None,
 ) -> Molecule:
+    """
+    Constructs a Molecule instance from a simplified molecule name string.
+
+    This function allows for the creation of a Molecule object by specifying a string that represents the molecule's
+    composition, bond lengths, and optionally, bond constants. It supports the definition of atoms, bonds, and constraints
+    within the molecule based on the provided string format. The molecule name string format should include atom types,
+    followed by bond information (if any), separated by commas.
+
+    Parameters:
+        molecule_name (str): A string representing the molecule's composition and structure. Atom types should be
+                             separated by spaces, and bond information (if any) should follow after a comma. Bonds are
+                             indicated by indices of atoms (starting from 1) connected by a dash ("-") for bonds or an
+                             underscore ("_") for constraints.
+        bond_length (float): The default length for bonds and constraints within the molecule, in nanometers.
+        bond_constant (Optional[float]): The force constant for the bonds within the molecule. This parameter is required
+                                         if the molecule_name string includes bond information. Default is None.
+        number_excl (int): The number of exclusions for the molecule, used in simulations to define non-bonded interactions.
+                           Default is 3.
+        molecule_label (Optional[str]): An optional label for the molecule. If not provided, a label is generated from the
+                                        first five characters of the concatenated atom types. Default is None.
+
+    Returns:
+        Molecule: An instance of the Molecule class, constructed based on the provided parameters.
+
+    Raises:
+        ValueError: If bond_constant is None but the molecule_name string includes bond information.
+    """
     particle_names = molecule_name.split(",")[0].split()
     if molecule_label is None:
         molecule_label = "".join(particle_names)[:5]
@@ -292,6 +479,24 @@ def generate_itp_file_for_molecule(
     molecule: Molecule,
     itp_filename: str,
 ) -> None:
+    """
+    Generates a GROMACS topology (.itp) file for a specified molecule.
+
+    This function writes a .itp file containing the definition of a molecule, including atoms, bonds, angles,
+    and constraints. The file format adheres to the GROMACS topology file standards, making it suitable for
+    use in molecular dynamics simulations. The function outputs sections for moleculetype, atoms, bonds (if any),
+    angles (if any), and constraints (if any), providing a comprehensive description of the molecule's structure.
+
+    Parameters:
+        molecule (Molecule): The molecule instance for which to generate the .itp file. This object should contain
+                             all necessary information about the molecule, including its atoms, bonds, angles, and
+                             constraints.
+        itp_filename (str): The path and name of the .itp file to be generated. If the file already exists, it will
+                            be overwritten.
+
+    Returns:
+        None: This function does not return a value but writes directly to a file specified by `itp_filename`.
+    """
     with open(itp_filename, "w") as f:
         f.write(f"\n;;;;;; {molecule.name} molecule\n")
         f.write("\n[moleculetype]\n")

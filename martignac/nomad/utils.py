@@ -22,6 +22,25 @@ def get_authentication_token(
     password: str = NOMAD_PASSWORD,
     timeout_in_sec: int = TIMEOUT_IN_SEC,
 ) -> str:
+    """
+    Retrieves an authentication token from the NOMAD API.
+
+    This function requests an authentication token by providing user credentials. It supports both production
+    and test environments of the NOMAD API. The function raises an exception if the request fails or if the
+    response status code is not 200.
+
+    Parameters:
+        use_prod (bool): Flag to determine whether to use the production URL or the test URL. Defaults to False.
+        username (str): The username for authentication. Defaults to NOMAD_USERNAME from environment variables.
+        password (str): The password for authentication. Defaults to NOMAD_PASSWORD from environment variables.
+        timeout_in_sec (int): The timeout for the request in seconds. Defaults to TIMEOUT_IN_SEC from environment variables.
+
+    Returns:
+        str: The authentication token as a string.
+
+    Raises:
+        ValueError: If the response from the server is not successful (status code 200).
+    """
     url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
     logger.info(f"Requesting authentication token @ {url}")
     response = requests.get(
@@ -43,6 +62,28 @@ def get_nomad_request(
     return_json: bool = True,
     accept_field: str = "application/json",
 ) -> Any:
+    """
+    Sends a GET request to the NOMAD API for a specified section of the database.
+
+    This function constructs and sends a GET request to either the production or test environment of the NOMAD API,
+    based on the provided parameters. It can optionally include authentication in the request headers. The response
+    can be returned either as JSON or raw content, based on the `return_json` parameter.
+
+    Parameters:
+        section (str): The specific section of the NOMAD API to query.
+        use_prod (bool): Determines whether to use the production or test URL for the NOMAD API. Defaults to False.
+        timeout_in_sec (int): The timeout for the request in seconds. Defaults to TIMEOUT_IN_SEC from environment variables.
+        headers (dict, optional): Additional headers to include in the request. Defaults to None.
+        with_authentication (bool): If True, includes an authentication token in the request headers. Defaults to False.
+        return_json (bool): If True, returns the response in JSON format; otherwise, returns raw content. Defaults to True.
+        accept_field (str): The value for the 'Accept' header in the request, indicating the desired response format. Defaults to "application/json".
+
+    Returns:
+        Any: The response from the NOMAD API, formatted as JSON or raw content based on the `return_json` parameter.
+
+    Raises:
+        ValueError: If the response from the NOMAD API is not successful (status code 200).
+    """
     url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending get request @ {url}")
@@ -63,6 +104,18 @@ def get_nomad_request(
 
 
 def get_nomad_base_url(use_prod: bool) -> str:
+    """
+    Returns the base URL for the NOMAD API depending on the environment.
+
+    This function provides the base URL for either the production or test environment of the NOMAD API. It is useful
+    for constructing full API request URLs based on the desired environment.
+
+    Parameters:
+        use_prod (bool): A flag indicating whether to return the production URL. If False, the test URL is returned.
+
+    Returns:
+        str: The base URL for the NOMAD API.
+    """
     return (NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL).removesuffix("/api/v1")
 
 
@@ -75,6 +128,28 @@ def post_nomad_request(
     timeout_in_sec: int = TIMEOUT_IN_SEC,
     with_authentication: bool = False,
 ) -> json:
+    """
+    Sends a POST request to the NOMAD API for a specified section of the database.
+
+    This function constructs and sends a POST request to either the production or test environment of the NOMAD API,
+    based on the provided parameters. It can optionally include authentication in the request headers and allows for
+    sending data either as form data or JSON. The response is expected to be in JSON format.
+
+    Parameters:
+        section (str): The specific section of the NOMAD API to target with the POST request.
+        headers (dict, optional): Additional headers to include in the request. Defaults to None.
+        data (Any, optional): Form data to send with the request. Defaults to None.
+        json_dict (dict, optional): JSON data to send with the request. Defaults to None.
+        use_prod (bool): Determines whether to use the production or test URL for the NOMAD API. Defaults to False.
+        timeout_in_sec (int): The timeout for the request in seconds. Defaults to TIMEOUT_IN_SEC from environment variables.
+        with_authentication (bool): If True, includes an authentication token in the request headers. Defaults to False.
+
+    Returns:
+        json: The response from the NOMAD API in JSON format.
+
+    Raises:
+        ValueError: If the response from the NOMAD API is not successful (status code 200).
+    """
     if headers is None:
         headers = {}
     if with_authentication:
@@ -103,6 +178,26 @@ def delete_nomad_request(
     timeout_in_sec: int = TIMEOUT_IN_SEC,
     with_authentication: bool = False,
 ) -> json:
+    """
+    Sends a DELETE request to the NOMAD API for a specified section of the database.
+
+    This function constructs and sends a DELETE request to either the production or test environment of the NOMAD API,
+    based on the provided parameters. It can optionally include authentication in the request headers. The response is
+    expected to be in JSON format.
+
+    Parameters:
+        section (str): The specific section of the NOMAD API to target with the DELETE request.
+        headers (dict, optional): Additional headers to include in the request. Defaults to None.
+        use_prod (bool): Determines whether to use the production or test URL for the NOMAD API. Defaults to False.
+        timeout_in_sec (int): The timeout for the request in seconds. Defaults to TIMEOUT_IN_SEC from environment variables.
+        with_authentication (bool): If True, includes an authentication token in the request headers. Defaults to False.
+
+    Returns:
+        json: The response from the NOMAD API in JSON format.
+
+    Raises:
+        ValueError: If the response from the NOMAD API is not successful (status code 200).
+    """
     if headers is None:
         headers = {}
     if with_authentication:

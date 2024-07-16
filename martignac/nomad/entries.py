@@ -46,6 +46,56 @@ class NomadEntrySchema(Schema):
 
 @dataclass(frozen=True)
 class NomadEntry:
+    """
+    Represents an entry in the NOMAD system.
+
+    This class encapsulates the data and metadata associated with an entry in the NOMAD database, including references,
+    quantities, datasets, and processing information. It provides properties to access computed attributes such as
+    URLs and job-related information derived from comments.
+
+    Attributes:
+        entry_id (str): Unique identifier for the entry.
+        upload_id (str): Identifier of the upload this entry belongs to.
+        references (list[str]): List of reference identifiers associated with this entry.
+        origin (str): The origin of the entry data.
+        quantities (list[str]): List of quantities measured or calculated for this entry.
+        datasets (list[NomadDataset]): List of datasets associated with this entry.
+        n_quantities (int): Number of quantities associated with this entry.
+        nomad_version (str): Version of the NOMAD software used.
+        upload_create_time (dt.datetime): Creation time of the upload this entry is part of.
+        nomad_commit (str): Specific commit of the NOMAD software used.
+        section_defs (list[NomadSectionDefinition]): Definitions of sections used in this entry.
+        processing_errors (list[Any]): List of errors encountered during processing of this entry.
+        last_processing_time (dt.datetime): Timestamp of the last processing attempt.
+        parser_name (str): Name of the parser used to process this entry.
+        calc_id (str): Calculation identifier associated with this entry.
+        published (bool): Flag indicating whether this entry is published.
+        writers (list[NomadUser]): List of users with write access to this entry.
+        sections (list[str]): List of section identifiers associated with this entry.
+        processed (bool): Flag indicating whether this entry has been processed.
+        mainfile (str): Name of the main file for this entry.
+        main_author (NomadUser): The main author of this entry.
+        viewers (list[NomadUser]): List of users with view access to this entry.
+        entry_create_time (dt.datetime): Creation time of this entry.
+        with_embargo (bool): Flag indicating whether this entry is under embargo.
+        files (list[str]): List of file names associated with this entry.
+        authors (list[NomadUser]): List of authors associated with this entry.
+        license (str): License under which this entry is published.
+        results (Optional[dict]): Results associated with this entry, if any.
+        entry_name (Optional[str]): Name of this entry, if any.
+        entry_type (Optional[str]): Type of this entry, if any.
+        domain (Optional[str]): Domain of this entry, if any.
+        optimade (Optional[dict]): OPTIMADE data associated with this entry, if any.
+        comment (Optional[str]): Additional comments associated with this entry, if any.
+        upload_name (Optional[str]): Name of the upload this entry belongs to, if any.
+        viewer_groups (Optional[list[Any]]): Groups of users with view access, if any.
+        writer_groups (Optional[list[Any]]): Groups of users with write access, if any.
+        text_search_contents (Optional[list[str]]): Contents available for text search, if any.
+        publish_time (Optional[dt.datetime]): Time when this entry was published, if any.
+        entry_references (Optional[list[dict]]): References associated with this entry, if any.
+        use_prod (Optional[bool]): Flag indicating whether this entry is from the production environment.
+    """
+
     entry_id: str
     upload_id: str
     references: list[str]
@@ -124,6 +174,27 @@ class NomadEntry:
 def get_entry_by_id(
     entry_id: str, use_prod: bool = True, with_authentication: bool = False, timeout_in_sec: int = 10
 ) -> NomadEntry:
+    """
+    Retrieves a NomadEntry object by its unique entry ID.
+
+    This function sends a GET request to the NOMAD system to retrieve the details of a specific entry identified by its
+    unique ID. It allows specifying whether to use the production or test environment, whether authentication is
+    required for the request, and a timeout for the request.
+
+    Args:
+        entry_id (str): The unique identifier of the entry to retrieve.
+        use_prod (bool, optional): Flag indicating whether to use the production environment. Defaults to True.
+        with_authentication (bool, optional): Flag indicating whether the request should include authentication.
+                                               Defaults to False.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for a response from the server.
+                                        Defaults to 10 seconds.
+
+    Returns:
+        NomadEntry: The NomadEntry object corresponding to the provided entry ID.
+
+    Raises:
+        HTTPError: If the request fails or the NOMAD system returns an error response.
+    """
     logger.info(f"retrieving entry {entry_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         f"/entries/{entry_id}",
@@ -139,6 +210,27 @@ def get_entry_by_id(
 def get_entries_of_upload(
     upload_id: str, use_prod: bool = False, with_authentication: bool = False, timeout_in_sec: int = 10
 ) -> list[NomadEntry]:
+    """
+    Retrieves a list of NomadEntry objects associated with a specific upload ID.
+
+    This function sends a GET request to the NOMAD system to retrieve all entries associated with a given upload ID.
+    It allows specifying whether to use the production or test environment, whether authentication is required for
+    the request, and a timeout for the request.
+
+    Args:
+        upload_id (str): The unique identifier of the upload whose entries are to be retrieved.
+        use_prod (bool, optional): Flag indicating whether to use the production environment. Defaults to False.
+        with_authentication (bool, optional): Flag indicating whether the request should include authentication.
+                                               Defaults to False.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for a response from the server.
+                                        Defaults to 10 seconds.
+
+    Returns:
+        list[NomadEntry]: A list of NomadEntry objects corresponding to the entries of the specified upload ID.
+
+    Raises:
+        HTTPError: If the request fails or the NOMAD system returns an error response.
+    """
     logger.info(f"retrieving entries for upload {upload_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
         f"/uploads/{upload_id}/entries",
@@ -151,6 +243,23 @@ def get_entries_of_upload(
 
 
 def get_entries_of_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
+    """
+    Retrieves a list of NomadEntry objects associated with the uploads owned by the current user.
+
+    This function iterates over all uploads owned by the current user, identified through their unique upload IDs,
+    and aggregates all entries associated with these uploads. It allows specifying whether to use the production
+    or test environment for the NOMAD system, and a timeout for the request.
+
+    Args:
+        use_prod (bool, optional): Flag indicating whether to use the production environment. Defaults to False,
+                                   indicating that the test environment is used by default.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for a response from the server.
+                                        Defaults to 10 seconds.
+
+    Returns:
+        list[NomadEntry]: A list of NomadEntry objects corresponding to the entries associated with the uploads
+                          owned by the current user.
+    """
     return [
         upload_entry
         for u in get_all_my_uploads(use_prod=use_prod, timeout_in_sec=timeout_in_sec)
@@ -159,6 +268,22 @@ def get_entries_of_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) 
 
 
 def get_entries_in_database(database_id: str = DEFAULT_DATABASE, use_prod: bool = DEFAULT_USE_PROD) -> list[NomadEntry]:
+    """
+    Retrieves a list of NomadEntry objects from a specified database.
+
+    This function queries the NOMAD system for entries within a specified database, using the provided database ID.
+    It allows specifying whether to use the production or test environment for the query. The function leverages
+    the `query_entries` function to perform the actual query based on the provided parameters.
+
+    Args:
+        database_id (str, optional): The unique identifier of the database from which to retrieve entries.
+                                     Defaults to the value of `DEFAULT_DATABASE` from the configuration.
+        use_prod (bool, optional): Flag indicating whether to use the production environment. Defaults to the value
+                                   of `DEFAULT_USE_PROD` from the configuration.
+
+    Returns:
+        list[NomadEntry]: A list of NomadEntry objects corresponding to the entries found in the specified database.
+    """
     return query_entries(dataset_id=database_id, use_prod=use_prod)
 
 
@@ -172,6 +297,25 @@ def query_entries(
     max_entries: int = 50,
     use_prod: bool = True,
 ) -> list[NomadEntry]:
+    """
+    Queries the NOMAD system for entries based on various filters and returns a list of NomadEntry objects.
+
+    This function constructs a query to the NOMAD system, allowing for filtering based on workflow name, program name,
+    dataset ID, and origin. It supports pagination through `page_size` and limits the number of entries returned with
+    `max_entries`. The environment (production or test) can be specified with `use_prod`.
+
+    Args:
+        worfklow_name (str, optional): Filter entries by the name of the workflow. Defaults to None.
+        program_name (str, optional): Filter entries by the program name. Defaults to None.
+        dataset_id (str, optional): Filter entries by the dataset ID. Defaults to None.
+        origin (str, optional): Filter entries by their origin. Defaults to None.
+        page_size (int, optional): Number of entries to return per page. Defaults to 10.
+        max_entries (int, optional): Maximum number of entries to return. Defaults to 50.
+        use_prod (bool, optional): Flag indicating whether to query the production environment. Defaults to True.
+
+    Returns:
+        list[NomadEntry]: A list of NomadEntry objects that match the query criteria.
+    """
     json_dict = {
         "query": {},
         "pagination": {"page_size": page_size},
@@ -200,6 +344,27 @@ def query_entries(
 
 
 def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
+    """
+    Downloads the raw data associated with a given job from the NOMAD system and stores it in the job's directory.
+
+    This function attempts to find NOMAD entries corresponding to the specified job, downloads the raw data for the
+    first matching entry, and extracts it into the job's directory. It handles the creation of a temporary ZIP file
+    for the raw data, extracts the relevant files, and cleans up the temporary files. Additionally, it updates the
+    job's document with NOMAD dataset and upload IDs, and specific workflow information if available.
+
+    Args:
+        job (Job): The signac job object for which to download the raw data.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for a response from the server when
+                                        downloading the raw data. Defaults to 10 seconds.
+
+    Returns:
+        bool: True if the raw data was successfully downloaded and processed, False if no corresponding NOMAD entries
+              were found for the job.
+
+    Raises:
+        TypeError: If the job's project does not derive from MartiniFlowProject.
+        ValueError: If the found entries have inconsistent upload IDs, indicating a data retrieval or processing error.
+    """
     entries = find_entries_corresponding_to_job(job)
     if len(entries) == 0:
         return False
@@ -234,6 +399,25 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
 
 
 def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
+    """
+    Finds NOMAD entries that correspond to a given job.
+
+    This function searches for NOMAD entries that are associated with the specified job. It checks if the job's project
+    is a subclass of MartiniFlowProject. If not, it raises a TypeError. The function then proceeds to match entries
+    based on the job's ID and the hash of MDP files associated with the job. It combines entries found through querying
+    the NOMAD dataset with entries associated with uploads owned by the current user. If entries with inconsistent
+    upload IDs are found, a ValueError is raised.
+
+    Args:
+        job (Job): The signac job object to find corresponding NOMAD entries for.
+
+    Returns:
+        list[NomadEntry]: A list of NomadEntry objects that correspond to the given job.
+
+    Raises:
+        TypeError: If the job's project does not derive from MartiniFlowProject.
+        ValueError: If found entries have inconsistent upload IDs, indicating a data retrieval or processing error.
+    """
     if not issubclass(type(job.project), MartiniFlowProject):
         raise TypeError(f"job project {type(job.project)} does not derive from MartiniFlowProject")
     project = cast("MartiniFlowProject", job.project)

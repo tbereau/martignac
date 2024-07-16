@@ -2,9 +2,9 @@ import itertools
 
 import signac
 
-from martignac.workflows.free_energy_calculations.alchemical_transformation import AlchemicalTransformationFlow
+from martignac.workflows.solute_in_solvent_alchemical import SoluteInSolventAlchemicalFlow
 
-project = signac.init_project(path=AlchemicalTransformationFlow.workspace_path)
+project = signac.init_project(path=SoluteInSolventAlchemicalFlow.workspace_path)
 
 solvent_names = [
     # "W",

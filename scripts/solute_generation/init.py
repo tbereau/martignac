@@ -1,6 +1,6 @@
 import signac
 
-from martignac.workflows.system_generation.solute import SoluteGenFlow
+from martignac.workflows.solute_generation import SoluteGenFlow
 
 project = signac.init_project(path=SoluteGenFlow.workspace_path)
 

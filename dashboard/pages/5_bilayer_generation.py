@@ -9,7 +9,7 @@ from martignac.nomad.entries import (
     get_entries_of_my_uploads,
 )
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflows.system_generation.bilayer import project as bilayer_project
+from martignac.workflows.bilayer_generation import project as bilayer_project
 
 st.set_page_config(page_title="Bilayer generation", page_icon="📊")
 

@@ -21,6 +21,34 @@ UPLOAD_TO_NOMAD: bool = config()["nomad"]["upload_to_nomad"].get(bool)
 
 
 class MartiniFlowProject(FlowProject):
+    """
+    A specialized FlowProject for managing and executing Martini-based molecular dynamics simulations.
+
+    This class extends the FlowProject class from the signac framework, providing functionalities specific to
+    the setup, execution, and analysis of simulations using the Martini force field. It includes methods for
+    registering simulation input files, uploading results to the NOMAD repository, and managing the simulation
+    workflow states.
+
+    Attributes:
+        workspaces_path (str): Absolute path to the directory where simulation workspaces are stored.
+        input_files_path (str): Absolute path to the directory containing input files for simulations.
+        itp_path (str): Absolute path to the directory containing ITP (GROMACS topology) files.
+        nomad_use_prod_database (bool): Flag indicating whether to use the production NOMAD database.
+        nomad_dataset_id (str): Identifier for the dataset within the NOMAD repository.
+        nomad_coauthors (list[str]): List of co-authors to be included in the NOMAD metadata.
+        workspace_path (str): Path to the current job's workspace directory.
+        itp_files (Dict[str, str]): Dictionary mapping ITP file names to their paths.
+        mdp_path (str): Path to the directory containing MDP (GROMACS parameters) files.
+        mdp_files (Dict[str, str]): Dictionary mapping MDP file names to their paths.
+        simulation_settings (Dict[str, Any]): Dictionary containing settings for the simulation.
+        system_name (str): Name of the simulation system.
+        output_names (Dict[str, str]): Dictionary mapping output file types to their names.
+        nomad_workflow (str): Identifier for the workflow within the NOMAD repository.
+        nomad_top_level_workflow (str): Identifier for the top-level workflow within NOMAD.
+        ff_parameters (Dict[str, Any]): Dictionary containing force field parameters.
+        operation_to_workflow (Dict[str, str]): Mapping of operation names to workflow identifiers.
+    """
+
     workspaces_path: str = config()["local"]["workspaces"]["absolute_path"].get(str)
     input_files_path: str = config()["local"]["input_files"]["absolute_path"].get(str)
     itp_path: str = config()["local"]["input_files"]["itp_files"].get(str)
@@ -140,14 +168,66 @@ class MartiniFlowProject(FlowProject):
 
 
 def store_gromacs_log_to_doc(operation_name: str, job: Job):
+    """
+    Stores the GROMACS log file information in the job document without state point differentiation.
+
+    This function is a simplified wrapper around `_store_gromacs_log_to_doc_flexible`, specifically designed
+    for cases where differentiation based on state points is not required. It logs the GROMACS simulation
+    details into the job's document, using only the operation name for identification.
+
+    Parameters:
+        operation_name (str): The name of the operation being logged. This typically corresponds to the
+                              GROMACS command being executed.
+        job (Job): The signac job instance for which the log is being stored. This job contains the document
+                   where the log information is stored.
+
+    Returns:
+        None: This function does not return a value but updates the job's document with the log file information.
+    """
     _store_gromacs_log_to_doc_flexible(operation_name, job, False)
 
 
 def store_gromacs_log_to_doc_with_state_point(operation_name: str, job: Job):
+    """
+    Stores the GROMACS log file information in the job document with state point differentiation.
+
+    This function is designed to log GROMACS simulation details into the job's document, incorporating
+    state point information for differentiation. It utilizes `_store_gromacs_log_to_doc_flexible` with
+    the `with_state_point` flag set to True, allowing for the inclusion of state point details in the
+    log file's identification.
+
+    Parameters:
+        operation_name (str): The name of the operation being logged. This typically corresponds to the
+                              GROMACS command being executed.
+        job (Job): The signac job instance for which the log is being stored. This job contains the document
+                   where the log information is stored.
+
+    Returns:
+        None: This function does not return a value but updates the job's document with the log file information,
+              including state point differentiation.
+    """
     _store_gromacs_log_to_doc_flexible(operation_name, job, True)
 
 
 def store_gromacs_log_to_doc_with_depth_from_bilayer_core(operation_name: str, job: Job):
+    """
+    Stores the GROMACS log file information in the job document, including differentiation based on the depth from the bilayer core.
+
+    This function is specifically designed for simulations where the depth from the bilayer core is a relevant parameter. It utilizes
+    `_store_gromacs_log_to_doc_flexible` with the `with_state_point` flag set to True and specifies "depth_from_bilayer_core" as the
+    state point key for differentiation. This allows for the inclusion of depth-related details in the log file's identification,
+    facilitating more granular analysis of simulation results based on their proximity to the bilayer core.
+
+    Parameters:
+        operation_name (str): The name of the operation being logged. This typically corresponds to the
+                              GROMACS command being executed.
+        job (Job): The signac job instance for which the log is being stored. This job contains the document
+                   where the log information is stored.
+
+    Returns:
+        None: This function does not return a value but updates the job's document with the log file information,
+              including differentiation based on the depth from the bilayer core.
+    """
     _store_gromacs_log_to_doc_flexible(operation_name, job, True, state_point_key="depth_from_bilayer_core")
 
 
@@ -170,17 +250,72 @@ def _store_gromacs_log_to_doc_flexible(
 
 
 def store_task(operation_name: str, job: Job):
+    """
+    Logs a workflow task for a given job in the project's documentation.
+
+    This function updates the job's document to log the execution of a specific task within the workflow. It is
+    part of the project's utilities for tracking the progress and state of jobs, specifically by recording which
+    tasks have been run. This aids in the management and review of the job's lifecycle within the workflow.
+
+    Parameters:
+        operation_name (str): The name of the operation or task being logged. This name should correspond to a
+                              defined operation within the workflow.
+        job (Job): The signac job instance for which the task is being logged. This job's document is updated with
+                   the task information.
+
+    Returns:
+        None: This function does not return a value but updates the job's document with the task information.
+    """
     logger.info(f"logging workflow task {operation_name} @ {job.id}")
     project_ = cast(MartiniFlowProject, job.project)
     job.doc = update_nested_dict(job.doc, {project_.class_name(): {"tasks": {operation_name: "run"}}})
 
 
 def store_task_for_many_jobs(operation_name: str, *jobs):
+    """
+    Logs a workflow task for multiple jobs in the project's documentation.
+
+    This function iterates over a collection of jobs, logging the execution of a specified task within the workflow
+    for each job. It leverages the `store_task` function to individually update each job's document. This is useful
+    for batch processing or when the same task is executed across multiple jobs, ensuring consistent documentation
+    and tracking of workflow tasks across the project.
+
+    Parameters:
+        operation_name (str): The name of the operation or task being logged. This name should correspond to a
+                              defined operation within the workflow.
+        *jobs (Job): A variable number of signac job instances for which the task is being logged. Each job's
+                     document is updated with the task information.
+
+    Returns:
+        None: This function does not return a value but updates each job's document with the task information.
+    """
     for job in jobs:
         store_task(operation_name, job)
 
 
 def store_workflow(operation_name: str, job: Job):
+    """
+    Logs the association of a workflow with a given job in the project's documentation.
+
+    This function updates the job's document to log the association of a specific workflow, identified by the
+    operation name, with the job. It is part of the project's utilities for tracking the progress and state of
+    jobs, specifically by recording which workflows have been associated with them. This aids in the management
+    and review of the job's lifecycle within the workflow system.
+
+    Parameters:
+        operation_name (str): The name of the operation or workflow being logged. This name should correspond to a
+                              defined operation within the project's workflow system.
+        job (Job): The signac job instance for which the workflow association is being logged. This job's document
+                   is updated with the workflow association information.
+
+    Raises:
+        ValueError: If the operation name is not registered within the project's operation to workflow mapping,
+                    indicating that the operation is not recognized by the project.
+
+    Returns:
+        None: This function does not return a value but updates the job's document with the workflow association
+              information.
+    """
     project_ = cast(MartiniFlowProject, job.project)
     logger.info(f"logging workflow {project_.class_name()} for {operation_name} @ {job.id}")
     if operation_name not in project_.operation_to_workflow:
@@ -192,6 +327,24 @@ def store_workflow(operation_name: str, job: Job):
 
 
 def store_workflow_for_many_jobs(operation_name: str, *jobs):
+    """
+    Logs the association of a specified workflow with multiple jobs in the project's documentation.
+
+    This function iterates over a collection of jobs, logging the association of a specified workflow, identified by the
+    operation name, with each job. It leverages the `store_workflow` function to individually update each job's document.
+    This is useful for batch processing or when the same workflow is associated across multiple jobs, ensuring consistent
+    documentation and tracking of workflow associations across the project.
+
+    Parameters:
+        operation_name (str): The name of the operation or workflow being logged. This name should correspond to a
+                              defined operation within the project's workflow system.
+        *jobs (Job): A variable number of signac job instances for which the workflow association is being logged.
+                     Each job's document is updated with the workflow association information.
+
+    Returns:
+        None: This function does not return a value but updates each job's document with the workflow association
+              information.
+    """
     for job in jobs:
         store_workflow(operation_name, job)
 
@@ -240,6 +393,20 @@ def itp_mdp_files_symlinked(job: Job):
 @MartiniFlowProject.post(fetched_from_nomad)
 @MartiniFlowProject.operation(with_job=True)
 def fetch_from_nomad(*jobs) -> None:
+    """
+    Fetches data for a given set of jobs from the NOMAD repository.
+
+    This operation attempts to download raw data associated with each job from the NOMAD repository. It logs
+    the success or failure of data retrieval for each job. If data is successfully fetched, it updates the job's
+    document to reflect this. This function is useful for synchronizing local job data with data stored in NOMAD,
+    ensuring that the local project state accurately reflects the data stored in the repository.
+
+    Parameters:
+        *jobs (Job): A variable number of signac job instances for which data is being fetched from NOMAD.
+
+    Returns:
+        None: This function does not return a value but updates each job's document with the fetch status.
+    """
     from martignac.nomad.entries import download_raw_data_of_job
 
     for job in jobs:
@@ -256,6 +423,20 @@ def fetch_from_nomad(*jobs) -> None:
 @MartiniFlowProject.post(itp_mdp_files_symlinked)
 @MartiniFlowProject.operation(with_job=True)
 def symlink_itp_and_mdp_files(job: Job) -> None:
+    """
+    Creates symbolic links for ITP and MDP files in the job's directory.
+
+    This function generates symbolic links for each ITP (GROMACS topology) and MDP (GROMACS parameters) file
+    within the job's directory, facilitating their use in simulation workflows. It ensures that the necessary
+    simulation input files are accessible in the job's working directory without duplicating data. If a file
+    already exists in the job's directory, it will not create a duplicate symlink.
+
+    Parameters:
+        job (Job): The signac job instance for which the symbolic links are being created.
+
+    Returns:
+        None: This function does not return a value but updates the job's directory with symbolic links.
+    """
     project = cast("MartiniFlowProject", job.project)
     logger.info(f"generating symbolic links for {job.id} @ {project.class_name()}")
     for itp_file in project.itp_files.values():
@@ -274,6 +455,27 @@ def import_job_from_other_flow(
     keys_for_files_to_copy: list[str],
     run_child_job: bool = True,
 ) -> None:
+    """
+    Imports data from a job in a child project into the current job's context.
+
+    This function is designed to facilitate the transfer of data between jobs across different projects within
+    the MartiniFlow framework. It optionally runs the child job before copying specified files from the child
+    job's directory to the current job's directory. This is particularly useful for workflows that require
+    data generated in one project to be used in another.
+
+    Parameters:
+        job (Job): The current signac job instance into which data is being imported.
+        child_project (MartiniTypeFlow): The child project instance from which data is being imported.
+        child_job (Job): The child project's signac job instance from which data is being imported.
+        keys_for_files_to_copy (list[str]): A list of keys identifying the files in the child job's document
+                                            that should be copied to the current job's directory.
+        run_child_job (bool, optional): A flag indicating whether the child job should be executed before
+                                        data is imported. Defaults to True.
+
+    Returns:
+        None: This function does not return a value but updates the current job's directory with the imported
+              files and updates the job's document with information from the child job's document.
+    """
     if run_child_job:
         logger.info(f"Running job {child_job.id} @  {child_project.class_name()}")
         child_project.run(jobs=[child_job])

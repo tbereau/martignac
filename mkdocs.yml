@@ -5,23 +5,53 @@ site_description: This is a template repository for Python projects that use Poe
 site_author: Tristan Bereau
 edit_uri: edit/main/docs/
 repo_name: tbereau/martignac
-copyright: Maintained by <a href="https://tbereau.com">Florian</a>.
+copyright: Maintained by <a href="https://tristanbereau.com">Tristan Bereau</a>.
 
 nav:
   - Home: index.md
-  - Modules: modules.md
+  - NOMAD:
+    - nomad/datasets.md
+    - nomad/entries.md
+    - nomad/uploads.md
+    - nomad/users.md
+    - nomad/utils.md
+    - nomad/workflows.md
+  - Workflows:
+    - workflows/solute_generation.md
+    - workflows/solvent_generation.md
+    - workflows/solute_in_solvent_generation.md
+    - workflows/solute_in_solvent_alchemical.md
+    - workflows/bilayer_generation.md
+    - workflows/solute_in_bilayer_umbrella.md
+  - Parsers:
+    - parsers/gromacs_forcefields.md
+    - parsers/gromacs_particle_definitions.md
+    - parsers/gromacs_structures.md
+    - parsers/gromacs_topologies.md
+  - Liquid models:
+    - liquid_models/mixtures.md
+  - Utils:
+    - utils/dashboard.md
+    - utils/gromacs.md
+    - utils/insane.md
+    - utils/martini_flow_projects.md
+    - utils/misc.md
+    - utils/nomad.md
+    - utils/packmol.md
 plugins:
   - search
   - mkdocstrings:
       handlers:
         python:
-            setup_commands:
-                - import sys
-                - sys.path.append('../')
+          options:
+            docstring_style: google
+            loader: griffe
+
 theme:
   name: material
-  feature:
-    tabs: true
+  features:
+    - navigation.expand
+    - navigation.tabs
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -44,11 +74,19 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/tbereau/martignac
-    - icon: fontawesome/brands/python
-      link: https://pypi.org/project/martignac
+#    - icon: fontawesome/brands/python
+#      link: https://pypi.org/project/martignac
 
 markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.arithmatex:
       generic: true
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

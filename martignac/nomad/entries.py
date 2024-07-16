@@ -253,7 +253,9 @@ def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
             match_entries.append(found_entry)
     my_uploads = get_all_my_uploads(use_prod=project.nomad_use_prod_database)
     for upload in my_uploads:
-        upload_entries = get_entries_of_upload(upload.upload_id)
+        upload_entries = get_entries_of_upload(
+            upload.upload_id, with_authentication=True, use_prod=project.nomad_use_prod_database
+        )
         for entry in upload_entries:
             if found_entry := associate_entry_to_job(entry):
                 match_entries.append(found_entry)

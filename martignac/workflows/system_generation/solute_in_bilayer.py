@@ -301,7 +301,7 @@ def all_depth_states_sampled(*jobs):
     return result
 
 
-@SoluteInBilayerFlow.pre(all_depth_states_sampled, tag="all_depth_states_sampled")
+@SoluteInBilayerFlow.pre(all_depth_states_sampled, tag="system_sampled")
 @SoluteInBilayerFlow.post(wham_calculated, tag="wham_calculated")
 @SoluteInBilayerFlow.operation_hooks.on_success(store_task_for_many_jobs)
 @SoluteInBilayerFlow.operation(

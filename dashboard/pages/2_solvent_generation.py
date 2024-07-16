@@ -9,13 +9,13 @@ from martignac.nomad.entries import (
     get_entries_of_my_uploads,
 )
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflows.system_generation.solute import project as solute_gen_project
+from martignac.workflows.system_generation.solvent import project as solvent_gen_project
 
-st.set_page_config(page_title="Solute generation", page_icon="📊")
+st.set_page_config(page_title="Solvent generation", page_icon="📊")
 
-st.title("Martignac: Solute generation")
+st.title("Martignac: Solvent generation")
 
-components.html(generate_gravis_network(solute_gen_project).to_html(), height=400)
+components.html(generate_gravis_network(solvent_gen_project).to_html(), height=400)
 
 # uploads
 upload_entries: list[NomadEntry] = get_entries_of_my_uploads(use_prod=False)
@@ -49,19 +49,19 @@ df_u = df_u[
 df_u["entry_create_time"] = pd.to_datetime(df_u["entry_create_time"]).dt.date
 
 df_u = (
-    df_u[(df_u["workflow_name"] == "SoluteGenFlow") & (df_u["entry_type"] == "Workflow")]
+    df_u[(df_u["workflow_name"] == "SolventGenFlow") & (df_u["entry_type"] == "Workflow")]
     .drop(
         [
             "workflow_name",
             "state_point.type",
-            "state_point.solvent_name",
+            "state_point.solute_name",
             "state_point.lipids",
             "state_point.lambda_state",
             "state_point.depth_from_bilayer_core",
         ],
         axis=1,
     )
-    .sort_values("state_point.solute_name")
+    .sort_values("state_point.solvent_name")
 )
 
 st.dataframe(df_u, column_config={"url": st.column_config.LinkColumn("URL", display_text="link")})

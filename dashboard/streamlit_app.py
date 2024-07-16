@@ -15,9 +15,16 @@ st.set_page_config(
 
 st.title("Martignac dataset")
 
-entries = get_entries_in_database()
-df_e = pd.json_normalize([{**asdict(e), "url": e.nomad_gui_url} for e in entries])
-df_e = df_e[["entry_id", "upload_id", "entry_type", "entry_create_time", "url"]]
+database_id = st.text_input("Database ID", "HJdEI1q4SV-c5Di43BTT_Q")
+prod_db = st.toggle("Production database", False)
+
+df_e = pd.DataFrame()
+entries = get_entries_in_database(database_id=database_id, use_prod=prod_db)
+if not (entries):
+    st.warning(f"No entry found in database ID '{database_id}' on {'prod' if prod_db else 'test'} server", icon="⚠️")
+else:
+    df_e = pd.json_normalize([{**asdict(e), "url": e.nomad_gui_url} for e in entries])
+    df_e = df_e[["entry_id", "upload_id", "entry_type", "entry_create_time", "url"]]
 
 # uploads
 upload_entries = get_entries_of_my_uploads()

@@ -259,11 +259,10 @@ def get_molecule_from_name(
     molecule_label: Optional[str] = None,
 ) -> Molecule:
     particle_names = molecule_name.split(",")[0].split()
-    # Construct list of atoms
-    atoms = [_get_atom_from_string(name, i, molecule_name) for i, name in enumerate(particle_names)]
-    # Construct molecule with atoms
     if molecule_label is None:
-        molecule_label = "".join(particle_names)
+        molecule_label = "".join(particle_names)[:5]
+    # Construct list of atoms
+    atoms = [_get_atom_from_string(name, i, molecule_label) for i, name in enumerate(particle_names)]
     molecule = Molecule(molecule_label, number_excl, atoms)
     # Add bonds and constraints to the molecule
     if "," in molecule_name:

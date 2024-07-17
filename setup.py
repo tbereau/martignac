@@ -39,6 +39,9 @@ requirements = [
     "insane>=1.2.0",
     "anyio>=3.0.0,<4.0",
     "GromacsWrapper",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
 ]
 
 setup(

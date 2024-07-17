@@ -1,4 +1,4 @@
-# Utils dashboard
+# Dashboard
 
 ::: martignac.utils.dashboard
     handler: python

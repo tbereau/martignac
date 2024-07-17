@@ -1,4 +1,4 @@
-# Utils NOMAD
+# NOMAD
 
 ::: martignac.utils.nomad
     handler: python

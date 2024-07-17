@@ -1,4 +1,4 @@
-# Utils insane
+# INSANE
 
 ::: martignac.utils.insane
     handler: python

@@ -1,4 +1,4 @@
-# NOMAD datasets
+# Datasets
 
 ::: martignac.nomad.datasets
     handler: python

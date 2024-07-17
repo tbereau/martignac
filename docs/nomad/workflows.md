@@ -1,4 +1,4 @@
-# NOMAD workflows
+# Workflows
 
 ::: martignac.nomad.workflows
     handler: python

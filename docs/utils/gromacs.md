@@ -1,4 +1,4 @@
-# Utils gromacs
+# GROMACS
 
 ::: martignac.utils.gromacs
     handler: python

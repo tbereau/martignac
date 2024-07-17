@@ -1,4 +1,4 @@
-# Utils misc
+# Misc.
 
 ::: martignac.utils.misc
     handler: python

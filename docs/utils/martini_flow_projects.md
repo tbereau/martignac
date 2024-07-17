@@ -1,4 +1,4 @@
-# Utils Martini flow projects
+# Martini flow projects
 
 ::: martignac.utils.martini_flow_projects
     handler: python

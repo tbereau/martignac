@@ -1,4 +1,4 @@
-# Utils PACKMOL
+# PACKMOL
 
 ::: martignac.utils.packmol
     handler: python

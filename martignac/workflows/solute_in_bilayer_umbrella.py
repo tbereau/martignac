@@ -208,10 +208,6 @@ def translate_solute(job: Job):
         None: This function does not return a value but updates the job document with the path to the translated
               solute GRO file, marking the solute translation step as complete.
     """
-    lipid_names = job.doc[bilayer_gen_name].get("lipid_names")
-    com_bilayer = calculate_average_com(job.doc[bilayer_gen_name].get("bilayer_gro"), lipid_names)
-    logger.info(f"bilayer COM: {com_bilayer}")
-    job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
     solute_gro = job.doc[solute_gen_name].get("solute_gro")
     solute_translated_gro = SoluteInBilayerUmbrellaFlow.get_state_name("solute_translated", "gro")
     job.doc[project_name]["solute_translated_gro"] = solute_translated_gro
@@ -226,7 +222,7 @@ def translate_solute(job: Job):
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
 @SoluteInBilayerUmbrellaFlow.post(bilayer_generated, tag="bilayer_generated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
-@SoluteInBilayerUmbrellaFlow.operation
+@SoluteInBilayerUmbrellaFlow.operation(with_job=True)
 def generate_bilayer(job):
     """
     Generates the lipid bilayer structure for the molecular dynamics simulation.
@@ -255,6 +251,10 @@ def generate_bilayer(job):
     keys_for_files_to_copy = ["bilayer_gro", "bilayer_top"]
     project.operation_to_workflow[func_name()] = bilayer_gen_name
     import_job_from_other_flow(job, bilayer_gen_project, solvent_job, keys_for_files_to_copy)
+    lipid_names = job.doc[bilayer_gen_name].get("lipid_names")
+    com_bilayer = calculate_average_com(job.doc[bilayer_gen_name].get("bilayer_gro"), lipid_names)
+    logger.info(f"bilayer COM: {com_bilayer}")
+    job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
 
 
 @SoluteInBilayerUmbrellaFlow.pre(solute_translated, tag="solute_translated")
@@ -415,7 +415,7 @@ def equilibrate(job):
     depth_state = str(job.sp.depth_from_bilayer_core)
     depth_mdp = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.mdp"
     sub_template_mdp(SoluteInBilayerUmbrellaFlow.mdp_files.get("equilibrate"), "sedstate", depth_state, depth_mdp)
-    sub_template_mdp(depth_mdp, "sedmolecule", job.sp["solute_name"], depth_mdp)
+    sub_template_mdp(depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp)
     sub_template_mdp(depth_mdp, "sedlipid", job.sp["lipids"][0]["name"], depth_mdp)
     return gromacs_simulation_command(
         mdp=depth_mdp,
@@ -456,7 +456,7 @@ def production(job):
     depth_state = str(job.sp.depth_from_bilayer_core)
     depth_mdp = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.mdp"
     sub_template_mdp(SoluteInBilayerUmbrellaFlow.mdp_files.get("production"), "sedstate", depth_state, depth_mdp)
-    sub_template_mdp(depth_mdp, "sedmolecule", job.sp["solute_name"], depth_mdp)
+    sub_template_mdp(depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp)
     sub_template_mdp(depth_mdp, "sedlipid", job.sp["lipids"][0]["name"], depth_mdp)
     job.doc[project_name][
         "umbrella_pullf_xvg"

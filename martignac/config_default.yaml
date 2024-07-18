@@ -35,7 +35,7 @@ solute_generation:
       equilibrate: "equ"
   parameters:
     bond_length: 0.360
-    bond_constant: 100000
+    bond_constant: 5000
     number_excl: 3
 
 solvent_generation:

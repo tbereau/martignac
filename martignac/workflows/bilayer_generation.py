@@ -94,7 +94,6 @@ def generate_initial_bilayer(job):
         str: The command executed to generate the bilayer with INSANE, primarily for logging or debugging purposes.
     """
     lipid_mixture = LiquidMixture.from_list_of_dicts(job.sp.lipids)
-    job.sp["solvent"] = BilayerGenFlow.solvent.to_insane_format()
     return generate_bilayer_with_insane(
         lipids=lipid_mixture,
         solvent=BilayerGenFlow.solvent,

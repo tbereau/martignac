@@ -123,12 +123,22 @@ def solute_generated(job) -> bool:
 
 
 @SoluteInBilayerUmbrellaFlow.label
+def solute_generated_all(*jobs) -> bool:
+    return all(solute_generated(job) for job in jobs)
+
+
+@SoluteInBilayerUmbrellaFlow.label
 def solute_translated(job) -> bool:
     return (
         solute_gen_name in job.doc
         and job.doc[project_name].get("solute_translated_gro")
         and job.doc[solute_gen_name].get("solute_top")
     )
+
+
+@SoluteInBilayerUmbrellaFlow.label
+def solute_translated_all(*jobs) -> bool:
+    return all(solute_translated(job) for job in jobs)
 
 
 @SoluteInBilayerUmbrellaFlow.label
@@ -139,6 +149,11 @@ def generated_box_pdb(job):
 @SoluteInBilayerUmbrellaFlow.label
 def bilayer_generated(job) -> bool:
     return bilayer_gen_name in job.doc and job.doc[bilayer_gen_name].get("bilayer_gro")
+
+
+@SoluteInBilayerUmbrellaFlow.label
+def bilayer_generated_all(*jobs) -> bool:
+    return all(bilayer_generated(job) for job in jobs)
 
 
 @SoluteInBilayerUmbrellaFlow.label
@@ -154,10 +169,10 @@ def bilayer_depth_sampled(job) -> bool:
 
 
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
-@SoluteInBilayerUmbrellaFlow.post(solute_generated, tag="solute_generated")
+@SoluteInBilayerUmbrellaFlow.post(solute_generated_all, tag="solute_generated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
-@SoluteInBilayerUmbrellaFlow.operation
-def generate_solute(job: Job):
+@SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
+def generate_solute(*jobs):
     """
     Generates the solute for the molecular dynamics simulation within a lipid bilayer.
 
@@ -173,24 +188,33 @@ def generate_solute(job: Job):
     to workflow mapping, aiding in the tracking and management of the workflow's progress.
 
     Args:
-        job (Job): The job object associated with the current workflow operation. It contains the state point
-                   and document for the job, which will be updated with the solute generation results.
+        *jobs (Job): A variable number of Job objects, representing different simulation setups or conditions.
 
     Returns:
         None: This function does not return a value but updates the job document with the paths to the solute's
               GRO, TOP, and ITP files, marking the solute generation step as complete.
     """
-    solute_job: Job = get_solute_job(job)
-    keys_for_files_to_copy = ["solute_gro", "solute_top", "solute_itp"]
-    project.operation_to_workflow[func_name()] = solute_gen_name
-    import_job_from_other_flow(job, solute_gen_project, solute_job, keys_for_files_to_copy)
+    job = lowest_depth_job(jobs)
+    with job:
+        logger.info(f"Generating solute for {job.id} @ SoluteInBilayerUmbrellaFlow")
+        solute_job: Job = get_solute_job(job)
+        keys_for_files_to_copy = ["solute_gro", "solute_top", "solute_itp"]
+        project.operation_to_workflow[func_name()] = solute_gen_name
+        import_job_from_other_flow(job, solute_gen_project, solute_job, keys_for_files_to_copy)
+
+    for other_job in [j for j in jobs if j != job]:
+        with other_job:
+            logger.info(f"Importing data to job {other_job.id}")
+            import_job_from_other_flow(
+                other_job, solute_gen_project, solute_job, keys_for_files_to_copy, run_child_job=False
+            )
 
 
-@SoluteInBilayerUmbrellaFlow.pre(solute_generated, tag="solute_generated")
-@SoluteInBilayerUmbrellaFlow.post(solute_translated, tag="solute_translated")
+@SoluteInBilayerUmbrellaFlow.pre(solute_generated_all, tag="solute_generated")
+@SoluteInBilayerUmbrellaFlow.post(solute_translated_all, tag="solute_translated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
-@SoluteInBilayerUmbrellaFlow.operation(with_job=True)
-def translate_solute(job: Job):
+@SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
+def translate_solute(*jobs):
     """
     Translates the solute to the center of mass (COM) of the bilayer.
 
@@ -208,22 +232,29 @@ def translate_solute(job: Job):
         None: This function does not return a value but updates the job document with the path to the translated
               solute GRO file, marking the solute translation step as complete.
     """
-    solute_gro = job.doc[solute_gen_name].get("solute_gro")
-    solute_translated_gro = SoluteInBilayerUmbrellaFlow.get_state_name("solute_translated", "gro")
-    job.doc[project_name]["solute_translated_gro"] = solute_translated_gro
-    com_solute = calculate_average_com(solute_gro, [])
-    logger.debug(f"solute COM: {com_solute}")
-    diff_solute_com = -com_solute
-    logger.info(f"Translating the solute COM by {diff_solute_com}")
-    translate_gro_by_vector(solute_gro, solute_translated_gro, diff_solute_com)
-    project.operation_to_workflow[func_name()] = project_name
+    job = lowest_depth_job(jobs)
+    with job:
+        solute_gro = job.doc[solute_gen_name].get("solute_gro")
+        solute_translated_gro = SoluteInBilayerUmbrellaFlow.get_state_name("solute_translated", "gro")
+        job.doc[project_name]["solute_translated_gro"] = solute_translated_gro
+        com_solute = calculate_average_com(solute_gro, [])
+        logger.debug(f"solute COM: {com_solute}")
+        diff_solute_com = -com_solute
+        logger.info(f"Translating the solute COM by {diff_solute_com}")
+        translate_gro_by_vector(solute_gro, solute_translated_gro, diff_solute_com)
+        project.operation_to_workflow[func_name()] = project_name
+
+    for other_job in [j for j in jobs if j != job]:
+        with other_job:
+            other_job.doc[project_name]["solute_translated_gro"] = solute_translated_gro
+            translate_gro_by_vector(solute_gro, solute_translated_gro, diff_solute_com)
 
 
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
-@SoluteInBilayerUmbrellaFlow.post(bilayer_generated, tag="bilayer_generated")
+@SoluteInBilayerUmbrellaFlow.post(bilayer_generated_all, tag="bilayer_generated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
-@SoluteInBilayerUmbrellaFlow.operation(with_job=True)
-def generate_bilayer(job):
+@SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
+def generate_bilayer(*jobs):
     """
     Generates the lipid bilayer structure for the molecular dynamics simulation.
 
@@ -247,14 +278,24 @@ def generate_bilayer(job):
         None: This function does not return a value but updates the job document with the paths to
               the bilayer's GRO and TOP files, marking the bilayer generation step as complete.
     """
-    solvent_job: Job = get_solvent_job(job)
-    keys_for_files_to_copy = ["bilayer_gro", "bilayer_top"]
-    project.operation_to_workflow[func_name()] = bilayer_gen_name
-    import_job_from_other_flow(job, bilayer_gen_project, solvent_job, keys_for_files_to_copy)
-    lipid_names = job.doc[bilayer_gen_name].get("lipid_names")
-    com_bilayer = calculate_average_com(job.doc[bilayer_gen_name].get("bilayer_gro"), lipid_names)
-    logger.info(f"bilayer COM: {com_bilayer}")
-    job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
+    job = lowest_depth_job(jobs)
+    with job:
+        solvent_job: Job = get_solvent_job(job)
+        keys_for_files_to_copy = ["bilayer_gro", "bilayer_top"]
+        project.operation_to_workflow[func_name()] = bilayer_gen_name
+        import_job_from_other_flow(job, bilayer_gen_project, solvent_job, keys_for_files_to_copy)
+        lipid_names = job.doc[bilayer_gen_name].get("lipid_names")
+        com_bilayer = calculate_average_com(job.doc[bilayer_gen_name].get("bilayer_gro"), lipid_names)
+        logger.info(f"bilayer COM: {com_bilayer}")
+        job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
+
+    for other_job in [j for j in jobs if j != job]:
+        with other_job:
+            logger.info(f"Importing data to job {other_job.id}")
+            import_job_from_other_flow(
+                other_job, bilayer_gen_project, solvent_job, keys_for_files_to_copy, run_child_job=False
+            )
+            other_job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
 
 
 @SoluteInBilayerUmbrellaFlow.pre(solute_translated, tag="solute_translated")

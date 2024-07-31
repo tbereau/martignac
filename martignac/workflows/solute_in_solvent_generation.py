@@ -217,6 +217,8 @@ def minimize(job):
     solvent_top = Topology.parse_top_file(job.doc[solvent_gen_name]["solvent_top"])
     solute_solvent_top = Topology.parse_top_file(SoluteInSolventGenFlow.get_state_name(extension="top"))
     new_top = append_all_includes_to_top(solute_solvent_top, [solvent_top, solute_top])
+    new_top.system = f"{job.sp['solute_name']} in {job.sp['solvent_name']}"
+    logger.info(f"setting topology system name to {new_top.system}")
     new_top.output_top(SoluteInSolventGenFlow.get_state_name(extension="top"))
     job.doc[project_name]["solute_solvent_top"] = SoluteInSolventGenFlow.get_state_name(extension="top")
     return gromacs_simulation_command(

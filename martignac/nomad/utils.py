@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+from functools import wraps
 from typing import Any
 
 import requests
@@ -13,6 +15,32 @@ NOMAD_PASSWORD = environ("NOMAD_PASSWORD")
 NOMAD_PROD_URL = "https://nomad-lab.eu/prod/v1/api/v1"
 NOMAD_TEST_URL = "https://nomad-lab.eu/prod/v1/test/api/v1"
 TIMEOUT_IN_SEC = 60
+NOMAD_SLEEP_INTERVAL_IN_SECONDS = 1
+
+
+def rate_limiter(min_interval):
+    """
+    A decorator to enforce a minimum time interval between calls to the decorated function.
+
+    Parameters:
+        min_interval (float): Minimum time interval between consecutive calls in seconds.
+    """
+
+    def decorator(func):
+        last_call = [0]  # Use a mutable object to keep track of the last call time
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            elapsed = time.time() - last_call[0]
+            if elapsed < min_interval:
+                time.sleep(min_interval - elapsed)
+            result = func(*args, **kwargs)
+            last_call[0] = time.time()
+            return result
+
+        return wrapper
+
+    return decorator
 
 
 @ttl_cache(maxsize=128, ttl=180)
@@ -53,6 +81,7 @@ def get_authentication_token(
     return response.json().get("access_token")
 
 
+@rate_limiter(min_interval=NOMAD_SLEEP_INTERVAL_IN_SECONDS)
 def get_nomad_request(
     section: str,
     use_prod: bool = False,
@@ -119,6 +148,7 @@ def get_nomad_base_url(use_prod: bool) -> str:
     return (NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL).removesuffix("/api/v1")
 
 
+@rate_limiter(min_interval=NOMAD_SLEEP_INTERVAL_IN_SECONDS)
 def post_nomad_request(
     section: str,
     headers: dict = None,
@@ -171,6 +201,7 @@ def post_nomad_request(
     return response.json()
 
 
+@rate_limiter(min_interval=NOMAD_SLEEP_INTERVAL_IN_SECONDS)
 def delete_nomad_request(
     section: str,
     headers: dict = None,

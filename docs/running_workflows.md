@@ -56,6 +56,7 @@ for solvent_name in ["HD"]:
 specify the solute and solvent chemistry
 
 ``` python
+import itertools
 import signac
 
 from martignac.workflows.solute_in_solvent_generation import SoluteInSolventGenFlow
@@ -65,7 +66,9 @@ project = signac.init_project(path=SoluteInSolventGenFlow.workspace_path)
 solvent_names = ["HD"]
 solute_names = ["P6"]
 
-for solute_name, solvent_name in zip(solute_names, solvent_names):
+pairs = list(itertools.product(solute_names, solvent_names))
+
+for solute_name, solvent_name in pairs:
     sp = {"type": "solute_solvation", "solvent_name": solvent_name, "solute_name": solute_name}
     job = project.open_job(sp).init()
 ```
@@ -76,7 +79,6 @@ specify the solute and solvent chemistry, and the lambda states for the alchemic
 
 ``` python
 import itertools
-
 import signac
 
 from martignac.workflows.solute_in_solvent_alchemical import SoluteInSolventAlchemicalFlow

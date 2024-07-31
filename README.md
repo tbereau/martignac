@@ -101,4 +101,9 @@ python project.py run
 
 The results can be found in your output `workspace/` directory.
 
----
+## Documentation
+
+To generate the documentation, run the command:
+```bash
+mkdocs serve
+```

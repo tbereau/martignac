@@ -3,7 +3,7 @@ integrator               = md
 tinit                    = 0
 dt                       = 0.020
 
-nsteps               = 5000
+nsteps               = 500000
 
 ; We remove center of mass motion.  In periodic boundary conditions, the center of mass motion is spurious; the periodic system is the same in all translational directions.
 comm-mode                = Linear
@@ -58,7 +58,8 @@ init-lambda-state        = sedstate
 
 ; What are the values of lambda at the intermediate states?
 ;------- 
-vdw-lambdas              = 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
+vdw-lambdas              = sedvdwlambdas
+coul-lambdas             = sedcoullambdas
 
 ; This makes sure we print out the differences in Hamiltonians between all states, and not just the neighboring states
 ;--------

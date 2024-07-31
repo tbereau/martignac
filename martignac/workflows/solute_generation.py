@@ -115,6 +115,7 @@ def build(job: Job) -> None:
     job.doc[project_name]["solute_itp"] = SoluteGenFlow.get_state_name("", "itp")
     job.doc[project_name]["solute_top"] = SoluteGenFlow.get_state_name("", "top")
     job.doc[project_name]["solute_name"] = molecule.name
+    job.doc[project_name]["solute_has_charged_beads"] = molecule.has_charged_beads
     return None
 
 

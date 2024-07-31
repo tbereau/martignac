@@ -59,6 +59,7 @@ df_u = (
             "state_point.depth_from_bilayer_core",
         ],
         axis=1,
+        errors="ignore",
     )
     .sort_values("state_point.solute_name")
 )

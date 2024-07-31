@@ -7,7 +7,7 @@ from flow import aggregator
 
 from martignac import config
 from martignac.nomad.workflows import build_nomad_workflow, build_nomad_workflow_with_multiple_jobs
-from martignac.utils.gromacs import gromacs_simulation_command
+from martignac.utils.gromacs import generate_lambdas, gromacs_simulation_command
 from martignac.utils.martini_flow_projects import (
     Job,
     MartiniFlowProject,
@@ -78,6 +78,15 @@ def solvent_and_solute_aggregator(jobs):
     unique_combinations = {(job.sp["solvent_name"], job.sp["solute_name"]) for job in jobs}
     for solvent, solute in unique_combinations:
         yield [job for job in jobs if job.sp.solvent_name == solvent and job.sp.solute_name == solute]
+
+
+def get_num_lambda_points(jobs):
+    solute_name, solvent_name = jobs[0].sp["solute_name"], jobs[0].sp["solvent_name"]
+    num_lambda_points = 0
+    for job in jobs:
+        if job.sp["solute_name"] == solute_name or job.sp["solvent_name"] == solvent_name:
+            num_lambda_points += 1
+    return num_lambda_points
 
 
 def job_system_keys(job) -> [str, str]:
@@ -153,6 +162,7 @@ def prepare_system(*jobs):
     solvation_keys = ["solute_solvent_gro", "solute_solvent_top"]
     project.operation_to_workflow[func_name()] = solute_solvation_project.class_name()
     import_job_from_other_flow(job, solute_solvation_project, solvation_job, solvation_keys)
+    num_lambda_points = get_num_lambda_points(jobs)
 
     for other_job in [j for j in jobs if j != job]:
         logger.info(f"Importing data to job {other_job.id} @ AlchemicalTransformationFlow")
@@ -164,6 +174,7 @@ def prepare_system(*jobs):
 
     for job in jobs:
         job.doc = update_nested_dict(job.doc, {project_name: {"system_prepared": True}})
+        job.doc[project_name]["num_lambda_points"] = num_lambda_points
 
 
 @SoluteInSolventAlchemicalFlow.label
@@ -227,10 +238,17 @@ def production(job):
         str: The command executed for the production phase, primarily for logging or debugging purposes. This includes
              the path to the modified MDP file, the output XVG file for the lambda state, and the log file.
     """
+    solute_has_charged_beads = job.doc[solute_gen_project.class_name()].get("solute_has_charged_beads")
+    num_lambda_points = job.doc[project_name]["num_lambda_points"]
+    vdw_lambdas, coul_lambdas = generate_lambdas(num_lambda_points, turn_off_coulomb=not solute_has_charged_beads)
+    vdw_lambda_str = " ".join(map(str, vdw_lambdas))
+    coul_lambda_str = " ".join(map(str, coul_lambdas))
     lambda_state = str(job.sp.lambda_state)
     lambda_mdp = f"{SoluteInSolventAlchemicalFlow.get_system_run_name(job.sp.lambda_state)}.mdp"
     sub_template_mdp(SoluteInSolventAlchemicalFlow.mdp_files.get("production"), "sedstate", lambda_state, lambda_mdp)
     sub_template_mdp(lambda_mdp, "sedmolecule", job.sp["solute_name"], lambda_mdp)
+    sub_template_mdp(lambda_mdp, "sedvdwlambdas", vdw_lambda_str, lambda_mdp)
+    sub_template_mdp(lambda_mdp, "sedcoullambdas", coul_lambda_str, lambda_mdp)
     job.doc[project_name]["alchemical_xvg"] = f"{SoluteInSolventAlchemicalFlow.get_system_run_name(lambda_state)}.xvg"
     job.doc[project_name]["alchemical_log"] = f"{SoluteInSolventAlchemicalFlow.get_system_run_name(lambda_state)}.log"
     return gromacs_simulation_command(

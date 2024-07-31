@@ -1,4 +1,5 @@
 import logging
+import re
 from contextlib import suppress
 from dataclasses import dataclass
 from random import uniform
@@ -60,6 +61,10 @@ class Atom:
         return Atom(
             int(entry[0]), str(entry[1]), int(entry[2]), str(entry[3]), str(entry[4]), int(entry[5]), int(entry[6])
         )
+
+    @property
+    def is_charged(self) -> bool:
+        return self.charge != 0
 
 
 @dataclass
@@ -186,6 +191,10 @@ class Molecule:
     def num_atoms(self) -> int:
         return len(self.atoms)
 
+    @property
+    def has_charged_beads(self) -> bool:
+        return any(atom.is_charged for atom in self.atoms)
+
     def generate_coordinates(self, jitter: float = 0.1) -> np.ndarray:
         coordinates = np.array([[0.0, 0.0, 0.0] for _ in range(self.num_atoms)])
         placed_atoms = set()
@@ -245,7 +254,23 @@ def parse_molecules_from_itp(itp_filename: str) -> list[Molecule]:
         list[Molecule]: A list of Molecule instances representing each molecule found in the .itp file.
     """
     with open(itp_filename) as f:
-        lines = f.readlines()
+        content = f.read()
+
+    # Pattern to find and process conditional compilation blocks
+    conditional_block_pattern = re.compile(
+        r"#ifdef FLEXIBLE\s*\[bonds\]\s*(.*?)#else\s*\[constraints\]\s*(.*?)#endif", re.DOTALL
+    )
+
+    # Function to keep the 'bonds' part and discard the 'constraints' part
+    def choose_bonds_over_constraints(match):
+        bonds_part = match.group(1)  # The 'bonds' section of the match
+        return f"[bonds]{bonds_part}"
+
+    # Replace the matched sections with only the 'bonds' part
+    modified_content = re.sub(conditional_block_pattern, choose_bonds_over_constraints, content)
+
+    # Split the modified content into lines for further processing
+    lines = modified_content.splitlines()
 
     molecules = []
     molecule_data = {}

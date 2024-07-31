@@ -58,6 +58,7 @@ df_u = (
             "state_point.lambda_state",
         ],
         axis=1,
+        errors="ignore",
     )
     .sort_values("state_point.lipids")
 )

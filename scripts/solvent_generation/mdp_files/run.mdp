@@ -10,10 +10,10 @@ nstcomm                  = 10
 nstxout                  = 0
 nstvout                  = 0
 nstfout                  = 0
-nstlog                   = 10000
-nstenergy                = 10000
+nstlog                   = 1000
+nstenergy                = 1000
 nstcalcenergy            = 10
-nstxtcout                = 10000
+nstxtcout                = 1000
 
 cutoff-scheme            = Verlet
 nstlist                  = 20

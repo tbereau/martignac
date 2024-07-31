@@ -136,3 +136,38 @@ def gromacs_simulation_command(
     if verbose:
         mdrun_cmd += " -v"
     return f"{grompp_cmd} && {mdrun_cmd}"
+
+
+def generate_lambdas(num_sim: int, turn_off_coulomb: bool = False):
+    """
+    Generates van der Waals and Coulomb lambda schedules for Gromacs alchemical transformations.
+
+    Parameters:
+    - num_sim (int): Number of state points.
+    - turn_off_coulomb (bool): If True, Coulomb interactions are turned off and the schedule is dedicated to vdw.
+
+    Returns:
+    - Tuple[List[float], List[float]]: Lambda schedules for van der Waals and Coulomb interactions.
+    """
+    if num_sim < 2:
+        raise ValueError("Number of state points must be at least 2.")
+
+    # Adjust the calculation for vdw_points to ensure a linear increase
+    vdw_points = num_sim if turn_off_coulomb else (num_sim + 1) // 2
+
+    # Generate linearly increasing lambda values for vdw
+    vdw_lambdas = [i / (vdw_points - 1) for i in range(vdw_points)]
+
+    if turn_off_coulomb:
+        coul_lambdas = [0.0] * num_sim
+    else:
+        # Adjust the lambda values for Coulomb, starting from 0 after vdw is fully coupled
+        coul_lambdas = [0.0] * (vdw_points - 1) + [
+            (i - (vdw_points - 1)) / (num_sim - vdw_points) for i in range(vdw_points - 1, num_sim)
+        ]
+
+    # Ensure lambdas list length is num_sim for vdw_lambdas when turn_off_coulomb is False
+    if not turn_off_coulomb:
+        vdw_lambdas += [1.0] * (num_sim - vdw_points)
+
+    return vdw_lambdas, coul_lambdas

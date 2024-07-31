@@ -3,15 +3,11 @@ nomad:
   publish_uploads: false
   use_prod: false
   dataset:
-    id: "HJdEI1q4SV-c5Di43BTT_Q"
-  coauthors:
-    - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
-    - "173d8320-c897-44c4-92d7-fe2fb1a2c5bd" # Bernadette Mohr
-    - "39e50f2e-1eca-444e-8716-bfbb7907080b" # Jose Pizarro Blanco
+    id: ""
 
 local:
   workspaces:
-    absolute_path: "/Users/bereau/work/projects/martignac/workspaces"
+    absolute_path: "/Users/bereau/work/projects/martignac/tests/workspaces"
   input_files:
     absolute_path: "/Users/bereau/work/projects/martignac/scripts"
     itp_files: "/Users/bereau/work/projects/martignac/scripts/martini_v300"

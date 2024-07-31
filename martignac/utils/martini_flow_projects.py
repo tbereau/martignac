@@ -10,7 +10,7 @@ from signac.job import Job
 
 from martignac import config
 from martignac.nomad.datasets import get_dataset_by_id
-from martignac.nomad.uploads import upload_files_to_nomad
+from martignac.nomad.uploads import publish_upload, upload_files_to_nomad
 from martignac.utils.misc import update_nested_dict, zip_directories
 from martignac.utils.nomad import generate_user_metadata
 
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 MartiniTypeFlow = TypeVar("MartiniTypeFlow", bound="MartiniFlowProject")
 UPLOAD_TO_NOMAD: bool = config()["nomad"]["upload_to_nomad"].get(bool)
+PUBLISH_TO_NOMAD: bool = config()["nomad"]["publish_uploads"].get(bool)
 
 
 class MartiniFlowProject(FlowProject):
@@ -108,8 +109,10 @@ class MartiniFlowProject(FlowProject):
         }
 
     @classmethod
-    def upload_to_nomad(cls, job: Job) -> None:
-        if not UPLOAD_TO_NOMAD:
+    def upload_to_nomad(
+        cls, job: Job, nomad_upload_flag: bool = UPLOAD_TO_NOMAD, publish_flag: bool = PUBLISH_TO_NOMAD
+    ) -> None:
+        if not nomad_upload_flag:
             logger.info("NOMAD upload turned off")
             return None
         if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
@@ -128,11 +131,17 @@ class MartiniFlowProject(FlowProject):
         job.doc = update_nested_dict(
             job.doc, {"nomad_dataset_id": dataset.dataset_id, cls.class_name(): {"nomad_upload_id": upload_id}}
         )
+        if publish_flag:
+            publish_upload(upload_id, cls.nomad_use_prod_database)
+            logger.info(f"Published upload {upload_id}")
         os.remove(zip_file)
+        return None
 
     @classmethod
-    def upload_to_nomad_multiple_jobs(cls, jobs: list[Job]) -> None:
-        if not UPLOAD_TO_NOMAD:
+    def upload_to_nomad_multiple_jobs(
+        cls, jobs: list[Job], nomad_upload_flag: bool = UPLOAD_TO_NOMAD, publish_flag: bool = PUBLISH_TO_NOMAD
+    ) -> None:
+        if not nomad_upload_flag:
             logger.info("NOMAD upload turned off")
             return None
         dataset = get_dataset_by_id(cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database)
@@ -154,6 +163,10 @@ class MartiniFlowProject(FlowProject):
             job.doc = update_nested_dict(
                 job.doc, {"nomad_dataset_id": dataset.dataset_id, cls.class_name(): {"nomad_upload_id": upload_id}}
             )
+        if publish_flag:
+            publish_upload(upload_id, cls.nomad_use_prod_database)
+            logger.info(f"Published upload {upload_id}")
+        return None
 
     @classmethod
     def unlink_itp_and_mdp_files(cls, job: Job) -> None:
@@ -365,7 +378,7 @@ def is_ready_for_upload(job: Job) -> bool:
 @MartiniFlowProject.label
 def uploaded_to_nomad(job: Job) -> bool:
     project_name = cast("MartiniFlowProject", job.project).class_name()
-    return job.doc[project_name].get("nomad_upload_id", False)
+    return project_name in job.doc and job.doc[project_name].get("nomad_upload_id", False)
 
 
 @MartiniFlowProject.label

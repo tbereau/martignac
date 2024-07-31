@@ -6,12 +6,9 @@ from martignac.workflows.solute_in_solvent_alchemical import SoluteInSolventAlch
 
 project = signac.init_project(path=SoluteInSolventAlchemicalFlow.workspace_path)
 
-solvent_names = [
-    # "W",
-    "OCO"
-]
-solute_names = ["P6"]
-lambda_states = range(2)  # 11
+solvent_names = ["HD", "OCO", "CLF", "ETH", "BENZ", "CHEX", "W"]
+solute_names = ["P6", "Q1", "D", "N3a"]
+lambda_states = range(11)  # 11
 
 triplets = list(itertools.product(solvent_names, solute_names, lambda_states))
 

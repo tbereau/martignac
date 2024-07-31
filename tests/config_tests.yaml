@@ -3,7 +3,7 @@ nomad:
   publish_uploads: false
   use_prod: false
   dataset:
-    id: ""
+    id: "HJdEI1q4SV-c5Di43BTT_Q"
 
 local:
   workspaces:

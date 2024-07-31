@@ -57,3 +57,9 @@ def test_send_solute_gen_workspace_to_nomad(conf, global_state, solute_gen_works
     nomad_upload = get_upload_by_id(upload_id, use_prod=SoluteGenFlow.nomad_use_prod_database)
     assert nomad_upload is not None
     delete_upload(upload_id, use_prod=SoluteGenFlow.nomad_use_prod_database)
+
+
+@pytest.mark.order("last")
+def test_cleanup_solute_gen_workspace(conf, solute_gen_workspace_path):
+    shutil.rmtree(solute_gen_workspace_path)
+    assert not os.path.exists(solute_gen_workspace_path)

@@ -18,7 +18,7 @@ from martignac.utils.martini_flow_projects import (
     store_gromacs_log_to_doc_with_depth_from_bilayer_core,
     store_task,
     store_task_for_many_jobs,
-    store_workflow,
+    store_workflow_for_many_jobs,
     system_equilibrated,
     system_generated,
     system_minimized,
@@ -33,7 +33,7 @@ from martignac.utils.misc import (
     update_nested_dict,
 )
 from martignac.utils.packmol import place_solute_in_solvent_with_packmol
-from martignac.workflows.bilayer_generation import BilayerGenFlow, get_solvent_job
+from martignac.workflows.bilayer_generation import BilayerGenFlow, get_solvent_job, lipid_names
 from martignac.workflows.solute_generation import SoluteGenFlow, get_solute_job
 
 logger = logging.getLogger(__name__)
@@ -170,7 +170,7 @@ def bilayer_depth_sampled(job) -> bool:
 
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
 @SoluteInBilayerUmbrellaFlow.post(solute_generated_all, tag="solute_generated")
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
 @SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
 def generate_solute(*jobs):
     """
@@ -212,7 +212,7 @@ def generate_solute(*jobs):
 
 @SoluteInBilayerUmbrellaFlow.pre(solute_generated_all, tag="solute_generated")
 @SoluteInBilayerUmbrellaFlow.post(solute_translated_all, tag="solute_translated")
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
 @SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
 def translate_solute(*jobs):
     """
@@ -252,7 +252,7 @@ def translate_solute(*jobs):
 
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
 @SoluteInBilayerUmbrellaFlow.post(bilayer_generated_all, tag="bilayer_generated")
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
 @SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
 def generate_bilayer(*jobs):
     """
@@ -457,7 +457,8 @@ def equilibrate(job):
     depth_mdp = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.mdp"
     sub_template_mdp(SoluteInBilayerUmbrellaFlow.mdp_files.get("equilibrate"), "sedstate", depth_state, depth_mdp)
     sub_template_mdp(depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp)
-    sub_template_mdp(depth_mdp, "sedlipid", job.sp["lipids"][0]["name"], depth_mdp)
+    lipids = " ".join(lipid_names(job))
+    sub_template_mdp(depth_mdp, "sedlipid", lipids, depth_mdp)
     return gromacs_simulation_command(
         mdp=depth_mdp,
         top=SoluteInBilayerUmbrellaFlow.get_state_name(extension="top"),
@@ -498,7 +499,8 @@ def production(job):
     depth_mdp = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.mdp"
     sub_template_mdp(SoluteInBilayerUmbrellaFlow.mdp_files.get("production"), "sedstate", depth_state, depth_mdp)
     sub_template_mdp(depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp)
-    sub_template_mdp(depth_mdp, "sedlipid", job.sp["lipids"][0]["name"], depth_mdp)
+    lipids = " ".join(lipid_names(job))
+    sub_template_mdp(depth_mdp, "sedlipid", lipids, depth_mdp)
     job.doc[project_name][
         "umbrella_pullf_xvg"
     ] = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}_pullf.xvg"

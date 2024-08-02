@@ -113,13 +113,15 @@ from martignac.workflows.bilayer_generation import BilayerGenFlow
 
 project = signac.init_project(path=BilayerGenFlow.workspace_path)
 
-for lipid_name in [LiquidMixture([LiquidComponent("POPC", 1.0)])]:
+for lipid_name in [LiquidMixture([LiquidComponent("M3.POPC", 1.0)])]:
     sp = {
         "type": "bilayer",
         "lipids": [{"name": c.name, "fraction": c.fraction} for c in lipid_name.components],
     }
     job = project.open_job(sp).init()
 ```
+
+the "M3.POPC" follows the INSANE convention of specifying the Martini force field (version 3, here).
 
 ### Solute-in-bilayer umbrella
 
@@ -136,7 +138,7 @@ from martignac.workflows.solute_in_bilayer_umbrella import SoluteInBilayerUmbrel
 
 project = signac.init_project(path=SoluteInBilayerUmbrellaFlow.workspace_path)
 
-lipids = [LiquidMixture([LiquidComponent("POPC", 1.0)])]
+lipids = [LiquidMixture([LiquidComponent("M3.POPC", 1.0)])]
 lipid_names = []
 for lipid in lipids:
     lipid_names.append([{"name": c.name, "fraction": c.fraction} for c in lipid.components])

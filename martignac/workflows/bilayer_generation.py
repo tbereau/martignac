@@ -66,7 +66,9 @@ project_name = BilayerGenFlow.class_name()
 
 
 def lipid_names(job) -> list[str]:
-    return [lip.get("name") for lip in job.sp.get("lipids")]
+    return [
+        lip.get("name").removeprefix("M3.").removeprefix("M2.").removeprefix("M2o.") for lip in job.sp.get("lipids")
+    ]
 
 
 @BilayerGenFlow.pre(fetched_from_nomad)

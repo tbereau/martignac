@@ -1,9 +1,9 @@
-integrator               = md
+integrator               = sd
 ; start time and timestep in ps = 
 tinit                    = 0
 dt                       = 0.020
 
-nsteps               = 20000
+nsteps               = 50000
 
 ; We remove center of mass motion.  In periodic boundary conditions, the center of mass motion is spurious; the periodic system is the same in all translational directions.
 comm-mode                = Linear

@@ -27,14 +27,6 @@ pip install -e .
 
 ## Martignac dependencies installation 
 
-Update `requirements.txt` from `pyproject.toml` with piptools, and then install dependencies with pip:
-
-```bash
-pip install pip-tools
-python -m piptools compile -o requirements.txt pyproject.toml
-pip install -r requirements.txt
-```
-
 For development:
 
 ```bash
@@ -46,7 +38,7 @@ If you don't already have Gromacs installed, you can quickly install with conda 
 ```bash
 conda config --add channels bioconda
 conda install conda install ocl-icd-system==1.0.0
-conda install gromacs==2018.6
+conda install gromacs==2023.1
 ```
 
 alternatively, to install `conda`:

@@ -72,8 +72,3 @@ source = ["martignac"]
 [tool.isort]
 # https://pycqa.github.io/isort/docs/configuration/black_compatibility/
 profile = "black"
-
-[project]
-dependencies = [
-    "mkdocstrings[python]>=0.18",
-]

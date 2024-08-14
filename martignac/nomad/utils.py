@@ -7,6 +7,7 @@ from typing import Any
 import requests
 from cachetools.func import ttl_cache
 from decouple import config as environ
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ NOMAD_PASSWORD = environ("NOMAD_PASSWORD")
 NOMAD_PROD_URL = "https://nomad-lab.eu/prod/v1/api/v1"
 NOMAD_TEST_URL = "https://nomad-lab.eu/prod/v1/test/api/v1"
 TIMEOUT_IN_SEC = 60
-NOMAD_SLEEP_INTERVAL_IN_SECONDS = 1
+NOMAD_SLEEP_INTERVAL_IN_SECONDS = 0.2
 
 
 def rate_limiter(min_interval):
@@ -241,6 +242,37 @@ def delete_nomad_request(
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending delete request @ {url}")
     response = requests.delete(url, headers=headers, timeout=timeout_in_sec)
+    if not response.status_code == 200:
+        raise ValueError(f"Unexpected response {response.json()}")
+    return response.json()
+
+
+@rate_limiter(min_interval=NOMAD_SLEEP_INTERVAL_IN_SECONDS)
+def put_nomad_request(
+    section: str,
+    file: str,
+    remote_path_to_file: str,
+    headers: dict = None,
+    use_prod: bool = False,
+    timeout_in_sec: int = TIMEOUT_IN_SEC,
+    with_authentication: bool = False,
+):
+    if headers is None:
+        headers = {}
+    with open(file, "rb") as f:
+        mp_encoder = MultipartEncoder(fields={"file": (remote_path_to_file, f, "application/json")})
+
+    if with_authentication:
+        token = get_authentication_token(use_prod=use_prod)
+        headers |= {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "Content-Type": mp_encoder.content_type,
+        }
+    url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
+    url += f"{'/' if section[0] != '/' else ''}{section}"
+    logger.info(f"Sending put request @ {url}")
+    response = requests.put(url, headers=headers, data=mp_encoder, timeout=timeout_in_sec)
     if not response.status_code == 200:
         raise ValueError(f"Unexpected response {response.json()}")
     return response.json()

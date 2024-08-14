@@ -79,6 +79,8 @@ def run_gmx_wham(
     output_bsprof: str,
     num_boostrap: int = 100,
     unit: str = "kT",
+    z_min: float = 0.0,
+    z_max: float = 5.0,
 ) -> str:
     """
     Generates a command to perform Weighted Histogram Analysis Method (WHAM) analysis using GROMACS.
@@ -104,6 +106,7 @@ def run_gmx_wham(
     cmd = (
         f"gmx wham -it {tpr_files} -if {pullf_files} -o {output_profile} "
         f"-hist {output_hist} -bsres {output_bstrap} -bsprof {output_bsprof} "
+        f"-min {z_min} -max {z_max} -zprof0 {z_max} "
         f"-nBootstrap {num_boostrap} -unit {unit}"
     )
     return cmd

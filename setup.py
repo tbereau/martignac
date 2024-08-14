@@ -42,6 +42,7 @@ requirements = [
     "mkdocs",
     "mkdocs-material",
     "mkdocstrings[python]",
+    "requests_toolbelt",
 ]
 
 setup(

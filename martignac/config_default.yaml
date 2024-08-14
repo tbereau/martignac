@@ -1,13 +1,11 @@
 nomad:
-  upload_to_nomad: false
+  upload_to_nomad: true
   publish_uploads: false
   use_prod: false
   dataset:
     id: "HJdEI1q4SV-c5Di43BTT_Q"
   coauthors:
     - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
-    - "173d8320-c897-44c4-92d7-fe2fb1a2c5bd" # Bernadette Mohr
-    - "39e50f2e-1eca-444e-8716-bfbb7907080b" # Jose Pizarro Blanco
 
 local:
   workspaces:
@@ -64,10 +62,10 @@ solvent_generation:
       equilibrate: "equilibrate"
       production: "production"
 
-solute_in_solvent:
+solute_in_solvent_generation:
   relative_paths:
-    workspaces: "solute_in_solvent"
-    mdp_files: "solute_in_solvent/mdp_files"
+    workspaces: "solute_in_solvent_generation"
+    mdp_files: "solute_in_solvent_generation/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
     solvents: "martini_v3.0.0_solvents_v1.itp"
@@ -79,17 +77,17 @@ solute_in_solvent:
     equilibrate: "equ.mdp"
   output_names:
     system: "solute_in_solvent"
-    nomad_workflow: "solute_in_solvent.archive.yaml"
-    nomad_top_level_workflow: "full_workflow.solute_in_solvent.archive.yaml"
+    nomad_workflow: "solute_in_solvent_generation.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_solvent_generation.archive.yaml"
     states:
       generate: "gen"
       minimize: "min"
       equilibrate: "equ"
 
-alchemical_transformation:
+solute_in_solvent_alchemical:
   relative_paths:
-    workspaces: "alchemical_transformation"
-    mdp_files: "alchemical_transformation/mdp_files"
+    workspaces: "solute_in_solvent_alchemical"
+    mdp_files: "solute_in_solvent_alchemical/mdp_files"
   itp_files:
     particle_definition: "martini_v3.0.0.itp"
     solvents: "martini_v3.0.0_solvents_v1.itp"
@@ -100,9 +98,9 @@ alchemical_transformation:
   mdp_files:
     production: "run_lambda.mdp"
   output_names:
-    system: "alchemical_transformation"
-    nomad_workflow: "alchemical_transformation.archive.yaml"
-    nomad_top_level_workflow: "full_workflow.alchemical_transformation.archive.yaml"
+    system: "solute_in_solvent_alchemical"
+    nomad_workflow: "solute_in_solvent_alchemical.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_solvent_alchemical.archive.yaml"
     states:
       production: "production"
 

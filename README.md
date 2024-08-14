@@ -99,3 +99,6 @@ To generate the documentation, run the command:
 ```bash
 mkdocs serve
 ```
+
+for a general NOMAD API documentation, see https://nomad-lab.eu/prod/v1/api/v1/extensions/docs
+

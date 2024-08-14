@@ -6,15 +6,14 @@ from flow import aggregator
 from MDAnalysis import Universe
 
 from martignac import config
-from martignac.nomad.workflows import Job, build_nomad_workflow
+from martignac.nomad.workflows import Job, build_nomad_workflow, build_nomad_workflow_with_multiple_jobs
 from martignac.parsers.gromacs_topologies import combine_multiple_topology_files
 from martignac.utils.gromacs import gromacs_simulation_command, run_gmx_wham
 from martignac.utils.martini_flow_projects import (
     MartiniFlowProject,
     fetched_from_nomad,
-    flag_ready_for_upload,
+    flag_ready_for_upload_multiple_jobs,
     import_job_from_other_flow,
-    is_ready_for_upload,
     store_gromacs_log_to_doc_with_depth_from_bilayer_core,
     store_task,
     store_task_for_many_jobs,
@@ -113,6 +112,10 @@ def lowest_depth_job(jobs) -> Job:
     return min(jobs, key=lambda j: j.sp.depth_from_bilayer_core)
 
 
+def highest_depth_job(jobs) -> Job:
+    return max(jobs, key=lambda j: j.sp.depth_from_bilayer_core)
+
+
 @SoluteInBilayerUmbrellaFlow.label
 def solute_generated(job) -> bool:
     return (
@@ -165,6 +168,21 @@ def topology_updated(job) -> bool:
 def bilayer_depth_sampled(job) -> bool:
     return job.doc.get(project_name, False) and job.isfile(
         job.fn(job.doc[project_name].get("umbrella_pullx_xvg", default=""))
+    )
+
+
+@SoluteInBilayerUmbrellaFlow.label
+def any_uploaded_to_nomad(*jobs) -> bool:
+    return any(uploaded_to_nomad(job) for job in jobs)
+
+
+@SoluteInBilayerUmbrellaFlow.label
+def nomad_workflow_built(*jobs) -> bool:
+    return all(
+        [
+            any(job.isfile(SoluteInBilayerUmbrellaFlow.nomad_workflow) for job in jobs),
+            any(job.isfile(SoluteInBilayerUmbrellaFlow.nomad_top_level_workflow) for job in jobs),
+        ]
     )
 
 
@@ -598,6 +616,8 @@ def compute_wham(*jobs):
                     job.fn(wham_hist_xvg),
                     job.fn(wham_bstrap_xvg),
                     job.fn(wham_bsprof_xvg),
+                    z_min=lowest_depth_job(jobs).sp.depth_from_bilayer_core,
+                    z_max=highest_depth_job(jobs).sp.depth_from_bilayer_core,
                 )
 
 
@@ -629,7 +649,8 @@ def analyze_wham(*jobs):
               WHAM analysis results to the job's filesystem.
     """
     for job in jobs:
-        if job == lowest_depth_job(jobs):
+        wham_job = lowest_depth_job(jobs)
+        if job == wham_job:
             xvg_profile = gromacs.fileformats.XVG(job.fn(wham_profile_xvg))
             np.save(job.fn(wham_profile), xvg_profile.array)
             xvg_hist = gromacs.fileformats.XVG(job.fn(wham_hist_xvg))
@@ -641,7 +662,7 @@ def analyze_wham(*jobs):
             {
                 project_name: {
                     "free_energy": {
-                        "job_id": job.id,
+                        "job_id": wham_job.id,
                         "profile": wham_profile,
                         "hist": wham_hist,
                         "bootstrap": wham_bstrap,
@@ -653,26 +674,29 @@ def analyze_wham(*jobs):
 
 @SoluteInBilayerUmbrellaFlow.pre(free_energy_calculated, tag="free_energy_calculated")
 @SoluteInBilayerUmbrellaFlow.post(
-    lambda job: all(
-        [
-            job.isfile(SoluteInBilayerUmbrellaFlow.nomad_workflow),
-            job.isfile(SoluteInBilayerUmbrellaFlow.nomad_top_level_workflow),
-        ]
-    ),
+    nomad_workflow_built,
     tag="generated_nomad_workflow",
 )
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(flag_ready_for_upload)
-@SoluteInBilayerUmbrellaFlow.operation(with_job=True)
-def generate_nomad_workflow(job):
-    build_nomad_workflow(job, is_top_level=False)
-    build_nomad_workflow(job, is_top_level=True)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(flag_ready_for_upload_multiple_jobs)
+@SoluteInBilayerUmbrellaFlow.operation(
+    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator, sort_by="depth_from_bilayer_core")
+)
+def generate_nomad_workflow(*jobs):
+    for job in jobs:
+        with job:
+            build_nomad_workflow(job, is_top_level=False, add_job_id=True)
+    job = lowest_depth_job(jobs)
+    with job:
+        build_nomad_workflow_with_multiple_jobs(project, list(jobs))
 
 
-@SoluteInBilayerUmbrellaFlow.pre(is_ready_for_upload, tag="generated_nomad_workflow")
-@SoluteInBilayerUmbrellaFlow.post(uploaded_to_nomad)
-@SoluteInBilayerUmbrellaFlow.operation(with_job=True)
-def upload_to_nomad(job: Job):
-    return SoluteInBilayerUmbrellaFlow.upload_to_nomad(job)
+@SoluteInBilayerUmbrellaFlow.pre(nomad_workflow_built, tag="generated_nomad_workflow")
+@SoluteInBilayerUmbrellaFlow.post(any_uploaded_to_nomad)
+@SoluteInBilayerUmbrellaFlow.operation(
+    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator, sort_by="depth_from_bilayer_core")
+)
+def upload_to_nomad(*jobs):
+    return SoluteInBilayerUmbrellaFlow.upload_to_nomad_multiple_jobs(list(jobs))
 
 
 def get_solvation_job(job: Job) -> Job:

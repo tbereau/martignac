@@ -1,7 +1,13 @@
+from os import makedirs
+from os.path import isdir
+
 import signac
 
 from martignac.liquid_models.mixtures import LiquidComponent, LiquidMixture
 from martignac.workflows.bilayer_generation import BilayerGenFlow
+
+if not isdir(BilayerGenFlow.workspace_path):
+    makedirs(BilayerGenFlow.workspace_path)
 
 project = signac.init_project(path=BilayerGenFlow.workspace_path)
 

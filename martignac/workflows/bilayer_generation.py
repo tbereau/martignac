@@ -9,6 +9,7 @@ from martignac.utils.martini_flow_projects import (
     fetched_from_nomad,
     flag_ready_for_upload,
     store_gromacs_log_to_doc,
+    store_task,
     system_equilibrated,
     system_generated,
     system_minimized,
@@ -73,6 +74,7 @@ def lipid_names(job) -> list[str]:
 
 @BilayerGenFlow.pre(fetched_from_nomad)
 @BilayerGenFlow.post(system_generated, tag="system_generated")
+@BilayerGenFlow.operation_hooks.on_success(store_task)
 @BilayerGenFlow.operation(cmd=True, with_job=True)
 def generate_initial_bilayer(job):
     """

@@ -10,7 +10,10 @@ from signac.job import Job
 
 from martignac import config
 from martignac.nomad.datasets import get_dataset_by_id
-from martignac.nomad.uploads import publish_upload, upload_files_to_nomad
+from martignac.nomad.uploads import (
+    publish_upload,
+    upload_files_to_nomad,
+)
 from martignac.utils.misc import update_nested_dict, zip_directories
 from martignac.utils.nomad import generate_user_metadata
 
@@ -126,11 +129,10 @@ class MartiniFlowProject(FlowProject):
             coauthors=cls.nomad_coauthors,
             datasets=[dataset.dataset_id],
         )
+        job.doc = update_nested_dict(job.doc, {"nomad_dataset_id": dataset.dataset_id})
         zip_file = zip_directories([job.path], job.id)
         upload_id = upload_files_to_nomad(zip_file, cls.nomad_use_prod_database)
-        job.doc = update_nested_dict(
-            job.doc, {"nomad_dataset_id": dataset.dataset_id, cls.class_name(): {"nomad_upload_id": upload_id}}
-        )
+        job.doc = update_nested_dict(job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}})
         if publish_flag:
             publish_upload(upload_id, cls.nomad_use_prod_database)
             logger.info(f"Published upload {upload_id}")
@@ -150,6 +152,7 @@ class MartiniFlowProject(FlowProject):
             if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
                 logger.info(f"Workflow {cls.class_name()} already uploaded to {upload_id}")
                 return None
+            job.doc = update_nested_dict(job.doc, {"nomad_dataset_id": dataset.dataset_id})
             generate_user_metadata(
                 file_name=job.fn("nomad.yaml"),
                 comment=json.dumps(cls.nomad_comment(job)),
@@ -160,9 +163,7 @@ class MartiniFlowProject(FlowProject):
         upload_id = upload_files_to_nomad(zip_file, cls.nomad_use_prod_database)
         os.remove(zip_file)
         for job in jobs:
-            job.doc = update_nested_dict(
-                job.doc, {"nomad_dataset_id": dataset.dataset_id, cls.class_name(): {"nomad_upload_id": upload_id}}
-            )
+            job.doc = update_nested_dict(job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}})
         if publish_flag:
             publish_upload(upload_id, cls.nomad_use_prod_database)
             logger.info(f"Published upload {upload_id}")
@@ -367,6 +368,11 @@ def flag_ready_for_upload(_: str, job: Job):
     job.doc = update_nested_dict(job.doc, {project_name: {"ready_for_nomad_upload": True}})
 
 
+def flag_ready_for_upload_multiple_jobs(_: str, *jobs):
+    for job in jobs:
+        flag_ready_for_upload(_, job)
+
+
 @MartiniFlowProject.label
 def is_ready_for_upload(job: Job) -> bool:
     project_name = cast("MartiniFlowProject", job.project).class_name()
@@ -424,6 +430,7 @@ def fetch_from_nomad(*jobs) -> None:
 
     for job in jobs:
         logger.info(f"Attempting to fetch job {job.id} from NOMAD")
+        initialize_job_doc(job)
         result = download_raw_data_of_job(job)
         if result:
             logger.info(f"Remote data was found on NOMAD for {job.id}")
@@ -520,3 +527,15 @@ def system_equilibrated(job):
 def system_sampled(job):
     project = cast("MartiniFlowProject", job.project)
     return job.isfile(project.get_state_name("production", "gro"))
+
+
+def initialize_job_doc(job: Job) -> None:
+    project_name = cast("MartiniFlowProject", job.project).class_name()
+    job.doc[project_name]["fetched_nomad"] = False
+    job.doc[project_name]["gromacs_logs"] = {}
+    job.doc[project_name]["itp_files"] = ""
+    job.doc[project_name]["mdp_files"] = ""
+    job.doc[project_name]["nomad_upload_id"] = ""
+    job.doc[project_name]["nomad_workflow"] = ""
+    job.doc[project_name]["ready_for_nomad_upload"] = False
+    job.doc[project_name]["tasks"] = {}

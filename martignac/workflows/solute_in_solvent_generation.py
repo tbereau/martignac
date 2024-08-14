@@ -27,7 +27,7 @@ from martignac.workflows.solvent_generation import SolventGenFlow, get_solvent_j
 
 logger = logging.getLogger(__name__)
 
-conf = config()["solute_in_solvent"]
+conf = config()["solute_in_solvent_generation"]
 
 
 class SoluteInSolventGenFlow(MartiniFlowProject):

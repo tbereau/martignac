@@ -453,7 +453,7 @@ def _get_raw_data_of_entry_by_id(
 ) -> ByteString:
     logger.info(f"retrieving raw data of entry ID {entry_id} on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
-        f"/entries/{entry_id}/raw?compress=true",
+        f"/entries/{entry_id}/raw?compress=false",
         with_authentication=with_authentication,
         use_prod=use_prod,
         timeout_in_sec=timeout_in_sec,

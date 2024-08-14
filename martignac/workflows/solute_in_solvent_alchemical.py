@@ -12,6 +12,7 @@ from martignac.utils.martini_flow_projects import (
     Job,
     MartiniFlowProject,
     fetched_from_nomad,
+    flag_ready_for_upload_multiple_jobs,
     import_job_from_other_flow,
     store_gromacs_log_to_doc_with_state_point,
     store_task_for_many_jobs,
@@ -25,7 +26,7 @@ from martignac.workflows.solvent_generation import SolventGenFlow, get_solvent_j
 
 logger = logging.getLogger(__name__)
 
-conf = config()["alchemical_transformation"]
+conf = config()["solute_in_solvent_alchemical"]
 
 
 class SoluteInSolventAlchemicalFlow(MartiniFlowProject):
@@ -308,6 +309,7 @@ def compute_free_energy(*jobs):
 
 @SoluteInSolventAlchemicalFlow.pre(free_energy_already_calculated, tag="mbar")
 @SoluteInSolventAlchemicalFlow.post(nomad_workflow_built)
+@SoluteInSolventAlchemicalFlow.operation_hooks.on_success(flag_ready_for_upload_multiple_jobs)
 @SoluteInSolventAlchemicalFlow.operation(aggregator=aggregator(aggregator_function=solvent_and_solute_aggregator))
 def generate_nomad_workflow(*jobs):
     for job in jobs:

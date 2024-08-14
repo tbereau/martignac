@@ -1,13 +1,20 @@
 import datetime as dt
 import logging
-from typing import Any, Optional
+from os.path import basename
+from typing import Any, ByteString, Optional, Union
 
 from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
 from martignac.nomad.users import NomadUser, get_user_by_id
-from martignac.nomad.utils import delete_nomad_request, get_nomad_base_url, get_nomad_request, post_nomad_request
+from martignac.nomad.utils import (
+    delete_nomad_request,
+    get_nomad_base_url,
+    get_nomad_request,
+    post_nomad_request,
+    put_nomad_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +146,9 @@ def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list
     return [upload_class_schema().load({**r, "use_prod": use_prod}) for r in response["data"]]
 
 
-def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> NomadUpload:
+def get_upload_by_id(
+    upload_id: str, use_prod: bool = False, with_authentication: bool = True, timeout_in_sec: int = 10
+) -> NomadUpload:
     """
     Retrieves a specific upload by its ID from the NOMAD system.
 
@@ -151,6 +160,7 @@ def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int
         upload_id (str): The unique identifier of the upload to retrieve.
         use_prod (bool, optional): Flag indicating whether to use the production environment of the NOMAD system.
                                    Defaults to False, which means the test environment is used by default.
+        with_authentication: Flag indicating whether to include authentication headers in the request.
         timeout_in_sec (int, optional): The maximum time in seconds to wait for a response from the NOMAD system.
                                         Defaults to 10 seconds.
 
@@ -161,7 +171,7 @@ def get_upload_by_id(upload_id: str, use_prod: bool = False, timeout_in_sec: int
     response = get_nomad_request(
         f"/uploads/{upload_id}",
         use_prod=use_prod,
-        with_authentication=True,
+        with_authentication=with_authentication,
         timeout_in_sec=timeout_in_sec,
     )
     upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
@@ -323,3 +333,118 @@ def edit_upload_metadata(
         timeout_in_sec=timeout_in_sec,
     )
     return response
+
+
+def get_specific_file_from_upload(
+    upload_id: str,
+    path_to_file: str,
+    use_prod: bool = False,
+    with_authentication: bool = False,
+    return_json: bool = True,
+    timeout_in_sec: int = 10,
+) -> Union[ByteString, dict]:
+    """
+    Downloads a file associated with a specific upload from the NOMAD system.
+
+    This function retrieves a file associated with a specific upload from the NOMAD system and saves it to the specified
+    path on the local filesystem. It allows specifying whether to interact with the production or test environment of
+    the NOMAD system. Additionally, a timeout for the network request can be defined to manage how long the function
+    waits for the file to be downloaded.
+
+    Args:
+        upload_id (str): The unique identifier of the upload containing the file to download.
+        path_to_file (str): The path where the downloaded file should be saved on the local filesystem.
+        use_prod (bool, optional): Flag indicating whether to use the production environment of the NOMAD system.
+                                   Defaults to False, which means the test environment is used by default.
+        with_authentication: Flag indicating whether to include authentication headers in the request.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for the file to be downloaded.
+                                        Defaults to 10 seconds.
+        return_json: Flag indicating whether to return the response as JSON or as a byte string.
+
+    Raises:
+        ValueError: If the file cannot be downloaded or saved to the specified path.
+    """
+    logger.info(f"downloading file {path_to_file} from upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    response = get_nomad_request(
+        f"/uploads/{upload_id}/raw/{path_to_file}",
+        use_prod=use_prod,
+        with_authentication=with_authentication,
+        timeout_in_sec=timeout_in_sec,
+        return_json=return_json,
+    )
+    if response:
+        return response
+    else:
+        raise ValueError(f"could not download file from upload {upload_id}")
+
+
+def upload_file_to_specified_path(
+    upload_id: str, remote_path: str, local_file: str, use_prod: bool = False, timeout_in_sec: int = 10
+) -> dict:
+    """
+    Uploads a file to a specific path within an upload in the NOMAD system.
+
+    This function uploads a specified file to a specific path within an existing upload in the NOMAD system. It allows
+    the user to choose between the production and test environments. It also supports setting a custom timeout for the
+    upload process to prevent indefinite waiting periods. The function logs the outcome of the upload process, including
+    success or failure messages.
+
+    Args:
+        upload_id (str): The unique identifier of the upload to which the file should be uploaded.
+        path (str): The path where the file should be saved within the upload.
+        file: The file to the file to be uploaded.
+        use_prod (bool, optional): Flag indicating whether to use the production environment of the NOMAD system.
+                                   Defaults to False, which means the test environment is used by default.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for the upload to complete.
+                                        Defaults to 10 seconds.
+
+    Returns:
+        dict: A dictionary containing the response from the NOMAD system regarding the upload action.
+    """
+    logger.info(f"uploading file {local_file} to upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    remote_file = f"{remote_path}{basename(local_file)}"
+    response = put_nomad_request(
+        f"/uploads/{upload_id}/raw/{remote_path}?file_name={remote_file}",
+        with_authentication=True,
+        file=local_file,
+        remote_path_to_file=remote_file,
+        use_prod=use_prod,
+        timeout_in_sec=timeout_in_sec,
+    )
+    upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
+    return upload_class_schema().load({**response["data"], "use_prod": use_prod})
+
+
+def delete_file_to_specified_path(
+    upload_id: str, remote_path: str, local_file: str, use_prod: bool = False, timeout_in_sec: int = 10
+) -> dict:
+    """
+    Deletes a file from a specific path within an upload in the NOMAD system.
+
+    This function deletes a specified file from a specific path within an existing upload in the NOMAD system. It allows
+    the user to choose between the production and test environments. It also supports setting a custom timeout for the
+    deletion process to prevent indefinite waiting periods. The function logs the outcome of the deletion process,
+    including success or failure messages.
+
+    Args:
+        upload_id (str): The unique identifier of the upload from which the file should be deleted.
+        path (str): The path where the file should be deleted within the upload.
+        file: The file to the file to be deleted.
+        use_prod (bool, optional): Flag indicating whether to use the production environment of the NOMAD system.
+                                   Defaults to False, which means the test environment is used by default.
+        timeout_in_sec (int, optional): The maximum time in seconds to wait for the deletion to complete.
+                                        Defaults to 10 seconds.
+
+    Returns:
+        dict: A dictionary containing the response from the NOMAD system regarding the deletion action.
+    """
+    logger.info(f"deleting file {local_file} from upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    remote_file = f"{remote_path}{basename(local_file)}"
+    response = delete_nomad_request(
+        f"/uploads/{upload_id}/raw/{remote_file}",
+        with_authentication=True,
+        use_prod=use_prod,
+        timeout_in_sec=timeout_in_sec,
+    )
+    upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
+    return upload_class_schema().load({**response["data"], "use_prod": use_prod})

@@ -16,7 +16,6 @@ from martignac.utils.martini_flow_projects import (
     system_sampled,
     uploaded_to_nomad,
 )
-from martignac.utils.misc import sub_template_mdp
 
 conf = config()["bilayer_generation"]
 
@@ -174,10 +173,7 @@ def equilibrate(job):
     Returns:
         str: The command executed for the equilibration process, primarily for logging or debugging purposes.
     """
-    mdp_file_template = BilayerGenFlow.mdp_files.get("equilibrate")
-    mdp_file = job.fn(BilayerGenFlow.get_state_name("equilibrate", "mdp"))
-    sub_template_mdp(mdp_file_template, "sedlipids", " ".join(lipid_names(job)), mdp_file)
-    sub_template_mdp(mdp_file, "sedsolvent", " ".join(BilayerGenFlow.solvent.solvent_names), mdp_file)
+    mdp_file = BilayerGenFlow.mdp_files.get("equilibrate")
     return gromacs_simulation_command(
         mdp=mdp_file,
         top=BilayerGenFlow.get_state_name(extension="top"),
@@ -213,10 +209,7 @@ def production(job):
         str: The command executed for the production phase, primarily for logging or debugging purposes. This includes
              the path to the modified MDP file, the output GRO file for the bilayer, and the updated topology file.
     """
-    mdp_file_template = BilayerGenFlow.mdp_files.get("production")
-    mdp_file = job.fn(BilayerGenFlow.get_state_name("production", "mdp"))
-    sub_template_mdp(mdp_file_template, "sedlipids", " ".join(lipid_names(job)), mdp_file)
-    sub_template_mdp(mdp_file, "sedsolvent", " ".join(BilayerGenFlow.solvent.solvent_names), mdp_file)
+    mdp_file = BilayerGenFlow.mdp_files.get("production")
     job.doc[project_name]["bilayer_gro"] = BilayerGenFlow.get_state_name("production", "gro")
     job.doc[project_name]["bilayer_top"] = BilayerGenFlow.get_state_name(extension="top")
     job.doc[project_name]["lipid_names"] = lipid_names(job)

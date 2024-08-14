@@ -4,7 +4,6 @@ tinit                    = 0.0
 dt                       = 0.020
 nsteps                   = 5000
 nstcomm                  = 1
-comm-grps		         = sedlipids sedsolvent
 
 ; OUTPUT CONTROL OPTIONS
 nstxout                  = 0
@@ -33,13 +32,13 @@ rvdw                     = 1.2 ; Cut-off for van der Waals
 
 ; OPTIONS FOR WEAK COUPLING ALGORITHMS
 tcoupl                   = V-rescale ; Modified Berendsen thermostat
-tc-grps                  = sedlipids sedsolvent
-tau_t                    = 1.0 1.0 ; Time constant for temperature coupling
-ref_t                    = 300 300 ; Reference temperatures for POPC and W
+tc-grps                  = System
+tau_t                    = 1.0 ; Time constant for temperature coupling
+ref_t                    = 300 ; Reference temperatures for POPC and W
 Pcoupl                   = Parrinello-Rahman ; Pressure coupling
 Pcoupltype               = semiisotropic ; Semi-isotropic pressure coupling
 tau_p                    = 4.0 ; Time constant for pressure coupling
-compressibility          = 4.5e-5 4.5e-5 ; Compressibility for semiisotropic coupling
+compressibility          = 4.5e-5 4.5e-5; Compressibility for semiisotropic coupling
 ref_p                    = 1.0 1.0 ; Reference pressures
 
 ; GENERATE VELOCITIES FOR STARTUP RUN

@@ -31,7 +31,8 @@ def generate_bilayer_with_insane(
     Returns:
         str: The command to be executed for generating the bilayer system with INSANE.
     """
+
     return (
-        f"insane -l {lipids.to_insane_format()} -d {box_length_xy} -dz {box_length_z} "
-        f"-sol {solvent.to_insane_format()} -o {gro_bilayer_gen} -p {top_bilayer}"
+        f"insane -l {lipids.to_insane_format(separator=' -l ')} -d {box_length_xy} -dz {box_length_z} "
+        f"-sol {solvent.to_insane_format(separator=' -sol ')} -o {gro_bilayer_gen} -p {top_bilayer}"
     )

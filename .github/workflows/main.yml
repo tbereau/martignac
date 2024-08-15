@@ -88,7 +88,7 @@ jobs:
           python -m pip install tox tox-gh-actions
 
       - name: Test with tox
-        run: tox
+        run: tox -v
 
   build-docs:
     runs-on: ubuntu-latest

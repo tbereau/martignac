@@ -3,7 +3,10 @@ from typing import Optional
 
 from marshmallow import Schema, fields, pre_load
 
-from martignac.workflow_interfaces.generic import GenericInterface, get_interface_for_upload_id_and_job_id
+from martignac.workflow_interfaces.generic import (
+    GenericInterface,
+    get_interface_for_upload_id_and_job_id,
+)
 
 
 @dataclass

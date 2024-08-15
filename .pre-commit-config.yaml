@@ -1,8 +1,9 @@
 repos:
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.230"
+    rev: "v0.0.280"
     hooks:
       - id: ruff
+        args: ["--config=.ruff.toml"]
       
   - repo: https://github.com/psf/black
     rev: "22.8.0"

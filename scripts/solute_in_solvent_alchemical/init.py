@@ -4,7 +4,9 @@ from os.path import isdir
 
 import signac
 
-from martignac.workflows.solute_in_solvent_alchemical import SoluteInSolventAlchemicalFlow
+from martignac.workflows.solute_in_solvent_alchemical import (
+    SoluteInSolventAlchemicalFlow,
+)
 
 if not isdir(SoluteInSolventAlchemicalFlow.workspace_path):
     makedirs(SoluteInSolventAlchemicalFlow.workspace_path)

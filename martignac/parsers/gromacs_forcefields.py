@@ -59,7 +59,13 @@ class Atom:
     @classmethod
     def parse_from_itp_entry(cls, entry: list) -> "Atom":
         return Atom(
-            int(entry[0]), str(entry[1]), int(entry[2]), str(entry[3]), str(entry[4]), int(entry[5]), int(entry[6])
+            int(entry[0]),
+            str(entry[1]),
+            int(entry[2]),
+            str(entry[3]),
+            str(entry[4]),
+            int(entry[5]),
+            int(entry[6]),
         )
 
     @property
@@ -121,7 +127,13 @@ class Bond(Constraint):
 
     @classmethod
     def parse_from_itp_entry(cls, entry: list) -> "Bond":
-        return Bond(int(entry[0]), int(entry[1]), int(entry[2]), float(entry[3]), float(entry[4]))
+        return Bond(
+            int(entry[0]),
+            int(entry[1]),
+            int(entry[2]),
+            float(entry[3]),
+            float(entry[4]),
+        )
 
 
 @dataclass
@@ -154,7 +166,14 @@ class Angle:
 
     @classmethod
     def parse_from_itp_entry(cls, entry: list) -> "Angle":
-        return Angle(int(entry[0]), int(entry[1]), int(entry[2]), int(entry[3]), float(entry[4]), float(entry[5]))
+        return Angle(
+            int(entry[0]),
+            int(entry[1]),
+            int(entry[2]),
+            int(entry[3]),
+            float(entry[4]),
+            float(entry[5]),
+        )
 
 
 @dataclass
@@ -210,13 +229,17 @@ class Molecule:
 
         if self.constraints:
             for constraint in self.constraints:
-                coordinates[constraint.id_j - 1] = get_next_coordinate(constraint.id_i, constraint.length)
+                coordinates[constraint.id_j - 1] = get_next_coordinate(
+                    constraint.id_i, constraint.length
+                )
                 placed_atoms.add(constraint.id_j - 1)
 
         if self.bonds:
             for bond in self.bonds:
                 if bond.id_j - 1 not in placed_atoms:
-                    coordinates[bond.id_j - 1] = get_next_coordinate(bond.id_i, bond.length)
+                    coordinates[bond.id_j - 1] = get_next_coordinate(
+                        bond.id_i, bond.length
+                    )
                     placed_atoms.add(bond.id_j - 1)
 
         return coordinates
@@ -232,9 +255,16 @@ class Molecule:
         with suppress(KeyError):
             angles = [Angle.parse_from_itp_entry(e) for e in entry["angles"]]
         with suppress(KeyError):
-            constraints = [Constraint.parse_from_itp_entry(e) for e in entry["constraints"]]
+            constraints = [
+                Constraint.parse_from_itp_entry(e) for e in entry["constraints"]
+            ]
         return Molecule(
-            name=name, number_excl=number_excl, atoms=atoms, bonds=bonds, angles=angles, constraints=constraints
+            name=name,
+            number_excl=number_excl,
+            atoms=atoms,
+            bonds=bonds,
+            angles=angles,
+            constraints=constraints,
         )
 
 
@@ -258,7 +288,8 @@ def parse_molecules_from_itp(itp_filename: str) -> list[Molecule]:
 
     # Pattern to find and process conditional compilation blocks
     conditional_block_pattern = re.compile(
-        r"#ifdef FLEXIBLE\s*\[bonds\]\s*(.*?)#else\s*\[constraints\]\s*(.*?)#endif", re.DOTALL
+        r"#ifdef FLEXIBLE\s*\[bonds\]\s*(.*?)#else\s*\[constraints\]\s*(.*?)#endif",
+        re.DOTALL,
     )
 
     # Function to keep the 'bonds' part and discard the 'constraints' part
@@ -267,7 +298,9 @@ def parse_molecules_from_itp(itp_filename: str) -> list[Molecule]:
         return f"[bonds]{bonds_part}"
 
     # Replace the matched sections with only the 'bonds' part
-    modified_content = re.sub(conditional_block_pattern, choose_bonds_over_constraints, content)
+    modified_content = re.sub(
+        conditional_block_pattern, choose_bonds_over_constraints, content
+    )
 
     # Split the modified content into lines for further processing
     lines = modified_content.splitlines()
@@ -333,7 +366,9 @@ def find_molecule_from_name(itp_filenames: list[str], molecule_name: str) -> Mol
     return next(m for m in molecules if m.name == molecule_name)
 
 
-def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_length: float = 100.0) -> None:
+def generate_gro_file_for_molecule(
+    molecule: Molecule, gro_filename: str, box_length: float = 100.0
+) -> None:
     """
     Generates a GROMACS .gro file for a given molecule.
 
@@ -363,16 +398,29 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
     atom_data = np.zeros(n_atoms, dtype=dtype)
 
     for i, atom in enumerate(molecule.atoms):
-        atom_data[i] = (atom.atom, atom.type, atom.residue_number, atom.residue, atom.charge, atom.id)
+        atom_data[i] = (
+            atom.atom,
+            atom.type,
+            atom.residue_number,
+            atom.residue,
+            atom.charge,
+            atom.id,
+        )
 
     assert len(set(atom_data["resid"])) == 1, "only one resid supported"
     assert len(set(atom_data["resname"])) == 1, "only one resname supported"
     residue_indices = [0] * n_atoms
-    u = Universe.empty(n_atoms=n_atoms, n_residues=1, atom_resindex=residue_indices, trajectory=True)
+    u = Universe.empty(
+        n_atoms=n_atoms, n_residues=1, atom_resindex=residue_indices, trajectory=True
+    )
     u.add_TopologyAttr("name", atom_data["name"])
     u.add_TopologyAttr("type", atom_data["type"])
     resid = atom_data["resid"][0] if len(atom_data["resid"]) > 1 else atom_data["resid"]
-    resname = atom_data["resname"][0] if len(atom_data["resname"]) > 1 else atom_data["resname"]
+    resname = (
+        atom_data["resname"][0]
+        if len(atom_data["resname"]) > 1
+        else atom_data["resname"]
+    )
     resid = [resid] if type(resid) not in [list, np.ndarray] else resid
     resname = [resname] if type(resname) not in [list, np.ndarray] else resname
     u.add_TopologyAttr("resid", resid)
@@ -380,9 +428,13 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
     u.add_TopologyAttr("charge", atom_data["charge"])
     u.add_TopologyAttr("id", atom_data["id"])
 
-    u.atoms.positions = [[x * 10 for x in coord] for coord in molecule.generate_coordinates()]
+    u.atoms.positions = [
+        [x * 10 for x in coord] for coord in molecule.generate_coordinates()
+    ]
     if molecule.bonds:
-        bond_tuples = [(bond.id_i - 1, bond.id_j - 1) for bond in molecule.bonds]  # adjust index by -1
+        bond_tuples = [
+            (bond.id_i - 1, bond.id_j - 1) for bond in molecule.bonds
+        ]  # adjust index by -1
         u.add_TopologyAttr("bonds", bond_tuples)
 
     box_size = [box_length, box_length, box_length, 90.0, 90.0, 90.0]
@@ -393,7 +445,10 @@ def generate_gro_file_for_molecule(molecule: Molecule, gro_filename: str, box_le
 
 
 def generate_top_file_for_molecule(
-    molecule: Molecule, force_field_filenames: list[str], top_filename: str, num_molecules: int = 1
+    molecule: Molecule,
+    force_field_filenames: list[str],
+    top_filename: str,
+    num_molecules: int = 1,
 ) -> None:
     """
     Generates a GROMACS topology (.top) file for a given molecule using specified force fields.
@@ -411,7 +466,9 @@ def generate_top_file_for_molecule(
     Returns:
         None: This function does not return a value but writes directly to a file.
     """
-    return generate_top_file_for_generic_molecule(molecule.name, force_field_filenames, top_filename, num_molecules)
+    return generate_top_file_for_generic_molecule(
+        molecule.name, force_field_filenames, top_filename, num_molecules
+    )
 
 
 def _get_atom_from_string(atom_string: str, i: int, mol_name: str) -> Atom:
@@ -474,17 +531,30 @@ def get_molecule_from_name(
     if molecule_label is None:
         molecule_label = "".join(particle_names)[:5]
     # Construct list of atoms
-    atoms = [_get_atom_from_string(name, i, molecule_label) for i, name in enumerate(particle_names)]
+    atoms = [
+        _get_atom_from_string(name, i, molecule_label)
+        for i, name in enumerate(particle_names)
+    ]
     molecule = Molecule(molecule_label, number_excl, atoms)
     # Add bonds and constraints to the molecule
     if "," in molecule_name:
         # Obtain bonds and constraints from molecule string
         bond_constraints_info = molecule_name.split(",")[1].split()
-        bond_info = [[int(idx) + 1 for idx in b.split("-")] for b in bond_constraints_info if "-" in b]
-        constraint_info = [[int(idx) + 1 for idx in c.split("_")] for c in bond_constraints_info if "_" in c]
+        bond_info = [
+            [int(idx) + 1 for idx in b.split("-")]
+            for b in bond_constraints_info
+            if "-" in b
+        ]
+        constraint_info = [
+            [int(idx) + 1 for idx in c.split("_")]
+            for c in bond_constraints_info
+            if "_" in c
+        ]
         # Add bonds and constraints to the molecule
         if bond_constant is None and len(bond_info) > 0:
-            raise ValueError("bond_constant must be specified if the molecule contains bonds")
+            raise ValueError(
+                "bond_constant must be specified if the molecule contains bonds"
+            )
         if len(constraint_info) > 0:
             constraints = []
             for id_i, id_j in constraint_info:
@@ -538,7 +608,9 @@ def generate_itp_file_for_molecule(
             f.write("\n[bonds]\n")
             f.write("; i     j       funct   length  force_constant\n")
             for bond in molecule.bonds:
-                f.write(f" {bond.id_i}\t{bond.id_j}\t{bond.funct}\t{bond.length}\t{bond.force_constant}\n")
+                f.write(
+                    f" {bond.id_i}\t{bond.id_j}\t{bond.funct}\t{bond.length}\t{bond.force_constant}\n"
+                )
         if molecule.angles is not None:
             f.write("\n[angles]\n")
             f.write("; i     j       k       funct   angle   force_constant\n")
@@ -550,4 +622,6 @@ def generate_itp_file_for_molecule(
             f.write("\n[constraints]\n")
             f.write("; i     j       funct   length\n")
             for constraint in molecule.constraints:
-                f.write(f" {constraint.id_i}\t{constraint.id_j}\t{constraint.funct}\t{constraint.length}\n")
+                f.write(
+                    f" {constraint.id_i}\t{constraint.id_j}\t{constraint.funct}\t{constraint.length}\n"
+                )

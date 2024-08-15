@@ -102,7 +102,9 @@ class Topology:
             if molecule.name not in existing_mol_names:
                 atom_selection = u.select_atoms(f"resname {molecule.name}")
                 molecule.number_elements = atom_selection.residues.n_residues
-                logger.info(f"found {molecule.number_elements} {molecule.name} in {gro_filename}")
+                logger.info(
+                    f"found {molecule.number_elements} {molecule.name} in {gro_filename}"
+                )
                 existing_mol_names.append(molecule.name)
                 final_list_of_molecules.append(molecule)
         self.molecules = final_list_of_molecules
@@ -151,7 +153,9 @@ def append_all_includes_to_top(main_top: Topology, others: list[Topology]) -> To
     return new_top
 
 
-def combine_multiple_topology_files(topology_files: list[str], system_name: str) -> Topology:
+def combine_multiple_topology_files(
+    topology_files: list[str], system_name: str
+) -> Topology:
     """
     Combines multiple GROMACS topology files into a single Topology instance.
 

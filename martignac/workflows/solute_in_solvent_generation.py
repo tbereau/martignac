@@ -55,14 +55,20 @@ class SoluteInSolventGenFlow(MartiniFlowProject):
     the system, and preparing and uploading the workflow to NOMAD.
     """
 
-    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    workspace_path: str = (
+        f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    )
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
-    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    mdp_path = (
+        f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    )
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
     simulation_settings = {"n_threads": conf["settings"]["n_threads"].get(int)}
     system_name = conf["output_names"]["system"].get(str)
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
-    nomad_top_level_workflow: str = conf["output_names"]["nomad_top_level_workflow"].get(str)
+    nomad_top_level_workflow: str = conf["output_names"][
+        "nomad_top_level_workflow"
+    ].get(str)
     state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
 
@@ -114,7 +120,9 @@ def generate_solute(job: Job):
     solute_job: Job = get_solute_job(job)
     keys_for_files_to_copy = ["solute_gro", "solute_top", "solute_itp"]
     project.operation_to_workflow[func_name()] = solute_gen_name
-    import_job_from_other_flow(job, solute_gen_project, solute_job, keys_for_files_to_copy)
+    import_job_from_other_flow(
+        job, solute_gen_project, solute_job, keys_for_files_to_copy
+    )
 
 
 @SoluteInSolventGenFlow.pre(fetched_from_nomad)
@@ -146,11 +154,15 @@ def generate_solvent(job):
     solvent_job: Job = get_solvent_job(job)
     keys_for_files_to_copy = ["solvent_gro", "solvent_top"]
     project.operation_to_workflow[func_name()] = solvent_gen_name
-    import_job_from_other_flow(job, solvent_gen_project, solvent_job, keys_for_files_to_copy)
+    import_job_from_other_flow(
+        job, solvent_gen_project, solvent_job, keys_for_files_to_copy
+    )
     solvent_job: Job = get_solvent_job(job)
     keys_for_files_to_copy = ["solvent_gro", "solvent_top"]
     project.operation_to_workflow[func_name()] = solvent_gen_name
-    import_job_from_other_flow(job, solvent_gen_project, solvent_job, keys_for_files_to_copy)
+    import_job_from_other_flow(
+        job, solvent_gen_project, solvent_job, keys_for_files_to_copy
+    )
 
 
 @SoluteInSolventGenFlow.pre(solute_generated, tag="solute_generated")
@@ -215,12 +227,16 @@ def minimize(job):
     """
     solute_top = Topology.parse_top_file(job.doc[solute_gen_name]["solute_top"])
     solvent_top = Topology.parse_top_file(job.doc[solvent_gen_name]["solvent_top"])
-    solute_solvent_top = Topology.parse_top_file(SoluteInSolventGenFlow.get_state_name(extension="top"))
+    solute_solvent_top = Topology.parse_top_file(
+        SoluteInSolventGenFlow.get_state_name(extension="top")
+    )
     new_top = append_all_includes_to_top(solute_solvent_top, [solvent_top, solute_top])
     new_top.system = f"{job.sp['solute_name']} in {job.sp['solvent_name']}"
     logger.info(f"setting topology system name to {new_top.system}")
     new_top.output_top(SoluteInSolventGenFlow.get_state_name(extension="top"))
-    job.doc[project_name]["solute_solvent_top"] = SoluteInSolventGenFlow.get_state_name(extension="top")
+    job.doc[project_name]["solute_solvent_top"] = SoluteInSolventGenFlow.get_state_name(
+        extension="top"
+    )
     return gromacs_simulation_command(
         mdp=SoluteInSolventGenFlow.mdp_files.get("minimize"),
         top=SoluteInSolventGenFlow.get_state_name(extension="top"),
@@ -255,7 +271,9 @@ def equilibrate(job):
         str: The command to execute the equilibration process using GROMACS, with parameters configured for the
              system specified in the job document.
     """
-    job.doc[project_name]["solute_solvent_gro"] = SoluteInSolventGenFlow.get_state_name("equilibrate", "gro")
+    job.doc[project_name]["solute_solvent_gro"] = SoluteInSolventGenFlow.get_state_name(
+        "equilibrate", "gro"
+    )
     return gromacs_simulation_command(
         mdp=SoluteInSolventGenFlow.mdp_files.get("equilibrate"),
         top=SoluteInSolventGenFlow.get_state_name(extension="top"),
@@ -268,7 +286,10 @@ def equilibrate(job):
 @SoluteInSolventGenFlow.pre(system_equilibrated, tag="system_equilibrated")
 @SoluteInSolventGenFlow.post(
     lambda job: all(
-        [job.isfile(SoluteInSolventGenFlow.nomad_workflow), job.isfile(SoluteInSolventGenFlow.nomad_top_level_workflow)]
+        [
+            job.isfile(SoluteInSolventGenFlow.nomad_workflow),
+            job.isfile(SoluteInSolventGenFlow.nomad_top_level_workflow),
+        ]
     ),
     tag="generated_nomad_workflow",
 )

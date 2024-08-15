@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 def generate_solvent_with_gromacs(
-    gro_solvent_mol: str, box_length: float, output_name: str = "solvent", scale: float = 0.1
+    gro_solvent_mol: str,
+    box_length: float,
+    output_name: str = "solvent",
+    scale: float = 0.1,
 ) -> str:
     """
     Generates a command to solvate a given solvent molecule file using GROMACS.
@@ -38,7 +41,11 @@ def generate_solvent_with_gromacs(
 
 
 def solvate_solute_command(
-    gro_solute: str, gro_solvent: str, top_solute: str, top_output: str = "topol.top", output_name: str = "solvate"
+    gro_solute: str,
+    gro_solvent: str,
+    top_solute: str,
+    top_output: str = "topol.top",
+    output_name: str = "solvate",
 ) -> str:
     """
     Generates a command to solvate a solute with a given solvent using GROMACS.
@@ -113,7 +120,13 @@ def run_gmx_wham(
 
 
 def gromacs_simulation_command(
-    mdp: str, top: str, gro: str, name: str, n_max_warn: int = 10, n_threads: int = 1, verbose: bool = True
+    mdp: str,
+    top: str,
+    gro: str,
+    name: str,
+    n_max_warn: int = 10,
+    n_threads: int = 1,
+    verbose: bool = True,
 ) -> str:
     """
     Prepares and executes a molecular dynamics simulation using GROMACS.
@@ -166,7 +179,8 @@ def generate_lambdas(num_sim: int, turn_off_coulomb: bool = False):
     else:
         # Adjust the lambda values for Coulomb, starting from 0 after vdw is fully coupled
         coul_lambdas = [0.0] * (vdw_points - 1) + [
-            (i - (vdw_points - 1)) / (num_sim - vdw_points) for i in range(vdw_points - 1, num_sim)
+            (i - (vdw_points - 1)) / (num_sim - vdw_points)
+            for i in range(vdw_points - 1, num_sim)
         ]
 
     # Ensure lambdas list length is num_sim for vdw_lambdas when turn_off_coulomb is False

@@ -74,7 +74,10 @@ def parse_particle_types_from_itp(filename: str) -> list[ParticleType]:
                     c12 = float(parts[5])
                     bead = ParticleType(name, mass, charge, ptype, c6, c12)
                     particle_types.append(bead)
-                except (ValueError, IndexError):  # Exit the loop if line format doesn't match
+                except (
+                    ValueError,
+                    IndexError,
+                ):  # Exit the loop if line format doesn't match
                     break
 
     return particle_types
@@ -103,7 +106,9 @@ def find_particle_type_from_name(itp_filename: str, particle_name: str) -> Parti
     return next(p for p in particle_types if p.name == particle_name)
 
 
-def generate_gro_for_particle_type(particle_type: ParticleType, gro_filename: str, box_length: float = 100.0) -> None:
+def generate_gro_for_particle_type(
+    particle_type: ParticleType, gro_filename: str, box_length: float = 100.0
+) -> None:
     """
     Generates a GROMACS .gro file for a single particle type with specified box dimensions.
 
@@ -170,7 +175,9 @@ def generate_top_file_for_particle(
     Returns:
         None: This function does not return a value but writes directly to a file specified by `top_filename`.
     """
-    return generate_top_file_for_generic_molecule(particle.name, force_field_filenames, top_filename, num_molecules)
+    return generate_top_file_for_generic_molecule(
+        particle.name, force_field_filenames, top_filename, num_molecules
+    )
 
 
 def generate_itp_file_for_particle(
@@ -202,4 +209,6 @@ def generate_itp_file_for_particle(
 
         f.write("[atoms]\n")
         f.write("; id    type    resnr   residu  atom    cgnr    charge\n")
-        f.write(f"  1\t{particle.name}\t1\t{particle.name}\t{particle.ptype}\t1\t{particle.charge}\n")
+        f.write(
+            f"  1\t{particle.name}\t1\t{particle.name}\t{particle.ptype}\t1\t{particle.charge}\n"
+        )

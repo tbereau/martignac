@@ -9,7 +9,9 @@ from martignac.nomad.entries import (
     get_entries_of_my_uploads,
 )
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflows.solute_in_bilayer_umbrella import project as solute_bilayer_project
+from martignac.workflows.solute_in_bilayer_umbrella import (
+    project as solute_bilayer_project,
+)
 
 st.set_page_config(page_title="Solute-in-bilayer umbrella sampling", page_icon="📊")
 
@@ -29,7 +31,9 @@ df_u = pd.json_normalize(
             "url": e.nomad_gui_url,
         }
         for e in upload_entries
-        if e.comment and e._comment_dict.get("state_point") and e._comment_dict.get("workflow_name")
+        if e.comment
+        and e._comment_dict.get("state_point")
+        and e._comment_dict.get("workflow_name")
     ]
 )
 sp_columns = [c for c in df_u.columns if "state_point" in c]
@@ -49,7 +53,10 @@ df_u = df_u[
 df_u["entry_create_time"] = pd.to_datetime(df_u["entry_create_time"]).dt.date
 
 df_u = (
-    df_u[(df_u["workflow_name"] == "SoluteInBilayerUmbrellaFlow") & (df_u["entry_type"] == "Workflow")]
+    df_u[
+        (df_u["workflow_name"] == "SoluteInBilayerUmbrellaFlow")
+        & (df_u["entry_type"] == "Workflow")
+    ]
     .drop(
         [
             "workflow_name",
@@ -78,6 +85,8 @@ df_expanded.columns = ["state_point.lipids.names", "state_point.lipids.fractions
 # Concatenate the expanded DataFrame with the original DataFrame (if you want to keep other columns)
 df_u = pd.concat([df_u.drop(columns=["state_point.lipids"]), df_expanded], axis=1)
 
-st.dataframe(df_u, column_config={"url": st.column_config.LinkColumn("URL", display_text="link")})
+st.dataframe(
+    df_u, column_config={"url": st.column_config.LinkColumn("URL", display_text="link")}
+)
 
 st.button("Re-run")

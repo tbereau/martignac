@@ -5,7 +5,10 @@ from typing import Optional
 import numpy as np
 
 from martignac.nomad.uploads import get_specific_file_from_upload
-from martignac.workflow_interfaces.generic import GenericInterface, get_interface_for_upload_id_and_job_id
+from martignac.workflow_interfaces.generic import (
+    GenericInterface,
+    get_interface_for_upload_id_and_job_id,
+)
 
 
 @dataclass(frozen=True)

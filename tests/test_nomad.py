@@ -2,7 +2,12 @@ import secrets
 
 import pytest
 
-from martignac.nomad.datasets import create_dataset, delete_dataset, get_dataset_by_id, retrieve_datasets
+from martignac.nomad.datasets import (
+    create_dataset,
+    delete_dataset,
+    get_dataset_by_id,
+    retrieve_datasets,
+)
 
 
 @pytest.mark.order(1)

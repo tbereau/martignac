@@ -6,7 +6,11 @@ from flow import aggregator
 from MDAnalysis import Universe
 
 from martignac import config
-from martignac.nomad.workflows import Job, build_nomad_workflow, build_nomad_workflow_with_multiple_jobs
+from martignac.nomad.workflows import (
+    Job,
+    build_nomad_workflow,
+    build_nomad_workflow_with_multiple_jobs,
+)
 from martignac.parsers.gromacs_topologies import combine_multiple_topology_files
 from martignac.utils.gromacs import gromacs_simulation_command, run_gmx_wham
 from martignac.utils.martini_flow_projects import (
@@ -32,7 +36,11 @@ from martignac.utils.misc import (
     update_nested_dict,
 )
 from martignac.utils.packmol import place_solute_in_solvent_with_packmol
-from martignac.workflows.bilayer_generation import BilayerGenFlow, get_solvent_job, lipid_names
+from martignac.workflows.bilayer_generation import (
+    BilayerGenFlow,
+    get_solvent_job,
+    lipid_names,
+)
 from martignac.workflows.solute_generation import SoluteGenFlow, get_solute_job
 
 logger = logging.getLogger(__name__)
@@ -62,19 +70,27 @@ class SoluteInBilayerUmbrellaFlow(MartiniFlowProject):
         state_names (dict): Dictionary mapping state names (e.g., 'generated', 'minimized') to their string representations.
     """
 
-    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    workspace_path: str = (
+        f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    )
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
-    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    mdp_path = (
+        f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    )
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
     simulation_settings = {"n_threads": conf["settings"]["n_threads"].get(int)}
     system_name = conf["output_names"]["system"].get(str)
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
-    nomad_top_level_workflow: str = conf["output_names"]["nomad_top_level_workflow"].get(str)
+    nomad_top_level_workflow: str = conf["output_names"][
+        "nomad_top_level_workflow"
+    ].get(str)
     state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
 
     @classmethod
     def get_system_run_name(cls, depth_state: str) -> str:
-        return SoluteInBilayerUmbrellaFlow.get_state_name(state_name=f"production-{depth_state}")
+        return SoluteInBilayerUmbrellaFlow.get_state_name(
+            state_name=f"production-{depth_state}"
+        )
 
 
 project_name = SoluteInBilayerUmbrellaFlow.class_name()
@@ -95,12 +111,16 @@ wham_hist = "wham_hist.npy"
 
 
 def solute_in_bilayer_aggregator(jobs):
-    unique_combinations = {(job.sp["solute_name"], tuple(tuple(d.items()) for d in job.sp["lipids"])) for job in jobs}
+    unique_combinations = {
+        (job.sp["solute_name"], tuple(tuple(d.items()) for d in job.sp["lipids"]))
+        for job in jobs
+    }
     for solute, lipid_composition in unique_combinations:
         yield [
             job
             for job in jobs
-            if job.sp.solute_name == solute and tuple(tuple(d.items()) for d in job.sp.lipids) == lipid_composition
+            if job.sp.solute_name == solute
+            and tuple(tuple(d.items()) for d in job.sp.lipids) == lipid_composition
         ]
 
 
@@ -181,7 +201,10 @@ def nomad_workflow_built(*jobs) -> bool:
     return all(
         [
             any(job.isfile(SoluteInBilayerUmbrellaFlow.nomad_workflow) for job in jobs),
-            any(job.isfile(SoluteInBilayerUmbrellaFlow.nomad_top_level_workflow) for job in jobs),
+            any(
+                job.isfile(SoluteInBilayerUmbrellaFlow.nomad_top_level_workflow)
+                for job in jobs
+            ),
         ]
     )
 
@@ -189,7 +212,9 @@ def nomad_workflow_built(*jobs) -> bool:
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
 @SoluteInBilayerUmbrellaFlow.post(solute_generated_all, tag="solute_generated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
-@SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
+@SoluteInBilayerUmbrellaFlow.operation(
+    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator)
+)
 def generate_solute(*jobs):
     """
     Generates the solute for the molecular dynamics simulation within a lipid bilayer.
@@ -218,20 +243,28 @@ def generate_solute(*jobs):
         solute_job: Job = get_solute_job(job)
         keys_for_files_to_copy = ["solute_gro", "solute_top", "solute_itp"]
         project.operation_to_workflow[func_name()] = solute_gen_name
-        import_job_from_other_flow(job, solute_gen_project, solute_job, keys_for_files_to_copy)
+        import_job_from_other_flow(
+            job, solute_gen_project, solute_job, keys_for_files_to_copy
+        )
 
     for other_job in [j for j in jobs if j != job]:
         with other_job:
             logger.info(f"Importing data to job {other_job.id}")
             import_job_from_other_flow(
-                other_job, solute_gen_project, solute_job, keys_for_files_to_copy, run_child_job=False
+                other_job,
+                solute_gen_project,
+                solute_job,
+                keys_for_files_to_copy,
+                run_child_job=False,
             )
 
 
 @SoluteInBilayerUmbrellaFlow.pre(solute_generated_all, tag="solute_generated")
 @SoluteInBilayerUmbrellaFlow.post(solute_translated_all, tag="solute_translated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
-@SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
+@SoluteInBilayerUmbrellaFlow.operation(
+    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator)
+)
 def translate_solute(*jobs):
     """
     Translates the solute to the center of mass (COM) of the bilayer.
@@ -253,7 +286,9 @@ def translate_solute(*jobs):
     job = lowest_depth_job(jobs)
     with job:
         solute_gro = job.doc[solute_gen_name].get("solute_gro")
-        solute_translated_gro = SoluteInBilayerUmbrellaFlow.get_state_name("solute_translated", "gro")
+        solute_translated_gro = SoluteInBilayerUmbrellaFlow.get_state_name(
+            "solute_translated", "gro"
+        )
         job.doc[project_name]["solute_translated_gro"] = solute_translated_gro
         com_solute = calculate_average_com(solute_gro, [])
         logger.debug(f"solute COM: {com_solute}")
@@ -271,7 +306,9 @@ def translate_solute(*jobs):
 @SoluteInBilayerUmbrellaFlow.pre(fetched_from_nomad)
 @SoluteInBilayerUmbrellaFlow.post(bilayer_generated_all, tag="bilayer_generated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_workflow_for_many_jobs)
-@SoluteInBilayerUmbrellaFlow.operation(aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator))
+@SoluteInBilayerUmbrellaFlow.operation(
+    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator)
+)
 def generate_bilayer(*jobs):
     """
     Generates the lipid bilayer structure for the molecular dynamics simulation.
@@ -301,9 +338,13 @@ def generate_bilayer(*jobs):
         solvent_job: Job = get_solvent_job(job)
         keys_for_files_to_copy = ["bilayer_gro", "bilayer_top"]
         project.operation_to_workflow[func_name()] = bilayer_gen_name
-        import_job_from_other_flow(job, bilayer_gen_project, solvent_job, keys_for_files_to_copy)
+        import_job_from_other_flow(
+            job, bilayer_gen_project, solvent_job, keys_for_files_to_copy
+        )
         lipid_names = job.doc[bilayer_gen_name].get("lipid_names")
-        com_bilayer = calculate_average_com(job.doc[bilayer_gen_name].get("bilayer_gro"), lipid_names)
+        com_bilayer = calculate_average_com(
+            job.doc[bilayer_gen_name].get("bilayer_gro"), lipid_names
+        )
         logger.info(f"bilayer COM: {com_bilayer}")
         job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
 
@@ -311,7 +352,11 @@ def generate_bilayer(*jobs):
         with other_job:
             logger.info(f"Importing data to job {other_job.id}")
             import_job_from_other_flow(
-                other_job, bilayer_gen_project, solvent_job, keys_for_files_to_copy, run_child_job=False
+                other_job,
+                bilayer_gen_project,
+                solvent_job,
+                keys_for_files_to_copy,
+                run_child_job=False,
             )
             other_job.doc[project_name]["bilayer_z_mean"] = com_bilayer[2]
 
@@ -346,7 +391,8 @@ def insert_solute_in_box(job):
         gro_solute=job.doc[project_name]["solute_translated_gro"],
         gro_solvent=job.doc[bilayer_gen_name]["bilayer_gro"],
         output_pdb=SoluteInBilayerUmbrellaFlow.get_state_name("generate", "pdb"),
-        restraint_along_z=job.doc[project_name].get("bilayer_z_mean") + job.sp.depth_from_bilayer_core * 10.0,
+        restraint_along_z=job.doc[project_name].get("bilayer_z_mean")
+        + job.sp.depth_from_bilayer_core * 10.0,
     )
 
 
@@ -408,17 +454,25 @@ def update_topology_file(job: Job):
               topology file, marking the topology update step as complete.
     """
     comb_topology = combine_multiple_topology_files(
-        [job.doc[bilayer_gen_name]["bilayer_top"], job.doc[solute_gen_name]["solute_top"]], "solute in bilayer"
+        [
+            job.doc[bilayer_gen_name]["bilayer_top"],
+            job.doc[solute_gen_name]["solute_top"],
+        ],
+        "solute in bilayer",
     )
     top_file_name = SoluteInBilayerUmbrellaFlow.get_state_name(extension="top")
     job.doc[project_name]["solute_bilayer_top"] = top_file_name
-    comb_topology.update_counts_against_gro(SoluteInBilayerUmbrellaFlow.get_state_name("generate", "gro"))
+    comb_topology.update_counts_against_gro(
+        SoluteInBilayerUmbrellaFlow.get_state_name("generate", "gro")
+    )
     comb_topology.output_top(top_file_name)
 
 
 @SoluteInBilayerUmbrellaFlow.pre(topology_updated, tag="topology_updated")
 @SoluteInBilayerUmbrellaFlow.post(system_minimized, tag="system_minimized")
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_depth_from_bilayer_core)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(
+    store_gromacs_log_to_doc_with_depth_from_bilayer_core
+)
 @SoluteInBilayerUmbrellaFlow.operation(cmd=True, with_job=True)
 def minimize(job: Job):
     """
@@ -448,7 +502,9 @@ def minimize(job: Job):
 
 @SoluteInBilayerUmbrellaFlow.pre(system_minimized, tag="system_minimized")
 @SoluteInBilayerUmbrellaFlow.post(system_equilibrated, tag="system_equilibrated")
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_depth_from_bilayer_core)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(
+    store_gromacs_log_to_doc_with_depth_from_bilayer_core
+)
 @SoluteInBilayerUmbrellaFlow.operation(cmd=True, with_job=True)
 def equilibrate(job):
     """
@@ -473,8 +529,15 @@ def equilibrate(job):
     """
     depth_state = str(job.sp.depth_from_bilayer_core)
     depth_mdp = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.mdp"
-    sub_template_mdp(SoluteInBilayerUmbrellaFlow.mdp_files.get("equilibrate"), "sedstate", depth_state, depth_mdp)
-    sub_template_mdp(depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp)
+    sub_template_mdp(
+        SoluteInBilayerUmbrellaFlow.mdp_files.get("equilibrate"),
+        "sedstate",
+        depth_state,
+        depth_mdp,
+    )
+    sub_template_mdp(
+        depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp
+    )
     lipids = " ".join(lipid_names(job))
     sub_template_mdp(depth_mdp, "sedlipid", lipids, depth_mdp)
     return gromacs_simulation_command(
@@ -488,7 +551,9 @@ def equilibrate(job):
 
 @SoluteInBilayerUmbrellaFlow.pre(system_equilibrated, tag="system_equilibrated")
 @SoluteInBilayerUmbrellaFlow.post(bilayer_depth_sampled, tag="system_sampled")
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_gromacs_log_to_doc_with_depth_from_bilayer_core)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(
+    store_gromacs_log_to_doc_with_depth_from_bilayer_core
+)
 @SoluteInBilayerUmbrellaFlow.operation(cmd=True, with_job=True)
 def production(job):
     """
@@ -515,8 +580,15 @@ def production(job):
     """
     depth_state = str(job.sp.depth_from_bilayer_core)
     depth_mdp = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.mdp"
-    sub_template_mdp(SoluteInBilayerUmbrellaFlow.mdp_files.get("production"), "sedstate", depth_state, depth_mdp)
-    sub_template_mdp(depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp)
+    sub_template_mdp(
+        SoluteInBilayerUmbrellaFlow.mdp_files.get("production"),
+        "sedstate",
+        depth_state,
+        depth_mdp,
+    )
+    sub_template_mdp(
+        depth_mdp, "sedmolecule", job.doc[solute_gen_name].get("solute_name"), depth_mdp
+    )
     lipids = " ".join(lipid_names(job))
     sub_template_mdp(depth_mdp, "sedlipid", lipids, depth_mdp)
     job.doc[project_name][
@@ -525,8 +597,12 @@ def production(job):
     job.doc[project_name][
         "umbrella_pullx_xvg"
     ] = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}_pullx.xvg"
-    job.doc[project_name]["tpr_file"] = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.tpr"
-    job.doc[project_name]["umbrella_log"] = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.log"
+    job.doc[project_name][
+        "tpr_file"
+    ] = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.tpr"
+    job.doc[project_name][
+        "umbrella_log"
+    ] = f"{SoluteInBilayerUmbrellaFlow.get_system_run_name(depth_state)}.log"
     return gromacs_simulation_command(
         mdp=depth_mdp,
         top=SoluteInBilayerUmbrellaFlow.get_state_name(extension="top"),
@@ -538,29 +614,29 @@ def production(job):
 
 @SoluteInBilayerUmbrellaFlow.label
 def wham_calculated(*jobs) -> bool:
-    return any([job.isfile(wham_profile_xvg) and job.isfile(wham_hist_xvg) for job in jobs])
+    return any(
+        job.isfile(wham_profile_xvg) and job.isfile(wham_hist_xvg) for job in jobs
+    )
 
 
 @SoluteInBilayerUmbrellaFlow.label
 def free_energy_calculated(*jobs) -> bool:
     return all(
-        [
-            job.doc.get(project_name, False)
-            and job.doc[project_name].get("free_energy", False)
-            and job.doc[project_name]["free_energy"].get("profile", False)
-            for job in jobs
-        ]
+        job.doc.get(project_name, False)
+        and job.doc[project_name].get("free_energy", False)
+        and job.doc[project_name]["free_energy"].get("profile", False)
+        for job in jobs
     )
 
 
 @SoluteInBilayerUmbrellaFlow.label
 def all_depth_states_sampled(*jobs):
     result = all(
-        [
-            job.doc.get(project_name, False)
-            and job.isfile(job.fn(job.doc[project_name].get("umbrella_pullx_xvg", default="")))
-            for job in jobs
-        ]
+        job.doc.get(project_name, False)
+        and job.isfile(
+            job.fn(job.doc[project_name].get("umbrella_pullx_xvg", default=""))
+        )
+        for job in jobs
     )
     return result
 
@@ -569,7 +645,10 @@ def all_depth_states_sampled(*jobs):
 @SoluteInBilayerUmbrellaFlow.post(wham_calculated, tag="wham_calculated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_task_for_many_jobs)
 @SoluteInBilayerUmbrellaFlow.operation(
-    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator, sort_by="depth_from_bilayer_core"),
+    aggregator=aggregator(
+        aggregator_function=solute_in_bilayer_aggregator,
+        sort_by="depth_from_bilayer_core",
+    ),
     cmd=True,
 )
 def compute_wham(*jobs):
@@ -625,7 +704,10 @@ def compute_wham(*jobs):
 @SoluteInBilayerUmbrellaFlow.post(free_energy_calculated, tag="free_energy_calculated")
 @SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(store_task_for_many_jobs)
 @SoluteInBilayerUmbrellaFlow.operation(
-    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator, sort_by="depth_from_bilayer_core")
+    aggregator=aggregator(
+        aggregator_function=solute_in_bilayer_aggregator,
+        sort_by="depth_from_bilayer_core",
+    )
 )
 def analyze_wham(*jobs):
     """
@@ -677,9 +759,14 @@ def analyze_wham(*jobs):
     nomad_workflow_built,
     tag="generated_nomad_workflow",
 )
-@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(flag_ready_for_upload_multiple_jobs)
+@SoluteInBilayerUmbrellaFlow.operation_hooks.on_success(
+    flag_ready_for_upload_multiple_jobs
+)
 @SoluteInBilayerUmbrellaFlow.operation(
-    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator, sort_by="depth_from_bilayer_core")
+    aggregator=aggregator(
+        aggregator_function=solute_in_bilayer_aggregator,
+        sort_by="depth_from_bilayer_core",
+    )
 )
 def generate_nomad_workflow(*jobs):
     for job in jobs:
@@ -693,7 +780,10 @@ def generate_nomad_workflow(*jobs):
 @SoluteInBilayerUmbrellaFlow.pre(nomad_workflow_built, tag="generated_nomad_workflow")
 @SoluteInBilayerUmbrellaFlow.post(any_uploaded_to_nomad)
 @SoluteInBilayerUmbrellaFlow.operation(
-    aggregator=aggregator(aggregator_function=solute_in_bilayer_aggregator, sort_by="depth_from_bilayer_core")
+    aggregator=aggregator(
+        aggregator_function=solute_in_bilayer_aggregator,
+        sort_by="depth_from_bilayer_core",
+    )
 )
 def upload_to_nomad(*jobs):
     return SoluteInBilayerUmbrellaFlow.upload_to_nomad_multiple_jobs(list(jobs))
@@ -709,6 +799,8 @@ def get_solvation_job(job: Job) -> Job:
     return project.open_job(sp).init()
 
 
-project = SoluteInBilayerUmbrellaFlow.get_project(path=SoluteInBilayerUmbrellaFlow.workspace_path)
+project = SoluteInBilayerUmbrellaFlow.get_project(
+    path=SoluteInBilayerUmbrellaFlow.workspace_path
+)
 solute_gen_project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
 bilayer_gen_project = BilayerGenFlow.get_project(path=BilayerGenFlow.workspace_path)

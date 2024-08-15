@@ -11,10 +11,14 @@ if not isdir(BilayerGenFlow.workspace_path):
 
 project = signac.init_project(path=BilayerGenFlow.workspace_path)
 
-for lipid_name in [LiquidMixture([LiquidComponent("M3.POPC", 0.8), LiquidComponent("M3.DPPC", 0.2)])]:
+for lipid_name in [
+    LiquidMixture([LiquidComponent("M3.POPC", 0.8), LiquidComponent("M3.DPPC", 0.2)])
+]:
     sp = {
         "type": "bilayer",
-        "lipids": [{"name": c.name, "fraction": c.fraction} for c in lipid_name.components],
+        "lipids": [
+            {"name": c.name, "fraction": c.fraction} for c in lipid_name.components
+        ],
         "solvent": BilayerGenFlow.solvent.to_insane_format(),
     }
     job = project.open_job(sp).init()

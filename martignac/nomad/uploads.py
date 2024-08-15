@@ -1,7 +1,8 @@
 import datetime as dt
 import logging
+from collections.abc import ByteString
 from os.path import basename
-from typing import Any, ByteString, Optional, Union
+from typing import Any, Optional, Union
 
 from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
@@ -24,7 +25,9 @@ class NomadUploadSchema(Schema):
     def convert_users(self, data, **kwargs):
         data["main_author"] = get_user_by_id(user_id=data["main_author"]).as_dict()
         data["writers"] = [get_user_by_id(user_id=w).as_dict() for w in data["writers"]]
-        data["reviewers"] = [get_user_by_id(user_id=r).as_dict() for r in data["reviewers"]]
+        data["reviewers"] = [
+            get_user_by_id(user_id=r).as_dict() for r in data["reviewers"]
+        ]
         data["viewers"] = [get_user_by_id(user_id=v).as_dict() for v in data["viewers"]]
         return data
 
@@ -118,7 +121,9 @@ class NomadUpload:
 
 
 @ttl_cache(maxsize=128, ttl=180)
-def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadUpload]:
+def get_all_my_uploads(
+    use_prod: bool = False, timeout_in_sec: int = 10
+) -> list[NomadUpload]:
     """
     Retrieves all uploads associated with the authenticated user from the NOMAD system.
 
@@ -143,11 +148,17 @@ def get_all_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list
         timeout_in_sec=timeout_in_sec,
     )
     upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
-    return [upload_class_schema().load({**r, "use_prod": use_prod}) for r in response["data"]]
+    return [
+        upload_class_schema().load({**r, "use_prod": use_prod})
+        for r in response["data"]
+    ]
 
 
 def get_upload_by_id(
-    upload_id: str, use_prod: bool = False, with_authentication: bool = True, timeout_in_sec: int = 10
+    upload_id: str,
+    use_prod: bool = False,
+    with_authentication: bool = True,
+    timeout_in_sec: int = 10,
 ) -> NomadUpload:
     """
     Retrieves a specific upload by its ID from the NOMAD system.
@@ -167,7 +178,9 @@ def get_upload_by_id(
     Returns:
         NomadUpload: An instance of `NomadUpload` containing all the metadata and state information of the upload.
     """
-    logger.info(f"retrieving upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"retrieving upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = get_nomad_request(
         f"/uploads/{upload_id}",
         use_prod=use_prod,
@@ -178,7 +191,9 @@ def get_upload_by_id(
     return upload_class_schema().load({**response["data"], "use_prod": use_prod})
 
 
-def delete_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> NomadUpload:
+def delete_upload(
+    upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10
+) -> NomadUpload:
     """
     Deletes a specific upload from the NOMAD system based on its unique ID.
 
@@ -200,7 +215,9 @@ def delete_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 
     Raises:
         ValueError: If the deletion request fails or the response from the NOMAD system is unexpected.
     """
-    logger.info(f"deleting upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"deleting upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = delete_nomad_request(
         f"/uploads/{upload_id}",
         with_authentication=True,
@@ -210,7 +227,9 @@ def delete_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 
     return upload_class_schema().load({**response["data"], "use_prod": use_prod})
 
 
-def upload_files_to_nomad(filename: str, use_prod: bool = False, timeout_in_sec: int = 30) -> str:
+def upload_files_to_nomad(
+    filename: str, use_prod: bool = False, timeout_in_sec: int = 30
+) -> str:
     """
     Uploads a file to the NOMAD system.
 
@@ -249,7 +268,9 @@ def upload_files_to_nomad(filename: str, use_prod: bool = False, timeout_in_sec:
         logger.error(f"could not upload {filename}. Response {response}")
 
 
-def publish_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> dict:
+def publish_upload(
+    upload_id: str, use_prod: bool = False, timeout_in_sec: int = 10
+) -> dict:
     """
     Publishes a specified upload in the NOMAD system.
 
@@ -267,7 +288,9 @@ def publish_upload(upload_id: str, use_prod: bool = False, timeout_in_sec: int =
     Returns:
         dict: A dictionary containing the response from the NOMAD system regarding the publish action.
     """
-    logger.info(f"publishing upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"publishing upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = post_nomad_request(
         f"/uploads/{upload_id}/action/publish",
         with_authentication=True,
@@ -311,7 +334,9 @@ def edit_upload_metadata(
     Returns:
         dict: A dictionary containing the response from the NOMAD system regarding the edit action.
     """
-    logger.info(f"editing the metadata for upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"editing the metadata for upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     metadata = {"metadata": {}}
     if upload_name:
         metadata["metadata"]["upload_name"] = upload_name
@@ -364,7 +389,9 @@ def get_specific_file_from_upload(
     Raises:
         ValueError: If the file cannot be downloaded or saved to the specified path.
     """
-    logger.info(f"downloading file {path_to_file} from upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"downloading file {path_to_file} from upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = get_nomad_request(
         f"/uploads/{upload_id}/raw/{path_to_file}",
         use_prod=use_prod,
@@ -379,7 +406,11 @@ def get_specific_file_from_upload(
 
 
 def upload_file_to_specified_path(
-    upload_id: str, remote_path: str, local_file: str, use_prod: bool = False, timeout_in_sec: int = 10
+    upload_id: str,
+    remote_path: str,
+    local_file: str,
+    use_prod: bool = False,
+    timeout_in_sec: int = 10,
 ) -> dict:
     """
     Uploads a file to a specific path within an upload in the NOMAD system.
@@ -401,7 +432,9 @@ def upload_file_to_specified_path(
     Returns:
         dict: A dictionary containing the response from the NOMAD system regarding the upload action.
     """
-    logger.info(f"uploading file {local_file} to upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"uploading file {local_file} to upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     remote_file = f"{remote_path}{basename(local_file)}"
     response = put_nomad_request(
         f"/uploads/{upload_id}/raw/{remote_path}?file_name={remote_file}",
@@ -416,7 +449,11 @@ def upload_file_to_specified_path(
 
 
 def delete_file_to_specified_path(
-    upload_id: str, remote_path: str, local_file: str, use_prod: bool = False, timeout_in_sec: int = 10
+    upload_id: str,
+    remote_path: str,
+    local_file: str,
+    use_prod: bool = False,
+    timeout_in_sec: int = 10,
 ) -> dict:
     """
     Deletes a file from a specific path within an upload in the NOMAD system.
@@ -438,7 +475,9 @@ def delete_file_to_specified_path(
     Returns:
         dict: A dictionary containing the response from the NOMAD system regarding the deletion action.
     """
-    logger.info(f"deleting file {local_file} from upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"deleting file {local_file} from upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     remote_file = f"{remote_path}{basename(local_file)}"
     response = delete_nomad_request(
         f"/uploads/{upload_id}/raw/{remote_file}",

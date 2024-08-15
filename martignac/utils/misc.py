@@ -43,7 +43,10 @@ def copy_files_to(files: list[str], destination_dir: str) -> None:
 
 
 def generate_top_file_for_generic_molecule(
-    molecule_name: str, force_field_filenames: list[str], top_filename: str, num_molecules: int = 1
+    molecule_name: str,
+    force_field_filenames: list[str],
+    top_filename: str,
+    num_molecules: int = 1,
 ) -> None:
     """
     Generates a GROMACS topology file for a generic molecule.
@@ -73,7 +76,9 @@ def generate_top_file_for_generic_molecule(
         f.write(f"{molecule_name:4s}            {num_molecules:5d}\n")
 
 
-def sub_template_mdp(mdp_source: str, template: str, new_entry: str, mdp_dest: str) -> None:
+def sub_template_mdp(
+    mdp_source: str, template: str, new_entry: str, mdp_dest: str
+) -> None:
     """
     Substitutes a template placeholder in a GROMACS MDP file with a new entry.
 
@@ -155,7 +160,9 @@ def zip_directories(directory_names: list, output_file_name: str) -> str:
                     # Exclude symlinks
                     if not islink(file_path):
                         # Calculate archive name based on the file's relative path to the directory being zipped
-                        arcname = os.path.relpath(file_path, start=os.path.commonpath(directory_names))
+                        arcname = os.path.relpath(
+                            file_path, start=os.path.commonpath(directory_names)
+                        )
                         zipf.write(file_path, arcname=arcname)
 
     # The final output path could be in the same directory as the script or a specific directory
@@ -220,10 +227,14 @@ def calculate_average_com(gro_file_path: str, molecule_names: list[str]) -> np.n
     if len(molecule_atoms) > 0:
         return molecule_atoms.center_of_mass()
     else:
-        raise ValueError(f"No atoms found for the types {molecule_names} in {gro_file_path}")
+        raise ValueError(
+            f"No atoms found for the types {molecule_names} in {gro_file_path}"
+        )
 
 
-def translate_gro_by_vector(gro_file_path: str, output_gro_file_path: str, com_diff_vector: np.ndarray) -> None:
+def translate_gro_by_vector(
+    gro_file_path: str, output_gro_file_path: str, com_diff_vector: np.ndarray
+) -> None:
     """
     Translates the positions of all atoms in a GRO file by a specified vector and saves the result to a new file.
 

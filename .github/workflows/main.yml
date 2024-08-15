@@ -8,19 +8,25 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  quality:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out
+      - name: Check out the repository
         uses: actions/checkout@v3
 
-      - uses: actions/cache@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          python-version: '3.9'
 
-      - name: Run checks
-        run: make check
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run linting
+        run: black --check .
+
+      - name: Run tests
+        run: pytest
 
   tox:
     runs-on: ubuntu-latest

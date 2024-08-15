@@ -53,8 +53,12 @@ class SolventGenFlow(MartiniFlowProject):
     simulations, and integrating with the NOMAD database for workflow management.
     """
 
-    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
-    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    workspace_path: str = (
+        f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    )
+    mdp_path = (
+        f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    )
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
     simulation_settings = {
@@ -108,10 +112,16 @@ def generate_solvent_molecule(job) -> None:
         None: This function does not return a value but updates the job document with the paths to the generated
               GRO and TOP files, marking the 'generated_mol_gro' condition as complete.
     """
-    molecule = find_molecule_from_name(list(SolventGenFlow.itp_files.values()), job.sp.solvent_name)
-    generate_gro_file_for_molecule(molecule, SolventGenFlow.get_state_name("mol", "gro"))
+    molecule = find_molecule_from_name(
+        list(SolventGenFlow.itp_files.values()), job.sp.solvent_name
+    )
+    generate_gro_file_for_molecule(
+        molecule, SolventGenFlow.get_state_name("mol", "gro")
+    )
     generate_top_file_for_molecule(
-        molecule, list(SolventGenFlow.itp_files.values()), SolventGenFlow.get_state_name("mol", "top")
+        molecule,
+        list(SolventGenFlow.itp_files.values()),
+        SolventGenFlow.get_state_name("mol", "top"),
     )
     return None
 
@@ -170,7 +180,9 @@ def convert_box_to_gro(_):
         state by marking the 'generated_box_gro' condition as complete upon successful conversion.
     """
     box_length = SolventGenFlow.simulation_settings.get("box_length")
-    box_vector = np.array([box_length * 10.0, box_length * 10.0, box_length * 10.0, 90.0, 90.0, 90.0])
+    box_vector = np.array(
+        [box_length * 10.0, box_length * 10.0, box_length * 10.0, 90.0, 90.0, 90.0]
+    )
     convert_pdb_to_gro(
         SolventGenFlow.get_state_name("box", "pdb"),
         SolventGenFlow.get_state_name("box", "gro"),
@@ -202,12 +214,16 @@ def minimize(job):
         None: This function does not return a value but updates the job document with the paths to the generated
               topology file and executes the energy minimization command.
     """
-    molecule = find_molecule_from_name(list(SolventGenFlow.itp_files.values()), job.sp.solvent_name)
+    molecule = find_molecule_from_name(
+        list(SolventGenFlow.itp_files.values()), job.sp.solvent_name
+    )
     generate_top_file_for_molecule(
         molecule,
         list(SolventGenFlow.itp_files.values()),
         SolventGenFlow.get_state_name("box", "top"),
-        num_molecules=get_number_of_molecules_from_gro(SolventGenFlow.get_state_name("box", "gro")),
+        num_molecules=get_number_of_molecules_from_gro(
+            SolventGenFlow.get_state_name("box", "gro")
+        ),
     )
     job.doc[project_name]["solvent_top"] = SolventGenFlow.get_state_name("box", "top")
     job.doc[project_name]["solvent_name"] = job.sp.solvent_name
@@ -278,7 +294,9 @@ def production(job):
         None: This function does not return a value but updates the job document with the path to the production
               GRO file and executes the production simulation command.
     """
-    job.doc[project_name]["solvent_gro"] = SolventGenFlow.get_state_name("production", "gro")
+    job.doc[project_name]["solvent_gro"] = SolventGenFlow.get_state_name(
+        "production", "gro"
+    )
     return gromacs_simulation_command(
         mdp=SolventGenFlow.mdp_files.get("production"),
         top=SolventGenFlow.get_state_name("box", "top"),

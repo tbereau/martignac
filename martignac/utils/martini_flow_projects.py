@@ -86,13 +86,27 @@ class MartiniFlowProject(FlowProject):
     @classmethod
     def register_mdp_files(cls, job: Job) -> None:
         job.doc = update_nested_dict(
-            job.doc, {cls.class_name(): {"mdp_files": cls.get_hash_for_files(job, list(cls.mdp_files.values()))}}
+            job.doc,
+            {
+                cls.class_name(): {
+                    "mdp_files": cls.get_hash_for_files(
+                        job, list(cls.mdp_files.values())
+                    )
+                }
+            },
         )
 
     @classmethod
     def register_itp_files(cls, job: Job) -> None:
         job.doc = update_nested_dict(
-            job.doc, {cls.class_name(): {"itp_files": cls.get_hash_for_files(job, list(cls.itp_files.values()))}}
+            job.doc,
+            {
+                cls.class_name(): {
+                    "itp_files": cls.get_hash_for_files(
+                        job, list(cls.itp_files.values())
+                    )
+                }
+            },
         )
 
     @classmethod
@@ -113,7 +127,10 @@ class MartiniFlowProject(FlowProject):
 
     @classmethod
     def upload_to_nomad(
-        cls, job: Job, nomad_upload_flag: bool = UPLOAD_TO_NOMAD, publish_flag: bool = PUBLISH_TO_NOMAD
+        cls,
+        job: Job,
+        nomad_upload_flag: bool = UPLOAD_TO_NOMAD,
+        publish_flag: bool = PUBLISH_TO_NOMAD,
     ) -> None:
         if not nomad_upload_flag:
             logger.info("NOMAD upload turned off")
@@ -121,7 +138,9 @@ class MartiniFlowProject(FlowProject):
         if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
             logger.info(f"Workflow {cls.class_name()} already uploaded to {upload_id}")
             return None
-        dataset = get_dataset_by_id(cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database)
+        dataset = get_dataset_by_id(
+            cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database
+        )
         logger.info(f"made connection to dataset {dataset.dataset_id}")
         generate_user_metadata(
             file_name=job.fn("nomad.yaml"),
@@ -132,7 +151,9 @@ class MartiniFlowProject(FlowProject):
         job.doc = update_nested_dict(job.doc, {"nomad_dataset_id": dataset.dataset_id})
         zip_file = zip_directories([job.path], job.id)
         upload_id = upload_files_to_nomad(zip_file, cls.nomad_use_prod_database)
-        job.doc = update_nested_dict(job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}})
+        job.doc = update_nested_dict(
+            job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}}
+        )
         if publish_flag:
             publish_upload(upload_id, cls.nomad_use_prod_database)
             logger.info(f"Published upload {upload_id}")
@@ -141,18 +162,27 @@ class MartiniFlowProject(FlowProject):
 
     @classmethod
     def upload_to_nomad_multiple_jobs(
-        cls, jobs: list[Job], nomad_upload_flag: bool = UPLOAD_TO_NOMAD, publish_flag: bool = PUBLISH_TO_NOMAD
+        cls,
+        jobs: list[Job],
+        nomad_upload_flag: bool = UPLOAD_TO_NOMAD,
+        publish_flag: bool = PUBLISH_TO_NOMAD,
     ) -> None:
         if not nomad_upload_flag:
             logger.info("NOMAD upload turned off")
             return None
-        dataset = get_dataset_by_id(cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database)
+        dataset = get_dataset_by_id(
+            cls.nomad_dataset_id, use_prod=cls.nomad_use_prod_database
+        )
         logger.info(f"made connection to dataset {dataset.dataset_id}")
         for job in jobs:
             if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
-                logger.info(f"Workflow {cls.class_name()} already uploaded to {upload_id}")
+                logger.info(
+                    f"Workflow {cls.class_name()} already uploaded to {upload_id}"
+                )
                 return None
-            job.doc = update_nested_dict(job.doc, {"nomad_dataset_id": dataset.dataset_id})
+            job.doc = update_nested_dict(
+                job.doc, {"nomad_dataset_id": dataset.dataset_id}
+            )
             generate_user_metadata(
                 file_name=job.fn("nomad.yaml"),
                 comment=json.dumps(cls.nomad_comment(job)),
@@ -163,7 +193,9 @@ class MartiniFlowProject(FlowProject):
         upload_id = upload_files_to_nomad(zip_file, cls.nomad_use_prod_database)
         os.remove(zip_file)
         for job in jobs:
-            job.doc = update_nested_dict(job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}})
+            job.doc = update_nested_dict(
+                job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}}
+            )
         if publish_flag:
             publish_upload(upload_id, cls.nomad_use_prod_database)
             logger.info(f"Published upload {upload_id}")
@@ -174,7 +206,11 @@ class MartiniFlowProject(FlowProject):
         project = cast("MartiniFlowProject", job.project)
         logger.info(f"removing symbolic links for {job.id} @ {project.class_name()}")
         for root, _, files in os.walk(job.path):
-            for file in filter(lambda f: f.endswith((".itp", ".mdp")) and os.path.islink(os.path.join(root, f)), files):
+            for file in filter(
+                lambda f: f.endswith((".itp", ".mdp"))
+                and os.path.islink(os.path.join(root, f)),
+                files,
+            ):
                 os.unlink(os.path.join(root, file))
         if "files_symlinked" not in job.document:
             job.document["files_symlinked"] = {}
@@ -223,7 +259,9 @@ def store_gromacs_log_to_doc_with_state_point(operation_name: str, job: Job):
     _store_gromacs_log_to_doc_flexible(operation_name, job, True)
 
 
-def store_gromacs_log_to_doc_with_depth_from_bilayer_core(operation_name: str, job: Job):
+def store_gromacs_log_to_doc_with_depth_from_bilayer_core(
+    operation_name: str, job: Job
+):
     """
     Stores the GROMACS log file information in the job document, including differentiation based on the depth from the bilayer core.
 
@@ -242,20 +280,31 @@ def store_gromacs_log_to_doc_with_depth_from_bilayer_core(operation_name: str, j
         None: This function does not return a value but updates the job's document with the log file information,
               including differentiation based on the depth from the bilayer core.
     """
-    _store_gromacs_log_to_doc_flexible(operation_name, job, True, state_point_key="depth_from_bilayer_core")
+    _store_gromacs_log_to_doc_flexible(
+        operation_name, job, True, state_point_key="depth_from_bilayer_core"
+    )
 
 
 def _store_gromacs_log_to_doc_flexible(
-    operation_name: str, job: Job, with_state_point: bool, state_point_key: str = "lambda_state"
+    operation_name: str,
+    job: Job,
+    with_state_point: bool,
+    state_point_key: str = "lambda_state",
 ):
     logger.info(f"logging log file for gromacs simulation {operation_name} @ {job.id}")
     project_ = cast(MartiniFlowProject, job.project)
-    file_name = f"{operation_name}-{job.sp.get(state_point_key)}" if with_state_point else operation_name
+    file_name = (
+        f"{operation_name}-{job.sp.get(state_point_key)}"
+        if with_state_point
+        else operation_name
+    )
     job.doc = update_nested_dict(
         job.doc,
         {
             project_.class_name(): {
-                "gromacs_logs": {operation_name: project_.get_state_name(file_name, extension="log")}
+                "gromacs_logs": {
+                    operation_name: project_.get_state_name(file_name, extension="log")
+                }
             }
         },
     )
@@ -282,7 +331,9 @@ def store_task(operation_name: str, job: Job):
     """
     logger.info(f"logging workflow task {operation_name} @ {job.id}")
     project_ = cast(MartiniFlowProject, job.project)
-    job.doc = update_nested_dict(job.doc, {project_.class_name(): {"tasks": {operation_name: "run"}}})
+    job.doc = update_nested_dict(
+        job.doc, {project_.class_name(): {"tasks": {operation_name: "run"}}}
+    )
 
 
 def store_task_for_many_jobs(operation_name: str, *jobs):
@@ -331,12 +382,22 @@ def store_workflow(operation_name: str, job: Job):
               information.
     """
     project_ = cast(MartiniFlowProject, job.project)
-    logger.info(f"logging workflow {project_.class_name()} for {operation_name} @ {job.id}")
+    logger.info(
+        f"logging workflow {project_.class_name()} for {operation_name} @ {job.id}"
+    )
     if operation_name not in project_.operation_to_workflow:
-        raise ValueError(f"operation {operation_name} @ {job.id} has not been registered")
+        raise ValueError(
+            f"operation {operation_name} @ {job.id} has not been registered"
+        )
     job.doc = update_nested_dict(
         job.doc,
-        {project_.class_name(): {"workflows": {operation_name: project_.operation_to_workflow[operation_name]}}},
+        {
+            project_.class_name(): {
+                "workflows": {
+                    operation_name: project_.operation_to_workflow[operation_name]
+                }
+            }
+        },
     )
 
 
@@ -365,7 +426,9 @@ def store_workflow_for_many_jobs(operation_name: str, *jobs):
 
 def flag_ready_for_upload(_: str, job: Job):
     project_name = cast("MartiniFlowProject", job.project).class_name()
-    job.doc = update_nested_dict(job.doc, {project_name: {"ready_for_nomad_upload": True}})
+    job.doc = update_nested_dict(
+        job.doc, {project_name: {"ready_for_nomad_upload": True}}
+    )
 
 
 def flag_ready_for_upload_multiple_jobs(_: str, *jobs):
@@ -384,7 +447,9 @@ def is_ready_for_upload(job: Job) -> bool:
 @MartiniFlowProject.label
 def uploaded_to_nomad(job: Job) -> bool:
     project_name = cast("MartiniFlowProject", job.project).class_name()
-    return project_name in job.doc and job.doc[project_name].get("nomad_upload_id", False)
+    return project_name in job.doc and job.doc[project_name].get(
+        "nomad_upload_id", False
+    )
 
 
 @MartiniFlowProject.label
@@ -461,11 +526,17 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
     logger.info(f"generating symbolic links for {job.id} @ {project.class_name()}")
     for itp_file in project.itp_files.values():
         if not job.isfile(os.path.basename(itp_file)):
-            os.symlink(f"{project.itp_path}/{itp_file}", job.fn(os.path.basename(itp_file)))
+            os.symlink(
+                f"{project.itp_path}/{itp_file}", job.fn(os.path.basename(itp_file))
+            )
     for mdp_file in project.mdp_files.values():
         if not job.isfile(os.path.basename(mdp_file)):
-            os.symlink(f"{project.mdp_path}/{mdp_file}", job.fn(os.path.basename(mdp_file)))
-    job.doc = update_nested_dict(job.doc, {project.class_name(): {"files_symlinked": True}})
+            os.symlink(
+                f"{project.mdp_path}/{mdp_file}", job.fn(os.path.basename(mdp_file))
+            )
+    job.doc = update_nested_dict(
+        job.doc, {project.class_name(): {"files_symlinked": True}}
+    )
 
 
 def import_job_from_other_flow(
@@ -499,10 +570,16 @@ def import_job_from_other_flow(
     if run_child_job:
         logger.info(f"Running job {child_job.id} @  {child_project.class_name()}")
         child_project.run(jobs=[child_job])
-        logger.info(f"Finished running job {child_job.id} @ {child_project.class_name()}")
+        logger.info(
+            f"Finished running job {child_job.id} @ {child_project.class_name()}"
+        )
     for key in keys_for_files_to_copy:
-        shutil.copy(child_job.fn(child_job.doc[child_project.class_name()].get(key)), job.path)
-    job.doc = update_nested_dict(job.doc, {child_project.class_name(): child_job.doc[child_project.class_name()]})
+        shutil.copy(
+            child_job.fn(child_job.doc[child_project.class_name()].get(key)), job.path
+        )
+    job.doc = update_nested_dict(
+        job.doc, {child_project.class_name(): child_job.doc[child_project.class_name()]}
+    )
 
 
 @MartiniFlowProject.label

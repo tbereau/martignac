@@ -5,9 +5,9 @@ from typing import Optional
 def generate_user_metadata(
     file_name: str,
     comment: Optional[str] = None,
-    references: list[str] = None,
-    coauthors: list[str] = None,
-    datasets: list[str] = None,
+    references: Optional[list[str]] = None,
+    coauthors: Optional[list[str]] = None,
+    datasets: Optional[list[str]] = None,
 ) -> None:
     """
     Generates a JSON file containing user metadata for a project.
@@ -25,6 +25,11 @@ def generate_user_metadata(
     Returns:
         None: This function does not return a value but writes the metadata to a file.
     """
-    user_metadata = {"comment": comment, "references": references, "coauthors": coauthors, "datasets": datasets}
+    user_metadata = {
+        "comment": comment,
+        "references": references,
+        "coauthors": coauthors,
+        "datasets": datasets,
+    }
     with open(file_name, "w") as f:
         json.dump(user_metadata, f)

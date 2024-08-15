@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from martignac.workflow_interfaces.generic import GenericInterface, get_interface_for_upload_id_and_job_id
+from martignac.workflow_interfaces.generic import (
+    GenericInterface,
+    get_interface_for_upload_id_and_job_id,
+)
 
 
 @dataclass(frozen=True)

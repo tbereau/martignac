@@ -36,7 +36,7 @@ requirements = [
     "marshmallow-dataclass>=8.6.0",
     "cachetools>=5.3.2",
     "isort>=5.8.0",
-    "insane @ git+https://github.com/Tsjerk/Insane.git@f382b447d6dd6c3a89f884347cceaede02bf0166",  # noqa: E501
+    "insane @ git+https://github.com/Tsjerk/Insane.git@f382b447d6dd6c3a89f884347cceaede02bf0166",
     "anyio>=3.0.0,<4.0",
     "GromacsWrapper",
     "mkdocs",

@@ -55,9 +55,9 @@ class NomadDataset:
 
 
 def retrieve_datasets(
-    dataset_id: str = None,
-    dataset_name: str = None,
-    user_id: str = None,
+    dataset_id: Optional[str] = None,
+    dataset_name: Optional[str] = None,
+    user_id: Optional[str] = None,
     page_size: int = 10,
     max_datasets: int = 50,
     use_prod: bool = True,
@@ -98,7 +98,11 @@ def retrieve_datasets(
     datasets = []
     page_after_value = None
     while (max_datasets > 0 and len(datasets) <= max_datasets) or (max_datasets < 0):
-        url = f"{url_suffix}&page_after_value={page_after_value}" if page_after_value else url_suffix
+        url = (
+            f"{url_suffix}&page_after_value={page_after_value}"
+            if page_after_value
+            else url_suffix
+        )
         response = get_nomad_request(url, headers=headers, use_prod=use_prod)
         if len(response["data"]) == 0:
             break
@@ -133,7 +137,9 @@ def get_dataset_by_id(dataset_id: str, use_prod: bool = True) -> NomadDataset:
     return datasets[0]
 
 
-def create_dataset(dataset_name: str, use_prod: bool = False, timeout_in_sec: int = 10) -> str:
+def create_dataset(
+    dataset_name: str, use_prod: bool = False, timeout_in_sec: int = 10
+) -> str:
     """
     Creates a new dataset in the NOMAD system with the specified name.
 
@@ -154,7 +160,9 @@ def create_dataset(dataset_name: str, use_prod: bool = False, timeout_in_sec: in
     Raises:
         HTTPError: If the request fails or the NOMAD system returns an error response.
     """
-    logger.info(f"creating dataset name {dataset_name} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"creating dataset name {dataset_name} on {'prod' if use_prod else 'test'} server"
+    )
     json_dict = {"dataset_name": dataset_name}
     response = post_nomad_request(
         "/datasets/",
@@ -166,7 +174,9 @@ def create_dataset(dataset_name: str, use_prod: bool = False, timeout_in_sec: in
     return response.get("dataset_id")
 
 
-def delete_dataset(dataset_id: str, use_prod: bool = False, timeout_in_sec: int = 10) -> None:
+def delete_dataset(
+    dataset_id: str, use_prod: bool = False, timeout_in_sec: int = 10
+) -> None:
     """
     Deletes a dataset from the NOMAD system by its dataset ID.
 
@@ -185,7 +195,9 @@ def delete_dataset(dataset_id: str, use_prod: bool = False, timeout_in_sec: int 
         This function logs the outcome of the deletion operation, reporting success or failure through the logging
         system.
     """
-    logger.info(f"deleting dataset {dataset_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"deleting dataset {dataset_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = delete_nomad_request(
         f"/datasets/{dataset_id}",
         with_authentication=True,

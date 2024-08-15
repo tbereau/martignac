@@ -76,7 +76,9 @@ class NomadSection:
     @property
     def upload_prefix(self) -> str:
         upload_prefix = f"/uploads/{self.upload_id}" if self.upload_id else "../upload"
-        return f"{upload_prefix}/archive/mainfile/{self.log_file}" if self.log_file else ""
+        return (
+            f"{upload_prefix}/archive/mainfile/{self.log_file}" if self.log_file else ""
+        )
 
     def to_dict(self) -> dict:
         return {"name": self.name, "section": self.section}
@@ -183,7 +185,10 @@ class NomadWorkflowArchive:
 
     @classmethod
     def from_multiple_jobs(
-        cls, project: MartiniFlowProject, jobs: list[Job], aggregate_same_task_names: bool = True
+        cls,
+        project: MartiniFlowProject,
+        jobs: list[Job],
+        aggregate_same_task_names: bool = True,
     ) -> "NomadWorkflowArchive":
         def filter_unique(ele):
             final_inputs = []
@@ -195,9 +200,13 @@ class NomadWorkflowArchive:
         archive = NomadWorkflowArchive()
         for job in jobs:
             workflow = NomadWorkflow(project, job, is_top_level=True)
-            job_inputs = [inp.add_job_id(job) for inp in copy(workflow.generate_archive().inputs)]
+            job_inputs = [
+                inp.add_job_id(job) for inp in copy(workflow.generate_archive().inputs)
+            ]
             archive.inputs.extend(job_inputs)
-            job_outputs = [out.add_job_id(job) for out in copy(workflow.generate_archive().outputs)]
+            job_outputs = [
+                out.add_job_id(job) for out in copy(workflow.generate_archive().outputs)
+            ]
             archive.outputs.extend(job_outputs)
             job_tasks = copy(workflow.generate_archive().tasks)
 
@@ -278,7 +287,11 @@ class NomadWorkflow:
 
     @property
     def workflows(self) -> dict:
-        return self.job.doc[self.project_name].get("workflows", {}) if self.is_top_level else {}
+        return (
+            self.job.doc[self.project_name].get("workflows", {})
+            if self.is_top_level
+            else {}
+        )
 
     @property
     def all_tasks(self) -> dict:
@@ -288,7 +301,9 @@ class NomadWorkflow:
         section_type = self._section_type(operation_name)
         label = self.all_tasks[operation_name]
         if section_type == "workflow":
-            label = self.job.doc[self.all_tasks[operation_name]].get("nomad_workflow", self.all_tasks[operation_name])
+            label = self.job.doc[self.all_tasks[operation_name]].get(
+                "nomad_workflow", self.all_tasks[operation_name]
+            )
         upload_id = (
             self.job.doc[self.all_tasks[operation_name]].get("nomad_upload_id", None)
             if section_type == "workflow"
@@ -317,10 +332,14 @@ class NomadWorkflow:
         for node_index in signac_graph.nodes:
             op_name = operations[node_index]
             if op_name in all_tasks:
-                graph.add_node(op_name, label=all_tasks[op_name], is_task=op_name in self.tasks)
+                graph.add_node(
+                    op_name, label=all_tasks[op_name], is_task=op_name in self.tasks
+                )
                 self.register_section(op_name)
         for node_1, node_2 in signac_graph.edges:
-            if (op_name_1 := operations[node_1]) in graph.nodes and (op_name_2 := operations[node_2]) in graph.nodes:
+            if (op_name_1 := operations[node_1]) in graph.nodes and (
+                op_name_2 := operations[node_2]
+            ) in graph.nodes:
                 graph.add_edge(op_name_1, op_name_2)
         return graph
 
@@ -328,7 +347,9 @@ class NomadWorkflow:
         archive = self.generate_archive()
         archive.to_yaml(destination_filename)
         project_name = self.project.class_name()
-        self.job.doc = update_nested_dict(self.job.doc, {project_name: {"nomad_workflow": destination_filename}})
+        self.job.doc = update_nested_dict(
+            self.job.doc, {project_name: {"nomad_workflow": destination_filename}}
+        )
 
     def generate_archive(self) -> NomadWorkflowArchive:
         archive = NomadWorkflowArchive()
@@ -349,7 +370,7 @@ class NomadWorkflow:
                 input_node = copy(self.task_elements[node_name])
                 task_inputs = [input_node]
             else:
-                if all([self.task_elements[n].is_task for n in in_nodes]):
+                if all(self.task_elements[n].is_task for n in in_nodes):
                     task_inputs = [copy(self.task_elements[node_name])]
                 else:
                     task_inputs = [copy(self.task_elements[n]) for n in in_nodes]
@@ -408,11 +429,15 @@ def build_nomad_workflow(job, is_top_level: bool = False, add_job_id: bool = Fal
     """
     project = cast(MartiniFlowProject, job.project)
     workflow = NomadWorkflow(project, job, is_top_level, add_job_id=add_job_id)
-    destination_filename = project.nomad_top_level_workflow if is_top_level else project.nomad_workflow
+    destination_filename = (
+        project.nomad_top_level_workflow if is_top_level else project.nomad_workflow
+    )
     workflow.build_workflow_yaml(destination_filename)
 
 
-def build_nomad_workflow_with_multiple_jobs(project: MartiniFlowProject, jobs: list[Job]):
+def build_nomad_workflow_with_multiple_jobs(
+    project: MartiniFlowProject, jobs: list[Job]
+):
     """
     Builds and serializes a NOMAD workflow archive for multiple jobs within a project.
 

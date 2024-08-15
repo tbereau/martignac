@@ -2,7 +2,7 @@ import json
 import logging
 import time
 from functools import wraps
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from cachetools.func import ttl_cache
@@ -87,7 +87,7 @@ def get_nomad_request(
     section: str,
     use_prod: bool = False,
     timeout_in_sec: int = TIMEOUT_IN_SEC,
-    headers: dict = None,
+    headers: Optional[dict] = None,
     with_authentication: bool = False,
     return_json: bool = True,
     accept_field: str = "application/json",
@@ -152,9 +152,9 @@ def get_nomad_base_url(use_prod: bool) -> str:
 @rate_limiter(min_interval=NOMAD_SLEEP_INTERVAL_IN_SECONDS)
 def post_nomad_request(
     section: str,
-    headers: dict = None,
+    headers: Optional[dict] = None,
     data: Any = None,
-    json_dict: dict = None,
+    json_dict: Optional[dict] = None,
     use_prod: bool = False,
     timeout_in_sec: int = TIMEOUT_IN_SEC,
     with_authentication: bool = False,
@@ -196,7 +196,9 @@ def post_nomad_request(
     url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending post request @ {url}")
-    response = requests.post(url, headers=headers, json=json_dict, data=data, timeout=timeout_in_sec)
+    response = requests.post(
+        url, headers=headers, json=json_dict, data=data, timeout=timeout_in_sec
+    )
     if not response.status_code == 200:
         raise ValueError(f"Unexpected response {response.json()}")
     return response.json()
@@ -205,7 +207,7 @@ def post_nomad_request(
 @rate_limiter(min_interval=NOMAD_SLEEP_INTERVAL_IN_SECONDS)
 def delete_nomad_request(
     section: str,
-    headers: dict = None,
+    headers: Optional[dict] = None,
     use_prod: bool = False,
     timeout_in_sec: int = TIMEOUT_IN_SEC,
     with_authentication: bool = False,
@@ -252,7 +254,7 @@ def put_nomad_request(
     section: str,
     file: str,
     remote_path_to_file: str,
-    headers: dict = None,
+    headers: Optional[dict] = None,
     use_prod: bool = False,
     timeout_in_sec: int = TIMEOUT_IN_SEC,
     with_authentication: bool = False,
@@ -260,7 +262,9 @@ def put_nomad_request(
     if headers is None:
         headers = {}
     with open(file, "rb") as f:
-        mp_encoder = MultipartEncoder(fields={"file": (remote_path_to_file, f, "application/json")})
+        mp_encoder = MultipartEncoder(
+            fields={"file": (remote_path_to_file, f, "application/json")}
+        )
 
     if with_authentication:
         token = get_authentication_token(use_prod=use_prod)
@@ -272,7 +276,9 @@ def put_nomad_request(
     url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
     url += f"{'/' if section[0] != '/' else ''}{section}"
     logger.info(f"Sending put request @ {url}")
-    response = requests.put(url, headers=headers, data=mp_encoder, timeout=timeout_in_sec)
+    response = requests.put(
+        url, headers=headers, data=mp_encoder, timeout=timeout_in_sec
+    )
     if not response.status_code == 200:
         raise ValueError(f"Unexpected response {response.json()}")
     return response.json()

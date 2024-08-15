@@ -12,10 +12,14 @@ if not isdir(SoluteInBilayerUmbrellaFlow.workspace_path):
 
 project = signac.init_project(path=SoluteInBilayerUmbrellaFlow.workspace_path)
 
-lipids = [LiquidMixture([LiquidComponent("M3.POPC", 0.8), LiquidComponent("M3.DPPC", 0.2)])]
+lipids = [
+    LiquidMixture([LiquidComponent("M3.POPC", 0.8), LiquidComponent("M3.DPPC", 0.2)])
+]
 lipid_names = []
 for lipid in lipids:
-    lipid_names.append([{"name": c.name, "fraction": c.fraction} for c in lipid.components])
+    lipid_names.append(
+        [{"name": c.name, "fraction": c.fraction} for c in lipid.components]
+    )
 solute_names = [
     "P6",
     # "C1 P3, 0-1",

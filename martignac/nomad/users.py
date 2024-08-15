@@ -53,7 +53,9 @@ class NomadUser:
 
 
 @ttl_cache(maxsize=128, ttl=180)
-def search_users_by_name(user_name: str, use_prod: bool = True, timeout_in_sec: int = 10) -> NomadUser:
+def search_users_by_name(
+    user_name: str, use_prod: bool = True, timeout_in_sec: int = 10
+) -> NomadUser:
     """
     Searches for users in the NOMAD system by name.
 
@@ -74,13 +76,19 @@ def search_users_by_name(user_name: str, use_prod: bool = True, timeout_in_sec: 
     Note:
         The function is decorated with `@ttl_cache` to cache the results for 180 seconds and limit the cache size to 128 entries.
     """
-    logger.info(f"retrieving user {user_name} on {'prod' if use_prod else 'test'} server")
-    response = get_nomad_request(f"/users?prefix={user_name}", timeout_in_sec=timeout_in_sec).get("data", [])
+    logger.info(
+        f"retrieving user {user_name} on {'prod' if use_prod else 'test'} server"
+    )
+    response = get_nomad_request(
+        f"/users?prefix={user_name}", timeout_in_sec=timeout_in_sec
+    ).get("data", [])
     return [class_schema(NomadUser)().load(user) for user in response]
 
 
 @ttl_cache(maxsize=128, ttl=180)
-def get_user_by_id(user_id: str, use_prod: bool = True, timeout_in_sec: int = 10) -> NomadUser:
+def get_user_by_id(
+    user_id: str, use_prod: bool = True, timeout_in_sec: int = 10
+) -> NomadUser:
     """
     Retrieves a user's information from the NOMAD system by their unique user ID.
 
@@ -131,6 +139,8 @@ def who_am_i(use_prod: bool = True, timeout_in_sec: int = 10) -> NomadUser:
         The function is decorated with `@ttl_cache` to cache the results for 180 seconds and limit the cache size to 128 entries.
     """
     logger.info(f"retrieving self user info on {'prod' if use_prod else 'test'} server")
-    response = get_nomad_request("/users/me", with_authentication=True, timeout_in_sec=timeout_in_sec)
+    response = get_nomad_request(
+        "/users/me", with_authentication=True, timeout_in_sec=timeout_in_sec
+    )
     user_schema = class_schema(NomadUser)
     return user_schema().load(response)

@@ -44,7 +44,11 @@ class GenericInterface:
     @classmethod
     @abstractmethod
     def from_upload(
-        cls, upload_id: str, job_id: Optional[str] = None, use_prod: bool = False, with_authentication: bool = True
+        cls,
+        upload_id: str,
+        job_id: Optional[str] = None,
+        use_prod: bool = False,
+        with_authentication: bool = True,
     ) -> type["GenericInterface"]:
         """
         Abstract method to create an instance of the interface from a NOMAD upload.
@@ -98,10 +102,13 @@ def get_interface_for_upload_id_and_job_id(
     if not job_id and find_first_job_id:
         upload_entries = get_entries_of_upload(upload_id, use_prod, with_authentication)
         # Take the first one
-        job_id = list({u.job_id for u in upload_entries})[0]
+        job_id = next(iter({u.job_id for u in upload_entries}))
     path_to_file = f"{job_id}/{file_name}" if job_id else file_name
     job_doc = get_specific_file_from_upload(
-        upload_id, path_to_file, use_prod=use_prod, with_authentication=with_authentication
+        upload_id,
+        path_to_file,
+        use_prod=use_prod,
+        with_authentication=with_authentication,
     )
     interface_class_schema = class_schema(interface_class, base_schema=base_schema)
     info_doc = {

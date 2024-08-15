@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def generate_solvent_with_packmol(
-    gro_solvent_mol: str, box_length: float, output_pdb: str, packmol_input_file: str = "packmol.inp"
+    gro_solvent_mol: str,
+    box_length: float,
+    output_pdb: str,
+    packmol_input_file: str = "packmol.inp",
 ) -> str:
     """
     Generates a solvent box with specified dimensions using PACKMOL.

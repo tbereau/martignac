@@ -3,9 +3,10 @@ import json
 import logging
 import os
 import shutil
+from collections.abc import ByteString
 from dataclasses import field
 from pathlib import Path
-from typing import Any, ByteString, Optional, cast
+from typing import Any, Optional, cast
 from zipfile import ZipFile
 
 from cachetools.func import ttl_cache
@@ -17,7 +18,11 @@ from martignac import config
 from martignac.nomad.datasets import NomadDataset
 from martignac.nomad.uploads import get_all_my_uploads
 from martignac.nomad.users import NomadUser, get_user_by_id
-from martignac.nomad.utils import get_nomad_base_url, get_nomad_request, post_nomad_request
+from martignac.nomad.utils import (
+    get_nomad_base_url,
+    get_nomad_request,
+    post_nomad_request,
+)
 from martignac.utils.martini_flow_projects import MartiniFlowProject
 from martignac.utils.misc import update_nested_dict
 
@@ -37,10 +42,18 @@ class NomadSectionDefinition:
 class NomadEntrySchema(Schema):
     @pre_load
     def convert_users(self, data, **kwargs):
-        data["main_author"] = get_user_by_id(user_id=data["main_author"]["user_id"]).as_dict()
-        data["writers"] = [get_user_by_id(user_id=w["user_id"]).as_dict() for w in data["writers"]]
-        data["authors"] = [get_user_by_id(user_id=a["user_id"]).as_dict() for a in data["authors"]]
-        data["viewers"] = [get_user_by_id(user_id=v["user_id"]).as_dict() for v in data["viewers"]]
+        data["main_author"] = get_user_by_id(
+            user_id=data["main_author"]["user_id"]
+        ).as_dict()
+        data["writers"] = [
+            get_user_by_id(user_id=w["user_id"]).as_dict() for w in data["writers"]
+        ]
+        data["authors"] = [
+            get_user_by_id(user_id=a["user_id"]).as_dict() for a in data["authors"]
+        ]
+        data["viewers"] = [
+            get_user_by_id(user_id=v["user_id"]).as_dict() for v in data["viewers"]
+        ]
         return data
 
 
@@ -172,7 +185,10 @@ class NomadEntry:
 
 @ttl_cache(maxsize=128, ttl=180)
 def get_entry_by_id(
-    entry_id: str, use_prod: bool = True, with_authentication: bool = False, timeout_in_sec: int = 10
+    entry_id: str,
+    use_prod: bool = True,
+    with_authentication: bool = False,
+    timeout_in_sec: int = 10,
 ) -> NomadEntry:
     """
     Retrieves a NomadEntry object by its unique entry ID.
@@ -195,7 +211,9 @@ def get_entry_by_id(
     Raises:
         HTTPError: If the request fails or the NOMAD system returns an error response.
     """
-    logger.info(f"retrieving entry {entry_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"retrieving entry {entry_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = get_nomad_request(
         f"/entries/{entry_id}",
         with_authentication=with_authentication,
@@ -208,7 +226,10 @@ def get_entry_by_id(
 
 @ttl_cache(maxsize=128, ttl=180)
 def get_entries_of_upload(
-    upload_id: str, use_prod: bool = False, with_authentication: bool = False, timeout_in_sec: int = 10
+    upload_id: str,
+    use_prod: bool = False,
+    with_authentication: bool = False,
+    timeout_in_sec: int = 10,
 ) -> list[NomadEntry]:
     """
     Retrieves a list of NomadEntry objects associated with a specific upload ID.
@@ -231,7 +252,9 @@ def get_entries_of_upload(
     Raises:
         HTTPError: If the request fails or the NOMAD system returns an error response.
     """
-    logger.info(f"retrieving entries for upload {upload_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"retrieving entries for upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = get_nomad_request(
         f"/uploads/{upload_id}/entries",
         with_authentication=with_authentication,
@@ -239,10 +262,15 @@ def get_entries_of_upload(
         timeout_in_sec=timeout_in_sec,
     )
     nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
-    return [nomad_entry_schema().load({**r["entry_metadata"], "use_prod": use_prod}) for r in response["data"]]
+    return [
+        nomad_entry_schema().load({**r["entry_metadata"], "use_prod": use_prod})
+        for r in response["data"]
+    ]
 
 
-def get_entries_of_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) -> list[NomadEntry]:
+def get_entries_of_my_uploads(
+    use_prod: bool = False, timeout_in_sec: int = 10
+) -> list[NomadEntry]:
     """
     Retrieves a list of NomadEntry objects associated with the uploads owned by the current user.
 
@@ -263,11 +291,15 @@ def get_entries_of_my_uploads(use_prod: bool = False, timeout_in_sec: int = 10) 
     return [
         upload_entry
         for u in get_all_my_uploads(use_prod=use_prod, timeout_in_sec=timeout_in_sec)
-        for upload_entry in get_entries_of_upload(u.upload_id, with_authentication=True, use_prod=use_prod)
+        for upload_entry in get_entries_of_upload(
+            u.upload_id, with_authentication=True, use_prod=use_prod
+        )
     ]
 
 
-def get_entries_in_database(database_id: str = DEFAULT_DATABASE, use_prod: bool = DEFAULT_USE_PROD) -> list[NomadEntry]:
+def get_entries_in_database(
+    database_id: str = DEFAULT_DATABASE, use_prod: bool = DEFAULT_USE_PROD
+) -> list[NomadEntry]:
     """
     Retrieves a list of NomadEntry objects from a specified database.
 
@@ -289,10 +321,10 @@ def get_entries_in_database(database_id: str = DEFAULT_DATABASE, use_prod: bool 
 
 @ttl_cache(maxsize=128, ttl=180)
 def query_entries(
-    worfklow_name: str = None,
-    program_name: str = None,
-    dataset_id: str = None,
-    origin: str = None,
+    worfklow_name: Optional[str] = None,
+    program_name: Optional[str] = None,
+    dataset_id: Optional[str] = None,
+    origin: Optional[str] = None,
     page_size: int = 10,
     max_entries: int = 50,
     use_prod: bool = True,
@@ -328,10 +360,14 @@ def query_entries(
         if worfklow_name:
             json_dict["query"]["results.method"] = {"workflow_name": worfklow_name}
         if program_name:
-            json_dict["query"]["results.method"] = {"simulation": {"program_name": program_name}}
+            json_dict["query"]["results.method"] = {
+                "simulation": {"program_name": program_name}
+            }
         if origin:
             json_dict["query"]["origin"] = origin
-        query = post_nomad_request("/entries/query", json_dict=json_dict, use_prod=use_prod)
+        query = post_nomad_request(
+            "/entries/query", json_dict=json_dict, use_prod=use_prod
+        )
         entries.extend([q["entry_id"] for q in query["data"]])
         next_page_after_value = query["pagination"].get("next_page_after_value", None)
         if next_page_after_value:
@@ -370,7 +406,10 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
         return False
     entry = entries[0]
     zip_content = _get_raw_data_of_entry_by_id(
-        entry.entry_id, use_prod=entry.use_prod, timeout_in_sec=timeout_in_sec, with_authentication=not entry.published
+        entry.entry_id,
+        use_prod=entry.use_prod,
+        timeout_in_sec=timeout_in_sec,
+        with_authentication=not entry.published,
     )
     zip_file_name = "nomad_archive.zip"
     with open(job.fn(zip_file_name), "wb") as f:
@@ -419,39 +458,53 @@ def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
         ValueError: If found entries have inconsistent upload IDs, indicating a data retrieval or processing error.
     """
     if not issubclass(type(job.project), MartiniFlowProject):
-        raise TypeError(f"job project {type(job.project)} does not derive from MartiniFlowProject")
+        raise TypeError(
+            f"job project {type(job.project)} does not derive from MartiniFlowProject"
+        )
     project = cast("MartiniFlowProject", job.project)
 
     def associate_entry_to_job(entry_: NomadEntry) -> Optional[NomadEntry]:
         if (
             entry_.comment is not None
             and entry_.job_id == job.id
-            and entry_.mdp_files == project.get_hash_for_files(job, list(project.mdp_files.values()))
+            and entry_.mdp_files
+            == project.get_hash_for_files(job, list(project.mdp_files.values()))
         ):
             return entry_
 
     match_entries = []
-    nomad_entries = query_entries(dataset_id=project.nomad_dataset_id, use_prod=project.nomad_use_prod_database)
+    nomad_entries = query_entries(
+        dataset_id=project.nomad_dataset_id, use_prod=project.nomad_use_prod_database
+    )
     for entry in nomad_entries:
         if found_entry := associate_entry_to_job(entry):
             match_entries.append(found_entry)
     my_uploads = get_all_my_uploads(use_prod=project.nomad_use_prod_database)
     for upload in my_uploads:
         upload_entries = get_entries_of_upload(
-            upload.upload_id, with_authentication=True, use_prod=project.nomad_use_prod_database
+            upload.upload_id,
+            with_authentication=True,
+            use_prod=project.nomad_use_prod_database,
         )
         for entry in upload_entries:
             if found_entry := associate_entry_to_job(entry):
                 match_entries.append(found_entry)
-    if len(match_entries) > 0 and not all([entry.upload_id == match_entries[0].upload_id for entry in match_entries]):
+    if len(match_entries) > 0 and not all(
+        entry.upload_id == match_entries[0].upload_id for entry in match_entries
+    ):
         raise ValueError(f"Inconsistent upload IDs in entries:\n{match_entries}")
     return match_entries
 
 
 def _get_raw_data_of_entry_by_id(
-    entry_id: str, use_prod: bool = False, timeout_in_sec: int = 10, with_authentication: bool = False
+    entry_id: str,
+    use_prod: bool = False,
+    timeout_in_sec: int = 10,
+    with_authentication: bool = False,
 ) -> ByteString:
-    logger.info(f"retrieving raw data of entry ID {entry_id} on {'prod' if use_prod else 'test'} server")
+    logger.info(
+        f"retrieving raw data of entry ID {entry_id} on {'prod' if use_prod else 'test'} server"
+    )
     response = get_nomad_request(
         f"/entries/{entry_id}/raw?compress=false",
         with_authentication=with_authentication,

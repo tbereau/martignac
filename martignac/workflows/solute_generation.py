@@ -46,8 +46,12 @@ class SoluteGenFlow(MartiniFlowProject):
     `upload_to_nomad`.
     """
 
-    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
-    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    workspace_path: str = (
+        f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    )
+    mdp_path = (
+        f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    )
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
     simulation_settings = {"n_threads": conf["settings"]["n_threads"].get(int)}
@@ -105,7 +109,9 @@ def build(job: Job) -> None:
         bond_constant=SoluteGenFlow.ff_parameters["bond_constant"],
         number_excl=SoluteGenFlow.ff_parameters["number_excl"],
     )
-    generate_gro_file_for_molecule(molecule, SoluteGenFlow.get_state_name("generate", "gro"))
+    generate_gro_file_for_molecule(
+        molecule, SoluteGenFlow.get_state_name("generate", "gro")
+    )
     generate_itp_file_for_molecule(molecule, SoluteGenFlow.get_state_name("", "itp"))
     generate_top_file_for_molecule(
         molecule,
@@ -179,7 +185,9 @@ def equilibrate(job: Job) -> str:
     Returns:
         str: The command to execute the GROMACS equilibration simulation.
     """
-    job.doc[project_name]["solute_gro"] = SoluteGenFlow.get_state_name("equilibrate", "gro")
+    job.doc[project_name]["solute_gro"] = SoluteGenFlow.get_state_name(
+        "equilibrate", "gro"
+    )
     return gromacs_simulation_command(
         mdp=SoluteGenFlow.mdp_files["equilibrate"],
         top=SoluteGenFlow.get_state_name("", "top"),

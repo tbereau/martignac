@@ -30,15 +30,19 @@ class LiquidComponent:
 
     def __post_init__(self):
         if not 0 <= self.fraction <= 1:
-            raise ValueError(f"unexpected component fraction {self.fraction} for {self.name}")
+            raise ValueError(
+                f"unexpected component fraction {self.fraction} for {self.name}"
+            )
 
     @classmethod
     def from_dict(cls, input_dict: dict) -> "LiquidComponent":
-        if "name" not in input_dict.keys():
+        if "name" not in input_dict:
             raise KeyError(f"Missing key 'name' in {input_dict}")
-        if "fraction" not in input_dict.keys():
+        if "fraction" not in input_dict:
             raise KeyError(f"Missing key 'fraction' in {input_dict}")
-        return LiquidComponent(name=input_dict.get("name"), fraction=input_dict.get("fraction"))
+        return LiquidComponent(
+            name=input_dict.get("name"), fraction=input_dict.get("fraction")
+        )
 
     def to_insane_format(self) -> str:
         return f"{self.name}:{self.integer_component}"

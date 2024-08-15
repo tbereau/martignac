@@ -1,5 +1,4 @@
-[tool.ruff]
-target-version = "py37"
+target-version = "py39"
 line-length = 120
 fix = true
 select = [
@@ -25,7 +24,12 @@ ignore = [
     "S101",
     "A003",
     "S324",
+    "RUF012",
+    "TRY003",
+    "UP006",
+    "UP035",
+    "S311",
 ]
 
-[tool.ruff.per-file-ignores]
+[per-file-ignores]
 "tests/*" = ["S101"]

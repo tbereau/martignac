@@ -47,8 +47,12 @@ class BilayerGenFlow(MartiniFlowProject):
     integrating with the NOMAD database for data storage and retrieval.
     """
 
-    workspace_path: str = f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
-    mdp_path = f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    workspace_path: str = (
+        f"{MartiniFlowProject.workspaces_path}/{conf['relative_paths']['workspaces']}"
+    )
+    mdp_path = (
+        f"{MartiniFlowProject.input_files_path}/{conf['relative_paths']['mdp_files']}"
+    )
     itp_files = {k: v.get(str) for k, v in conf["itp_files"].items()}
     mdp_files = {k: v.get(str) for k, v in conf["mdp_files"].items()}
     simulation_settings = {
@@ -56,7 +60,9 @@ class BilayerGenFlow(MartiniFlowProject):
         "box_length_xy": conf["settings"]["box_length_xy"].get(float),
         "box_length_z": conf["settings"]["box_length_z"].get(float),
     }
-    solvent: LiquidMixture = LiquidMixture.from_list_of_dicts([s.get(dict) for s in conf["settings"]["solvent"]])
+    solvent: LiquidMixture = LiquidMixture.from_list_of_dicts(
+        [s.get(dict) for s in conf["settings"]["solvent"]]
+    )
     system_name = conf["output_names"]["system"].get(str)
     nomad_workflow: str = conf["output_names"]["nomad_workflow"].get(str)
     state_names = {k: v.get(str) for k, v in conf["output_names"]["states"].items()}
@@ -67,7 +73,8 @@ project_name = BilayerGenFlow.class_name()
 
 def lipid_names(job) -> list[str]:
     return [
-        lip.get("name").removeprefix("M3.").removeprefix("M2.").removeprefix("M2o.") for lip in job.sp.get("lipids")
+        lip.get("name").removeprefix("M3.").removeprefix("M2.").removeprefix("M2o.")
+        for lip in job.sp.get("lipids")
     ]
 
 
@@ -210,8 +217,12 @@ def production(job):
              the path to the modified MDP file, the output GRO file for the bilayer, and the updated topology file.
     """
     mdp_file = BilayerGenFlow.mdp_files.get("production")
-    job.doc[project_name]["bilayer_gro"] = BilayerGenFlow.get_state_name("production", "gro")
-    job.doc[project_name]["bilayer_top"] = BilayerGenFlow.get_state_name(extension="top")
+    job.doc[project_name]["bilayer_gro"] = BilayerGenFlow.get_state_name(
+        "production", "gro"
+    )
+    job.doc[project_name]["bilayer_top"] = BilayerGenFlow.get_state_name(
+        extension="top"
+    )
     job.doc[project_name]["lipid_names"] = lipid_names(job)
     return gromacs_simulation_command(
         mdp=mdp_file,

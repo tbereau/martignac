@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 
 VOLUME_PER_CG_BEAD_IN_NM3 = 0.08
@@ -147,6 +148,9 @@ def gromacs_simulation_command(
     Returns:
         str: The command to execute in GROMACS that combines the preparation and execution steps.
     """
+    logger.info(f"os {os.curdir}")
+    logger.info(f"os {os.listdir(os.curdir)}")
+    logger.info(f"os check file {os.path.isfile('min.mdp')}")
     grompp_cmd = f"gmx grompp -f {mdp} -p {top} -c {gro} -o {name}.tpr -po {name}_out.mdp -maxwarn {n_max_warn}"
     mdrun_cmd = f"gmx mdrun -nt {n_threads} -deffnm {name}"
     if verbose:

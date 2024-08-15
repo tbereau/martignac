@@ -44,7 +44,7 @@ jobs:
         run: black --check .
 
       - name: Run tests
-        run: pytest --color=yes --cov=. --cov-report=xml --cov-report=term-missing
+        run: pytest --color=yes --cov=.. --cov-report=xml --cov-report=term-missing
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4

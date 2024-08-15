@@ -1,5 +1,6 @@
 pytest
 pytest-cov
+pytest-order
 deptry
 mypy
 pre-commit

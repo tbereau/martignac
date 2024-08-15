@@ -7,7 +7,7 @@ nomad:
 
 local:
   workspaces:
-    absolute_path: "$RUNNER_TEMP/workspaces"
+    absolute_path: "workspaces"
   input_files:
     absolute_path: "$GITHUB_WORKSPACE/martignac/scripts"
     itp_files: "$GITHUB_WORKSPACE/scripts/martini_v300"

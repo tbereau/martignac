@@ -2,7 +2,7 @@
 
 First, clone the repository::
 ``` bash
-git clone git@lin0.thphys.uni-heidelberg.de:bereau/martignac.git
+git clone git@github.com:tbereau/martignac.git
 ```
 Setup a virtual environment (Python 3.9 recommended) and install the package
 ```bash

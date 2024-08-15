@@ -541,9 +541,9 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
     ):
         if not job.isfile(os.path.basename(file)):
             if project.allow_symlinks:
-                os.symlink(f"{project.input_files_path}/{file}", job.fn(file))
+                os.symlink(f"{_path}/{file}", job.fn(file))
             else:
-                shutil.copy(f"{project.input_files_path}/{file}", job.fn(file))
+                shutil.copy(f"{_path}/{file}", job.fn(file))
     job.doc = update_nested_dict(
         job.doc, {project.class_name(): {"files_symlinked": True}}
     )

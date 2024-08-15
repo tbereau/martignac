@@ -225,7 +225,8 @@ class MartiniFlowProject(FlowProject):
     def init_and_get_project(cls) -> MartiniTypeFlow:
         if not os.path.isdir(cls.workspace_path):
             os.makedirs(cls.workspace_path)
-        return cast("MartiniFlowProject", signac.init_project(path=cls.workspace_path))
+        signac.init_project(path=cls.workspace_path)
+        return cls.get_project(path=cls.workspace_path)
 
 
 def store_gromacs_log_to_doc(operation_name: str, job: Job):

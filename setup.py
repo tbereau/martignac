@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 def _get_version() -> str:
@@ -58,7 +58,7 @@ setup(
         "Documentation": "https://github.com/tbereau/martignac",
         "Issues": "https://github.com/tbereau/martignac/-/issues",
     },
-    packages=["martignac"],
+    packages=find_packages(),
     package_dir={"martignac": "martignac"},
     entry_points={"console_scripts": ["martignac = martignac.__main__:main"]},
     include_package_data=True,

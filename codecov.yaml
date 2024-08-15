@@ -1,15 +1,6 @@
 # Configuration for Codecov
 # Documentation: https://docs.codecov.com/docs/codecov-yaml
 
-version: 2.0
-
-# Common settings
-comment:
-  layout: "reach, diff, flags, files, footer"
-  behavior: default
-  require_changes: false
-  require_base: no
-
 coverage:
   precision: 2
   round: down
@@ -18,7 +9,6 @@ coverage:
   status:
     project:
       default:
-        # A coverage threshold that, if not met, will cause the check to fail
         target: 80%
     patch: yes
     changes: no
@@ -32,18 +22,10 @@ parsers:
       macro: no
 
 ignore:
-  # Ignore files or directories that you do not want to be included in coverage calculations
   - "tests/*"
   - "examples/*"
   - "docs/*"
 
-# Adjust the notification settings based on your team's preferences
-notifications:
-  slack:
-    url: "https://hooks.slack.com/services/your/slack/webhook"
-    only_pulls: true
-
-# Custom flags for different parts of the project
 flags:
   backend:
     paths:

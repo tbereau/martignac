@@ -5,6 +5,7 @@ import shutil
 from hashlib import md5
 from typing import Any, Dict, TypeVar, cast
 
+import signac
 from flow import FlowProject
 from signac.job import Job
 
@@ -219,6 +220,12 @@ class MartiniFlowProject(FlowProject):
         if "files_symlinked" not in job.document:
             job.document["files_symlinked"] = {}
         job.document["files_symlinked"][project.class_name()] = False
+
+    @classmethod
+    def init_and_get_project(cls) -> MartiniTypeFlow:
+        if not os.path.isdir(cls.workspace_path):
+            os.makedirs(cls.workspace_path)
+        return cast("MartiniFlowProject", signac.init_project(path=cls.workspace_path))
 
 
 def store_gromacs_log_to_doc(operation_name: str, job: Job):

@@ -254,4 +254,4 @@ def get_solvent_job(job: Job) -> Job:
     return project.open_job(sp).init()
 
 
-project = BilayerGenFlow.get_project(path=BilayerGenFlow.workspace_path)
+project = BilayerGenFlow.init_and_get_project()

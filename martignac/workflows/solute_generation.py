@@ -217,4 +217,4 @@ def get_solute_job(job: Job) -> Job:
     return project.open_job(sp).init()
 
 
-project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
+project = SoluteGenFlow.init_and_get_project()

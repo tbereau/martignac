@@ -544,7 +544,7 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
                 else:
                     shutil.copy(f"{_path}/{file}", job.fn(file))
 
-    symlink_or_copy(project.itp_files.values(), project.input_files_path)
+    symlink_or_copy(project.itp_files.values(), project.itp_path)
     symlink_or_copy(project.mdp_files.values(), project.mdp_path)
 
     job.doc = update_nested_dict(

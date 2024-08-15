@@ -324,7 +324,7 @@ class NomadWorkflow:
 
     @cached_property
     def graph(self) -> nx.DiGraph:
-        operations = list(self.project._operations.keys())
+        operations = list(self.project.operations.keys())
         adjacency_matrix = np.asarray(self.project.detect_operation_graph())
         signac_graph = nx.DiGraph(adjacency_matrix)
         graph = nx.DiGraph()

@@ -91,7 +91,9 @@ jobs:
         run: |
           echo "Installing martignac package"
           python -m pip install .
+          ls -la /home/runner/work/
           ls -la /home/runner/work/martignac/
+          ls -la /home/runner/work/martignac/martignac/
 
       - name: Check if martini_v3.0.0.itp exists
         run: |

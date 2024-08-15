@@ -7,10 +7,10 @@ nomad:
 
 local:
   workspaces:
-    absolute_path: "/Users/bereau/work/projects/martignac/tests/workspaces"
+    absolute_path: "$RUNNER_TEMP/workspaces"
   input_files:
-    absolute_path: "/Users/bereau/work/projects/martignac/scripts"
-    itp_files: "/Users/bereau/work/projects/martignac/scripts/martini_v300"
+    absolute_path: "$GITHUB_WORKSPACE/martignac/scripts"
+    itp_files: "$GITHUB_WORKSPACE/scripts/martini_v300"
 
 solute_generation:
   relative_paths:

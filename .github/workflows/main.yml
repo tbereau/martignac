@@ -88,7 +88,10 @@ jobs:
           python -m pip install tox tox-gh-actions
 
       - name: Install martignac package
-        run: pip install .
+        run: |
+          echo "Installing martignac package"
+          python -m pip install .
+          ls -la /home/runner/work/martignac/
 
       - name: Check if martini_v3.0.0.itp exists
         run: |

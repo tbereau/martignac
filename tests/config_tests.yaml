@@ -11,6 +11,7 @@ local:
   input_files:
     absolute_path: "scripts"
     itp_files: "scripts/martini_v300"
+  allow_symlinks: false
 
 solute_generation:
   relative_paths:

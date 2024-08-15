@@ -13,6 +13,7 @@ local:
   input_files:
     absolute_path: "/Users/bereau/work/projects/martignac/scripts"
     itp_files: "/Users/bereau/work/projects/martignac/scripts/martini_v300"
+  allow_symlinks: true
 
 solute_generation:
   relative_paths:

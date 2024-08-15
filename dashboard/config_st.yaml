@@ -13,6 +13,7 @@ local:
   input_files:
     absolute_path: "/mount/src/martignac/scripts"
     itp_files: "/mount/src/martignac/scripts/martini_v300"
+  allow_symlinks: true
 
 solute_generation:
   relative_paths:

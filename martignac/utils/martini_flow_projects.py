@@ -59,6 +59,7 @@ class MartiniFlowProject(FlowProject):
     nomad_use_prod_database: bool = config()["nomad"]["use_prod"].get(bool)
     nomad_dataset_id: str = config()["nomad"]["dataset"]["id"].get(str)
     nomad_coauthors: list[str] = [c.get(str) for c in config()["nomad"]["coauthors"]]
+    allow_symlinks: bool = config()["local"]["allow_symlinks"].get(bool)
     workspace_path: str = ""
     itp_files: Dict[str, str] = {}
     mdp_path: str
@@ -211,7 +212,10 @@ class MartiniFlowProject(FlowProject):
                 and os.path.islink(os.path.join(root, f)),
                 files,
             ):
-                os.unlink(os.path.join(root, file))
+                if project.allow_symlinks:
+                    os.unlink(os.path.join(root, file))
+                else:
+                    os.remove(os.path.join(root, file))
         if "files_symlinked" not in job.document:
             job.document["files_symlinked"] = {}
         job.document["files_symlinked"][project.class_name()] = False
@@ -524,16 +528,15 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
     """
     project = cast("MartiniFlowProject", job.project)
     logger.info(f"generating symbolic links for {job.id} @ {project.class_name()}")
-    for itp_file in project.itp_files.values():
-        if not job.isfile(os.path.basename(itp_file)):
-            os.symlink(
-                f"{project.itp_path}/{itp_file}", job.fn(os.path.basename(itp_file))
-            )
-    for mdp_file in project.mdp_files.values():
-        if not job.isfile(os.path.basename(mdp_file)):
-            os.symlink(
-                f"{project.mdp_path}/{mdp_file}", job.fn(os.path.basename(mdp_file))
-            )
+    for file, _path in zip(
+        [*project.itp_files.values(), *project.mdp_files.values()],
+        [project.input_files_path, project.mdp_path],
+    ):
+        if not job.isfile(os.path.basename(file)):
+            if project.allow_symlinks:
+                os.symlink(f"{project.input_files_path}/{file}", job.fn(file))
+            else:
+                shutil.copy(f"{project.input_files_path}/{file}", job.fn(file))
     job.doc = update_nested_dict(
         job.doc, {project.class_name(): {"files_symlinked": True}}
     )

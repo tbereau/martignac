@@ -1,5 +1,5 @@
-signac>=2.0.0
-signac-flow>=0.25.1
+signac>=2.2.0
+signac-flow>=0.28.0
 numpy>=1.25.0
 regex
 pymbar>=4.0.1

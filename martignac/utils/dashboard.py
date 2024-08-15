@@ -20,7 +20,7 @@ def generate_gravis_network(project: MartiniFlowProject):
     Returns:
         gv.d3: A Gravis D3 graph object that can be displayed in Jupyter notebooks or web environments.
     """
-    ops = project._operations.keys()
+    ops = project.operations.keys()
     adj = np.asarray(project.detect_operation_graph())
 
     g = nx.DiGraph(adj)

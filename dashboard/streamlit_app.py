@@ -2,7 +2,7 @@ from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
-from init import init_for_streamlit
+from init import init_for_streamlit, paths_for_streamlit
 
 st.set_page_config(
     page_title="Martignac Home",
@@ -10,6 +10,7 @@ st.set_page_config(
 )
 
 init_for_streamlit()
+paths_for_streamlit()
 
 from martignac.nomad.entries import (
     get_entries_in_database,

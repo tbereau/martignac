@@ -9,8 +9,8 @@ local:
   workspaces:
     absolute_path: "../workspaces"
   input_files:
-    absolute_path: "scripts"
-    itp_files: "scripts/martini_v300"
+    absolute_path: "../scripts"
+    itp_files: "../scripts/martini_v300"
   allow_symlinks: false
 
 solute_generation:

@@ -56,7 +56,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .tox
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('tox.ini') }}
 
       - name: Install tox
         run: |

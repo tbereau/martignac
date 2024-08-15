@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 from martignac import config
@@ -225,6 +227,8 @@ def minimize(job):
             SolventGenFlow.get_state_name("box", "gro")
         ),
     )
+    print(f"os {os.curdir}")
+    print(f"os {os.listdir(os.curdir)}")
     job.doc[project_name]["solvent_top"] = SolventGenFlow.get_state_name("box", "top")
     job.doc[project_name]["solvent_name"] = job.sp.solvent_name
     return gromacs_simulation_command(

@@ -51,11 +51,20 @@ jobs:
       - name: Test with tox
         run: tox
 
-  check-docs:
+  build-docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out
+      - name: Check out the repository
         uses: actions/checkout@v3
 
-      - name: Check if documentation can be built
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install MkDocs and Dependencies
+        run: |
+          pip install mkdocs mkdocs-material mkdocstrings[python]
+
+      - name: Build the documentation
         run: mkdocs build -s

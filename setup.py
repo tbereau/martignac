@@ -62,6 +62,9 @@ setup(
     package_dir={"martignac": "martignac"},
     entry_points={"console_scripts": ["martignac = martignac.__main__:main"]},
     include_package_data=True,
+    package_data={
+        "martignac": ["scripts/*.itp"],
+    },
     python_requires=">=3.9",
     install_requires=requirements,
     license="BSD",

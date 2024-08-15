@@ -7,10 +7,10 @@ nomad:
 
 local:
   workspaces:
-    absolute_path: "../workspaces"
+    absolute_path: "/home/runner/work/martignac/workspaces"
   input_files:
-    absolute_path: "../scripts"
-    itp_files: "../scripts/martini_v300"
+    absolute_path: "/home/runner/work/martignac/scripts"
+    itp_files: "/home/runner/work/martignac/scripts/martini_v300"
   allow_symlinks: false
 
 solute_generation:

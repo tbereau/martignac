@@ -316,6 +316,6 @@ def get_solvation_job(job: Job) -> Job:
     return project.open_job(sp).init()
 
 
-project = SoluteInSolventGenFlow.get_project(path=SoluteInSolventGenFlow.workspace_path)
-solute_gen_project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
-solvent_gen_project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)
+project = SoluteInSolventGenFlow.init_and_get_project()
+solute_gen_project = SoluteGenFlow.init_and_get_project()
+solvent_gen_project = SolventGenFlow.init_and_get_project()

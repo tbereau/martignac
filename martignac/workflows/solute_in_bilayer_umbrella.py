@@ -799,8 +799,6 @@ def get_solvation_job(job: Job) -> Job:
     return project.open_job(sp).init()
 
 
-project = SoluteInBilayerUmbrellaFlow.get_project(
-    path=SoluteInBilayerUmbrellaFlow.workspace_path
-)
-solute_gen_project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
-bilayer_gen_project = BilayerGenFlow.get_project(path=BilayerGenFlow.workspace_path)
+project = SoluteInBilayerUmbrellaFlow.init_and_get_project()
+solute_gen_project = SoluteGenFlow.init_and_get_project()
+bilayer_gen_project = BilayerGenFlow.init_and_get_project()

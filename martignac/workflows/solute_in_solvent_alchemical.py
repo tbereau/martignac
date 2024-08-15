@@ -400,11 +400,7 @@ def upload_to_nomad(*jobs):
     return SoluteInSolventAlchemicalFlow.upload_to_nomad_multiple_jobs(list(jobs))
 
 
-project = SoluteInSolventAlchemicalFlow.get_project(
-    path=SoluteInSolventAlchemicalFlow.workspace_path
-)
-solute_gen_project = SoluteGenFlow.get_project(path=SoluteGenFlow.workspace_path)
-solvent_gen_project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)
-solute_solvation_project = SoluteInSolventGenFlow.get_project(
-    path=SoluteInSolventGenFlow.workspace_path
-)
+project = SoluteInSolventAlchemicalFlow.init_and_get_project()
+solute_gen_project = SoluteGenFlow.init_and_get_project()
+solvent_gen_project = SolventGenFlow.init_and_get_project()
+solute_solvation_project = SoluteInSolventGenFlow.init_and_get_project()

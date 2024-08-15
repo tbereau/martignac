@@ -326,4 +326,4 @@ def get_solvent_job(job: Job) -> Job:
     return project.open_job(sp).init()
 
 
-project = SolventGenFlow.get_project(path=SolventGenFlow.workspace_path)
+project = SolventGenFlow.init_and_get_project()

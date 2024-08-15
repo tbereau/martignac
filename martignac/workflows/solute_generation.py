@@ -1,3 +1,6 @@
+import logging
+import os
+
 from martignac import config
 from martignac.nomad.workflows import Job, build_nomad_workflow, nomad_workflow_is_built
 from martignac.parsers.gromacs_forcefields import (
@@ -17,6 +20,8 @@ from martignac.utils.martini_flow_projects import (
     system_minimized,
     uploaded_to_nomad,
 )
+
+logger = logging.getLogger(__name__)
 
 conf = config()["solute_generation"]
 
@@ -150,6 +155,8 @@ def minimize(job: Job) -> str:
     Returns:
         str: The command to execute the GROMACS energy minimization.
     """
+    logger.info(f"os {os.curdir}")
+    logger.info(f"os {os.listdir(os.curdir)}")
     return gromacs_simulation_command(
         mdp=SoluteGenFlow.mdp_files["minimize"],
         top=SoluteGenFlow.get_state_name("", "top"),

@@ -44,56 +44,7 @@ jobs:
         run: black --check .
 
       - name: Run tests
-        run: pytest
-
-  tox:
-    runs-on: ubuntu-latest
-    env:
-      NOMAD_USERNAME: ${{ secrets.NOMAD_USERNAME }}
-      NOMAD_PASSWORD: ${{ secrets.NOMAD_PASSWORD }}
-    strategy:
-      matrix:
-        python-version: ['3.9']
-      fail-fast: false
-    steps:
-      - name: Check out
-        uses: actions/checkout@v3
-
-      - name: Set up python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake git libfftw3-dev libgsl0-dev
-          sudo apt-get install -y libboost-all-dev libopenmpi-dev
-          sudo apt-get install -y gromacs
-
-      - name: Verify GROMACS installation
-        run: |
-          gmx --version
-          echo "GROMACS has been installed successfully."
-
-      - name: Load cached venv
-        uses: actions/cache@v3
-        with:
-          path: .tox
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('tox.ini') }}
-
-      - name: Install tox
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox tox-gh-actions
-
-      - name: Install martignac package
-        run: |
-          echo "Installing martignac package"
-          python -m pip install .
-
-      - name: Test with tox
-        run: tox -v
+        run: pytest --color=yes
 
   build-docs:
     runs-on: ubuntu-latest

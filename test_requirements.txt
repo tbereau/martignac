@@ -4,6 +4,5 @@ pytest-order
 deptry
 mypy
 pre-commit
-tox
 black
 confuse

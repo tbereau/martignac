@@ -1,3 +1,4 @@
+import logging
 import os
 
 import numpy as np
@@ -26,6 +27,8 @@ from martignac.utils.martini_flow_projects import (
 )
 from martignac.utils.misc import convert_pdb_to_gro
 from martignac.utils.packmol import generate_solvent_with_packmol
+
+logger = logging.getLogger(__name__)
 
 conf = config()["solvent_generation"]
 
@@ -227,8 +230,8 @@ def minimize(job):
             SolventGenFlow.get_state_name("box", "gro")
         ),
     )
-    print(f"os {os.curdir}")
-    print(f"os {os.listdir(os.curdir)}")
+    logger.info(f"os {os.curdir}")
+    logger.info(f"os {os.listdir(os.curdir)}")
     job.doc[project_name]["solvent_top"] = SolventGenFlow.get_state_name("box", "top")
     job.doc[project_name]["solvent_name"] = job.sp.solvent_name
     return gromacs_simulation_command(

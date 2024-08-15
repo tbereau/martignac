@@ -73,4 +73,4 @@ jobs:
           pip install mkdocs mkdocs-material mkdocstrings[python]
 
       - name: Build the documentation
-        run: mkdocs build -s
+        run: mkdocs build

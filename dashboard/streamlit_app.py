@@ -1,16 +1,27 @@
+from confuse.exceptions import ConfigReadError
+from martignac import config
 from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
 
-from martignac.nomad.entries import (
-    get_entries_in_database,
-    get_entries_of_my_uploads,
-)
-
 st.set_page_config(
     page_title="Martignac Home",
     page_icon="👋",
+)
+
+try:
+    conf = config()
+    conf.set_file("/workspaces/martignac/martignac/config_default.yaml")
+
+    st.write("Configuration loaded successfully.")
+    
+except (FileNotFoundError or ConfigReadError):
+    st.error(f"Configuration file not found: {config_path}")
+
+from martignac.nomad.entries import (
+    get_entries_in_database,
+    get_entries_of_my_uploads,
 )
 
 st.title("Martignac dataset")

@@ -19,9 +19,6 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Set up the environment
-        uses: ./.github/actions/setup-poetry-env
-
       - name: Run checks
         run: make check
 
@@ -40,14 +37,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
       - name: Load cached venv
         uses: actions/cache@v3
         with:
           path: .tox
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
 
       - name: Install tox
         run: |
@@ -63,8 +57,5 @@ jobs:
       - name: Check out
         uses: actions/checkout@v3
 
-      - name: Set up the environment
-        uses: ./.github/actions/setup-poetry-env
-
       - name: Check if documentation can be built
-        run: poetry run mkdocs build -s
+        run: mkdocs build -s

@@ -2,6 +2,13 @@ from os import makedirs
 from os.path import isdir
 
 from martignac import config
+
+
+def init_for_streamlit():
+    conf = config()
+    conf.set_file("/mount/src/martignac/dashboard/config_st.yaml")
+
+
 from martignac.workflows.bilayer_generation import BilayerGenFlow
 from martignac.workflows.solute_generation import SoluteGenFlow
 from martignac.workflows.solute_in_bilayer_umbrella import SoluteInBilayerUmbrellaFlow
@@ -12,10 +19,7 @@ from martignac.workflows.solute_in_solvent_generation import SoluteInSolventGenF
 from martignac.workflows.solvent_generation import SolventGenFlow
 
 
-def init_for_streamlit():
-    conf = config()
-    conf.set_file("/mount/src/martignac/dashboard/config_st.yaml")
-
+def paths_for_streamlit():
     workflows = [
         SoluteGenFlow,
         SolventGenFlow,

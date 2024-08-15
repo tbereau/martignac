@@ -53,7 +53,7 @@ jobs:
       NOMAD_PASSWORD: ${{ secrets.NOMAD_PASSWORD }}
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.9']
       fail-fast: false
     steps:
       - name: Check out

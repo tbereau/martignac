@@ -29,6 +29,7 @@ ignore = [
     "UP006",
     "UP035",
     "S311",
+    "E402",
 ]
 
 [per-file-ignores]

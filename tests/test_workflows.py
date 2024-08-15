@@ -20,6 +20,10 @@ def test_initialize_workspaces(conf, solute_gen_workspace_path):
 def test_run_solute_gen_workspace(conf, solute_gen_workspace_path):
     from martignac.workflows.solute_generation import SoluteGenFlow
 
+    print(f"Running solute generation workflow in {solute_gen_workspace_path}")
+    print(f"os: {os.listdir(solute_gen_workspace_path)}")
+    print(f"pwd: {os.curdir}")
+
     project = SoluteGenFlow.get_project(solute_gen_workspace_path)
     sp = {"type": "solute", "solute_name": "C4"}
     project.open_job(sp).init()

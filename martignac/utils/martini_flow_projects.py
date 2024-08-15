@@ -535,15 +535,18 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
     """
     project = cast("MartiniFlowProject", job.project)
     logger.info(f"generating symbolic links for {job.id} @ {project.class_name()}")
-    for file, _path in zip(
-        [*project.itp_files.values(), *project.mdp_files.values()],
-        [project.input_files_path, project.mdp_path],
-    ):
-        if not job.isfile(os.path.basename(file)):
-            if project.allow_symlinks:
-                os.symlink(f"{_path}/{file}", job.fn(file))
-            else:
-                shutil.copy(f"{_path}/{file}", job.fn(file))
+
+    def symlink_or_copy(files, _path):
+        for file in files:
+            if not job.isfile(os.path.basename(file)):
+                if project.allow_symlinks:
+                    os.symlink(f"{_path}/{file}", job.fn(file))
+                else:
+                    shutil.copy(f"{_path}/{file}", job.fn(file))
+
+    symlink_or_copy(project.itp_files.values(), project.input_files_path)
+    symlink_or_copy(project.mdp_files.values(), project.mdp_path)
+
     job.doc = update_nested_dict(
         job.doc, {project.class_name(): {"files_symlinked": True}}
     )

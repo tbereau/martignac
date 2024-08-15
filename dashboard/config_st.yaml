@@ -1,0 +1,161 @@
+nomad:
+  upload_to_nomad: false
+  publish_uploads: false
+  use_prod: false
+  dataset:
+    id: "HJdEI1q4SV-c5Di43BTT_Q"
+  coauthors:
+    - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
+
+local:
+  workspaces:
+    absolute_path: "/mount/src/martignac/workspaces"
+  input_files:
+    absolute_path: "/mount/src/martignac/scripts"
+    itp_files: "/mount/src/martignac/scripts/martini_v300"
+
+solute_generation:
+  relative_paths:
+    workspaces: "solute_generation"
+    mdp_files: "solute_generation/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+  mdp_files:
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+  settings:
+    n_threads: 1
+  output_names:
+    system: "solute"
+    nomad_workflow: "solute_generation.archive.yaml"
+    states:
+      generate: "gen_mol"
+      minimize: "min"
+      equilibrate: "equ"
+  parameters:
+    bond_length: 0.360
+    bond_constant: 5000
+    number_excl: 3
+
+solvent_generation:
+  relative_paths:
+    workspaces: "solvent_generation"
+    mdp_files: "solvent_generation/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    small_molecules: "martini_v3.0.0_small_molecules_v1.itp"
+  mdp_files:
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+    production: "run.mdp"
+  settings:
+    n_threads: 1
+    box_length: 5.0
+  output_names:
+    system: "solvent"
+    nomad_workflow: "solvent_generation.archive.yaml"
+    states:
+      mol: "gen_mol"
+      box: "gen_box"
+      minimize: "minimize"
+      equilibrate: "equilibrate"
+      production: "production"
+
+solute_in_solvent_generation:
+  relative_paths:
+    workspaces: "solute_in_solvent_generation"
+    mdp_files: "solute_in_solvent_generation/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    small_molecules: "martini_v3.0.0_small_molecules_v1.itp"
+  settings:
+    n_threads: 1
+  mdp_files:
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+  output_names:
+    system: "solute_in_solvent"
+    nomad_workflow: "solute_in_solvent_generation.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_solvent_generation.archive.yaml"
+    states:
+      generate: "gen"
+      minimize: "min"
+      equilibrate: "equ"
+
+solute_in_solvent_alchemical:
+  relative_paths:
+    workspaces: "solute_in_solvent_alchemical"
+    mdp_files: "solute_in_solvent_alchemical/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    small_molecules: "martini_v3.0.0_small_molecules_v1.itp"
+  settings:
+    n_threads: 2
+    temperature: 300.
+  mdp_files:
+    production: "run_lambda.mdp"
+  output_names:
+    system: "solute_in_solvent_alchemical"
+    nomad_workflow: "solute_in_solvent_alchemical.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_solvent_alchemical.archive.yaml"
+    states:
+      production: "production"
+
+bilayer_generation:
+  relative_paths:
+    workspaces: "bilayer_generation"
+    mdp_files: "bilayer_generation/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    phospholipids: "martini_v3.0.0_phospholipids_v1.itp"
+  mdp_files:
+    minimize: "min.mdp"
+    equilibrate: "equ.mdp"
+    production: "prod.mdp"
+  settings:
+    n_threads: 2
+    box_length_xy: 10
+    box_length_z: 10
+    solvent:
+      -
+        name: W
+        fraction: 0.8
+      -
+        name: ACN
+        fraction: 0.2
+  output_names:
+    system: "bilayer"
+    nomad_workflow: "bilayer_generation.archive.yaml"
+    states:
+      generate: "gen"
+      minimize: "min"
+      equilibrate: "equ"
+      production: "prod"
+
+solute_in_bilayer:
+  relative_paths:
+    workspaces: "solute_in_bilayer"
+    mdp_files: "solute_in_bilayer/mdp_files"
+  itp_files:
+    particle_definition: "martini_v3.0.0.itp"
+    solvents: "martini_v3.0.0_solvents_v1.itp"
+    phospholipids: "martini_v3.0.0_phospholipids_v1.itp"
+  settings:
+    n_threads: 2
+  mdp_files:
+    minimize: "min_z0.mdp"
+    equilibrate: "equ_z0.mdp"
+    production: "run_z0.mdp"
+  output_names:
+    system: "solute_in_bilayer"
+    nomad_workflow: "solute_in_bilayer.archive.yaml"
+    nomad_top_level_workflow: "full_workflow.solute_in_bilayer.archive.yaml"
+    states:
+      generate: "gen"
+      minimize: "min"
+      equilibrate: "equ"
+      production: "prod"

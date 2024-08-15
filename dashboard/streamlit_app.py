@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 conf = config()
-conf.set_file("/mount/src/martignac/martignac/config_default.yaml")
+conf.set_file("/mount/src/martignac/dashboard/config_st.yaml")
 
 from martignac.nomad.entries import (
     get_entries_in_database,

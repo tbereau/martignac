@@ -27,8 +27,8 @@ def test_run_solute_gen_workspace(conf, solute_gen_workspace_path):
     project = SoluteGenFlow.get_project(solute_gen_workspace_path)
     sp = {"type": "solute", "solute_name": "C4"}
     project.open_job(sp).init()
-    print(f"os job: {next(iter(project.find_jobs())).path()}")
-    print(f"os job: {os.listdir(next(iter(project.find_jobs())).path())}")
+    print(f"os job: {next(iter(project.find_jobs())).path}")
+    print(f"os job: {os.listdir(next(iter(project.find_jobs())).path)}")
     project.run()
     assert len(project.find_jobs()) == 1
 

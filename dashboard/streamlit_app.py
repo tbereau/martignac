@@ -2,16 +2,14 @@ from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
-
-from martignac import config
+from init import init_for_streamlit
 
 st.set_page_config(
     page_title="Martignac Home",
     page_icon="👋",
 )
 
-conf = config()
-conf.set_file("/mount/src/martignac/dashboard/config_st.yaml")
+init_for_streamlit()
 
 from martignac.nomad.entries import (
     get_entries_in_database,

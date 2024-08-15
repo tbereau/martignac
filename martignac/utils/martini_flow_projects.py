@@ -540,9 +540,9 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
         for file in files:
             if not job.isfile(os.path.basename(file)):
                 if project.allow_symlinks:
-                    os.symlink(f"{_path}/{file}", job.fn(file))
+                    os.symlink(f"{_path}/{file}", job.fn(os.path.basename(file)))
                 else:
-                    shutil.copy(f"{_path}/{file}", job.fn(file))
+                    shutil.copy(f"{_path}/{file}", job.fn(os.path.basename(file)))
 
     symlink_or_copy(project.itp_files.values(), project.itp_path)
     symlink_or_copy(project.mdp_files.values(), project.mdp_path)

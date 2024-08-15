@@ -36,7 +36,7 @@ requirements = [
     "marshmallow-dataclass>=8.6.0",
     "cachetools>=5.3.2",
     "isort>=5.8.0",
-    "insane @ git+https://github.com/Tsjerk/Insane.git@f382b447d6dd6c3a89f884347cceaede02bf0166",
+    "insane @ git+https://github.com/Tsjerk/Insane.git@f382b447d6dd6c3a89f884347cceaede02bf0166",  # noqa: E501
     "anyio>=3.0.0,<4.0",
     "GromacsWrapper",
     "mkdocs",
@@ -53,10 +53,10 @@ setup(
     long_description_content_type="text/markdown",
     author="Tristan Bereau",
     author_email="bereau@uni-heidelberg.de",
-    url="https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac",
+    url="https://github.com/tbereau/martignac",
     project_urls={
-        "Documentation": "https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac",
-        "Issues": "https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac/-/issues",
+        "Documentation": "https://github.com/tbereau/martignac",
+        "Issues": "https://github.com/tbereau/martignac/-/issues",
     },
     packages=["martignac"],
     package_dir={"martignac": "martignac"},

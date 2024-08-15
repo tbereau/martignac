@@ -1,0 +1,6 @@
+[report]
+skip_empty = true
+
+[run]
+branch = true
+source = martignac

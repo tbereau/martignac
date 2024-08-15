@@ -2,7 +2,7 @@
 
 Martignac: Coarse-grained Martini simulation worfklows
 
-- **GitLab repository**: <https://lin0.thphys.uni-heidelberg.de:4443/bereau/martignac/>
+- **GitHub repository**: <https://github.com/tbereau/martignac/>
 
 ## Getting started with your project
 
@@ -12,7 +12,7 @@ First, create a repository on GitHub with the same name as this project, and the
 git init -b main
 git add .
 git commit -m "init commit"
-git remote add origin git@lin0.thphys.uni-heidelberg.de:bereau/martignac.git
+git remote add origin git@github.com:tbereau/martignac.git
 git push -u origin main
 ```
 

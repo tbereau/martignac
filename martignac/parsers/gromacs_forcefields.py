@@ -529,7 +529,7 @@ def get_molecule_from_name(
     """
     particle_names = molecule_name.split(",")[0].split()
     if molecule_label is None:
-        molecule_label = "".join(particle_names)[:5]
+        molecule_label = "".join(particle_names)[:4]
     # Construct list of atoms
     atoms = [
         _get_atom_from_string(name, i, molecule_label)

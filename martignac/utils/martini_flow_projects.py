@@ -158,7 +158,7 @@ class MartiniFlowProject(FlowProject):
             job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}}
         )
         if publish_flag:
-            sleep(5)
+            sleep(1)
             nomad_upload = get_upload_by_id(
                 upload_id=upload_id, use_prod=cls.nomad_use_prod_database
             )
@@ -203,7 +203,7 @@ class MartiniFlowProject(FlowProject):
                 job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}}
             )
         if publish_flag:
-            sleep(5)
+            sleep(1)
             nomad_upload = get_upload_by_id(
                 upload_id=upload_id, use_prod=cls.nomad_use_prod_database
             )
@@ -466,6 +466,8 @@ def is_ready_for_upload(job: Job) -> bool:
 @MartiniFlowProject.label
 def uploaded_to_nomad(job: Job) -> bool:
     project_name = cast("MartiniFlowProject", job.project).class_name()
+    if not UPLOAD_TO_NOMAD:
+        return True
     return project_name in job.doc and job.doc[project_name].get(
         "nomad_upload_id", False
     )

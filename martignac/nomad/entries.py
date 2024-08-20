@@ -16,6 +16,9 @@ from signac.job import Job
 
 from martignac import config
 from martignac.nomad.datasets import NomadDataset
+from martignac.nomad.queries import (
+    find_mini_queries_corresponding_to_job,
+)
 from martignac.nomad.uploads import _get_raw_data_of_upload_by_id, get_all_my_uploads
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import (
@@ -404,7 +407,7 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
         TypeError: If the job's project does not derive from MartiniFlowProject.
         ValueError: If the found entries have inconsistent upload IDs, indicating a data retrieval or processing error.
     """
-    entries = find_entries_corresponding_to_job(job)
+    entries = find_mini_queries_corresponding_to_job(job)
     if len(entries) == 0:
         return False
     entry = entries[0]

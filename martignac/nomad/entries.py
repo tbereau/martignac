@@ -428,15 +428,17 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
     zip_file_name = "nomad_archive.zip"
     with open(job.fn(zip_file_name), "wb") as f:
         f.write(bytes(zip_content))
-    zip_file = ZipFile(job.fn(zip_file_name))
-    archive_path = job.path + "/" + entry.upload_id if not entry.published else job.path
-    name_list = zip_file.namelist()
-    logger.info(f"zip content: {name_list}")
-    if entry.published:
-        name_list = [
-            name for name in name_list if name.startswith(f"{entry.upload_id}/")
-        ]
-    zip_file.extractall(path=job.path, members=name_list)
+    with ZipFile(job.fn(zip_file_name), "r") as zip_file:
+        archive_path = (
+            job.path + "/" + entry.upload_id if not entry.published else job.path
+        )
+        name_list = zip_file.namelist()
+        logger.debug(f"zip content: {name_list}")
+        if not entry.published:
+            name_list = [
+                name for name in name_list if name.startswith(f"{entry.upload_id}/")
+            ]
+        zip_file.extractall(path=job.path, members=name_list)
     for file_name in name_list:
         if Path(file_name).name not in os.listdir(job.path):
             shutil.move(job.path + "/" + file_name, job.path)

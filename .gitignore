@@ -176,3 +176,4 @@ scripts/*/.signac/*
 scripts/*/signac_project_document.json
 dashboard/martignac_files/*
 dashboard/app.py
+*/*.yaml.bak

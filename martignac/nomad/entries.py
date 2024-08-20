@@ -16,7 +16,7 @@ from signac.job import Job
 
 from martignac import config
 from martignac.nomad.datasets import NomadDataset
-from martignac.nomad.uploads import get_all_my_uploads
+from martignac.nomad.uploads import _get_raw_data_of_upload_by_id, get_all_my_uploads
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import (
     get_nomad_base_url,
@@ -268,6 +268,7 @@ def get_entries_of_upload(
     ]
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def get_entries_of_my_uploads(
     use_prod: bool = False, timeout_in_sec: int = 10
 ) -> list[NomadEntry]:
@@ -297,6 +298,7 @@ def get_entries_of_my_uploads(
     ]
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def get_entries_in_database(
     database_id: str = DEFAULT_DATABASE, use_prod: bool = DEFAULT_USE_PROD
 ) -> list[NomadEntry]:
@@ -379,6 +381,7 @@ def query_entries(
     return [get_entry_by_id(e, use_prod=use_prod) for e in entries]
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
     """
     Downloads the raw data associated with a given job from the NOMAD system and stores it in the job's directory.
@@ -405,19 +408,34 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
     if len(entries) == 0:
         return False
     entry = entries[0]
-    zip_content = _get_raw_data_of_entry_by_id(
-        entry.entry_id,
-        use_prod=entry.use_prod,
-        timeout_in_sec=timeout_in_sec,
-        with_authentication=not entry.published,
+    logger.info(
+        f"found {'un' if not entry.published else ''}published entry {entry.upload_id}"
     )
+    if entry.published:
+        zip_content = _get_raw_data_of_upload_by_id(
+            entry.upload_id,
+            use_prod=entry.use_prod,
+            timeout_in_sec=timeout_in_sec,
+            with_authentication=not entry.published,
+        )
+    else:
+        zip_content = _get_raw_data_of_entry_by_id(
+            entry.entry_id,
+            use_prod=entry.use_prod,
+            timeout_in_sec=timeout_in_sec,
+            with_authentication=not entry.published,
+        )
     zip_file_name = "nomad_archive.zip"
     with open(job.fn(zip_file_name), "wb") as f:
         f.write(bytes(zip_content))
     zip_file = ZipFile(job.fn(zip_file_name))
-    archive_path = job.path + "/" + entry.upload_id
+    archive_path = job.path + "/" + entry.upload_id if not entry.published else job.path
     name_list = zip_file.namelist()
-    name_list = [name for name in name_list if name.startswith(f"{entry.upload_id}/")]
+    logger.info(f"zip content: {name_list}")
+    if entry.published:
+        name_list = [
+            name for name in name_list if name.startswith(f"{entry.upload_id}/")
+        ]
     zip_file.extractall(path=job.path, members=name_list)
     for file_name in name_list:
         if Path(file_name).name not in os.listdir(job.path):
@@ -427,9 +445,10 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
         with open(archive_path + "/signac_job_document.json") as fp:
             json_data = json.load(fp)
             job.doc = update_nested_dict(job.doc, dict(json_data))
-    for file_name in os.listdir(archive_path):
-        os.remove(archive_path + "/" + file_name)
-    os.removedirs(archive_path)
+    if not entry.published:
+        for file_name in os.listdir(archive_path):
+            os.remove(archive_path + "/" + file_name)
+        os.removedirs(archive_path)
     job.document["nomad_dataset_id"] = MartiniFlowProject.nomad_dataset_id
     if entry.workflow_name not in job.document:
         job.document[entry.workflow_name] = {}
@@ -437,6 +456,7 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
     return True
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
     """
     Finds NOMAD entries that correspond to a given job.
@@ -506,7 +526,7 @@ def _get_raw_data_of_entry_by_id(
         f"retrieving raw data of entry ID {entry_id} on {'prod' if use_prod else 'test'} server"
     )
     response = get_nomad_request(
-        f"/entries/{entry_id}/raw?compress=false",
+        f"/entries/{entry_id}/raw?compress=true",
         with_authentication=with_authentication,
         use_prod=use_prod,
         timeout_in_sec=timeout_in_sec,

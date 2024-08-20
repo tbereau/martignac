@@ -1,7 +1,5 @@
 # Martignac
 
-[![codecov](https://codecov.io/gh/tbereau/martignac/graph/badge.svg?token=F0Y70MT7JD)](https://codecov.io/gh/tbereau/martignac)
-
 Martignac: Coarse-grained Martini simulation worfklows
 
 - **GitHub repository**: <https://github.com/tbereau/martignac/>

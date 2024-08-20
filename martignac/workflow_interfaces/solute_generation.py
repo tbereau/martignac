@@ -9,11 +9,11 @@ from martignac.workflow_interfaces.generic import (
 
 @dataclass(frozen=True)
 class SoluteGenerationInterface(GenericInterface):
+    solute_has_charged_beads: bool
     solute_gro: str
     solute_itp: str
     solute_name: str
     solute_top: str
-    solute_has_charged_beads: bool
 
     @classmethod
     def from_upload(
@@ -22,7 +22,6 @@ class SoluteGenerationInterface(GenericInterface):
         job_id: Optional[str] = None,
         use_prod: bool = False,
         with_authentication: bool = True,
-        find_first_job_id: bool = False,
     ) -> "SoluteGenerationInterface":
         return get_interface_for_upload_id_and_job_id(
             upload_id,
@@ -31,5 +30,5 @@ class SoluteGenerationInterface(GenericInterface):
             job_id,
             use_prod=use_prod,
             with_authentication=with_authentication,
-            find_first_job_id=find_first_job_id,
+            find_first_job_id=False,
         )

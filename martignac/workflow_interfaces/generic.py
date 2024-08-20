@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Optional, TypeVar
 
 from marshmallow import Schema
@@ -38,6 +39,7 @@ class GenericInterface:
     ready_for_nomad_upload: bool
     tasks: dict
     upload_id: str
+    job_id: str
     use_prod: bool
     with_authentication: bool
 
@@ -66,6 +68,18 @@ class GenericInterface:
             NotImplementedError: If the method is not implemented in a subclass.
         """
         raise NotImplementedError
+
+    @cached_property
+    def state_point(self) -> dict:
+        file_name = "signac_statepoint.json"
+        path_to_file = f"{self.job_id}/{file_name}" if self.job_id else file_name
+        sp_doc = get_specific_file_from_upload(
+            self.upload_id,
+            path_to_file,
+            use_prod=self.use_prod,
+            with_authentication=self.with_authentication,
+        )
+        return sp_doc
 
 
 def get_interface_for_upload_id_and_job_id(
@@ -114,6 +128,7 @@ def get_interface_for_upload_id_and_job_id(
     info_doc = {
         **job_doc[workflow_class_name],
         "upload_id": upload_id,
+        "job_id": job_id or "",
         "use_prod": use_prod,
         "with_authentication": with_authentication,
     }

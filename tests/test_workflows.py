@@ -62,7 +62,8 @@ def test_send_solute_gen_workspace_to_nomad(
         upload_id, use_prod=SoluteGenFlow.nomad_use_prod_database
     )
     assert nomad_upload is not None
-    delete_upload(upload_id, use_prod=SoluteGenFlow.nomad_use_prod_database)
+    if not nomad_upload.published:
+        delete_upload(upload_id, use_prod=SoluteGenFlow.nomad_use_prod_database)
 
 
 @pytest.mark.order("last")

@@ -48,6 +48,14 @@ class SoluteInBilayerInterface(GenericInterface):
     solute_bilayer_top: str
     tpr_file: str
 
+    @property
+    def lipids(self) -> list[dict]:
+        return self.state_point["lipids"]
+
+    @property
+    def solute_name(self) -> str:
+        return self.state_point["solute_name"]
+
     @classmethod
     def from_upload(
         cls,
@@ -55,7 +63,6 @@ class SoluteInBilayerInterface(GenericInterface):
         job_id: Optional[str] = None,
         use_prod: bool = False,
         with_authentication: bool = True,
-        find_first_job_id: bool = False,
     ) -> "SoluteInBilayerInterface":
         return get_interface_for_upload_id_and_job_id(
             upload_id,
@@ -64,7 +71,7 @@ class SoluteInBilayerInterface(GenericInterface):
             job_id,
             use_prod=use_prod,
             with_authentication=with_authentication,
-            find_first_job_id=find_first_job_id,
+            find_first_job_id=True,
         )
 
     def get_wham_npy(self, use_bootstrap: bool = True) -> np.ndarray:

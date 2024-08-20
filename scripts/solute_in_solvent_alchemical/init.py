@@ -15,7 +15,7 @@ project = signac.init_project(path=SoluteInSolventAlchemicalFlow.workspace_path)
 
 solvent_names = ["HD"]  # ["HD", "OCO", "CLF", "ETH", "BENZ", "CHEX", "W"]
 solute_names = ["P6"]  # ["P6", "Q1", "D", "N3a"]
-lambda_states = range(3)  # 11
+lambda_states = range(11)  # 11
 
 triplets = list(itertools.product(solvent_names, solute_names, lambda_states))
 

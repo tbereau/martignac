@@ -1,5 +1,5 @@
 nomad:
-  upload_to_nomad: false
+  upload_to_nomad: true
   publish_uploads: false
   use_prod: false
   dataset:
@@ -124,10 +124,7 @@ bilayer_generation:
     solvent:
       -
         name: W
-        fraction: 0.8
-      -
-        name: ACN
-        fraction: 0.2
+        fraction: 1.0
   output_names:
     system: "bilayer"
     nomad_workflow: "bilayer_generation.archive.yaml"

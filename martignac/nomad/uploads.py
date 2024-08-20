@@ -2,6 +2,7 @@ import datetime as dt
 import logging
 from collections.abc import ByteString
 from os.path import basename
+from time import sleep
 from typing import Any, Optional, Union
 
 from cachetools.func import ttl_cache
@@ -32,7 +33,7 @@ class NomadUploadSchema(Schema):
         return data
 
 
-@dataclass(frozen=True)
+@dataclass
 class NomadUpload:
     """
     Represents an upload in the NOMAD system, encapsulating all relevant metadata and state information.
@@ -118,6 +119,26 @@ class NomadUpload:
         if self.base_url is None:
             raise ValueError(f"missing attribute 'use_prod' for upload {self}")
         return f"{self.base_url}/gui/user/uploads/upload/id/{self.upload_id}"
+
+    def fetch(self, with_authentication: bool = True) -> None:
+        updated_upload = get_upload_by_id(
+            self.upload_id,
+            use_prod=self.use_prod,
+            with_authentication=with_authentication,
+        )
+        self.__dict__.update(updated_upload.__dict__)
+
+    def safe_publish(self) -> None:
+        if not self.published:
+            wait_counter = 5
+            while self.process_running and wait_counter > 0:
+                logger.info("upload still processing, waiting before new attempt")
+                sleep(5)
+                self.fetch()
+                wait_counter -= 1
+            if self.process_running:
+                raise ValueError(f"upload {self.upload_id} is still processing")
+            publish_upload(upload_id=self.upload_id, use_prod=self.use_prod)
 
 
 @ttl_cache(maxsize=128, ttl=180)
@@ -296,6 +317,9 @@ def publish_upload(
         with_authentication=True,
         timeout_in_sec=timeout_in_sec,
     )
+    logger.info(
+        f"published upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
     return response
 
 
@@ -360,6 +384,7 @@ def edit_upload_metadata(
     return response
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def get_specific_file_from_upload(
     upload_id: str,
     path_to_file: str,
@@ -487,3 +512,25 @@ def delete_file_to_specified_path(
     )
     upload_class_schema = class_schema(NomadUpload, base_schema=NomadUploadSchema)
     return upload_class_schema().load({**response["data"], "use_prod": use_prod})
+
+
+def _get_raw_data_of_upload_by_id(
+    upload_id: str,
+    use_prod: bool = False,
+    timeout_in_sec: int = 10,
+    with_authentication: bool = False,
+) -> ByteString:
+    logger.info(
+        f"retrieving raw data for upload {upload_id} on {'prod' if use_prod else 'test'} server"
+    )
+    response = get_nomad_request(
+        f"/uploads/{upload_id}/raw",
+        use_prod=use_prod,
+        with_authentication=with_authentication,
+        timeout_in_sec=timeout_in_sec,
+        return_json=False,
+    )
+    if response:
+        return response
+    else:
+        raise ValueError(f"could not retrieve raw data for upload {upload_id}")

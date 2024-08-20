@@ -68,6 +68,14 @@ class SoluteInSolventAlchemicalInterface(GenericInterface):
         """
         return FreeEnergy(**self._free_energy)
 
+    @property
+    def solvent_name(self) -> str:
+        return self.state_point["solvent_name"]
+
+    @property
+    def solute_name(self) -> str:
+        return self.state_point["solute_name"]
+
     @classmethod
     def from_upload(
         cls,
@@ -75,7 +83,6 @@ class SoluteInSolventAlchemicalInterface(GenericInterface):
         job_id: Optional[str] = None,
         use_prod: bool = False,
         with_authentication: bool = True,
-        find_first_job_id: bool = False,
     ) -> "SoluteInSolventAlchemicalInterface":
         """
         Create an instance of SoluteInSolventAlchemicalInterface from an upload.
@@ -106,5 +113,5 @@ class SoluteInSolventAlchemicalInterface(GenericInterface):
             use_prod=use_prod,
             with_authentication=with_authentication,
             base_schema=AlchemicalSchema,
-            find_first_job_id=find_first_job_id,
+            find_first_job_id=True,
         )

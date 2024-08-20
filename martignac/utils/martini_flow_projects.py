@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 from hashlib import md5
+from time import sleep
 from typing import Any, Dict, TypeVar, cast
 
 import signac
@@ -12,7 +13,7 @@ from signac.job import Job
 from martignac import config
 from martignac.nomad.datasets import get_dataset_by_id
 from martignac.nomad.uploads import (
-    publish_upload,
+    get_upload_by_id,
     upload_files_to_nomad,
 )
 from martignac.utils.misc import update_nested_dict, zip_directories
@@ -157,8 +158,11 @@ class MartiniFlowProject(FlowProject):
             job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}}
         )
         if publish_flag:
-            publish_upload(upload_id, cls.nomad_use_prod_database)
-            logger.info(f"Published upload {upload_id}")
+            sleep(5)
+            nomad_upload = get_upload_by_id(
+                upload_id=upload_id, use_prod=cls.nomad_use_prod_database
+            )
+            nomad_upload.safe_publish()
         os.remove(zip_file)
         return None
 
@@ -199,8 +203,11 @@ class MartiniFlowProject(FlowProject):
                 job.doc, {cls.class_name(): {"nomad_upload_id": upload_id}}
             )
         if publish_flag:
-            publish_upload(upload_id, cls.nomad_use_prod_database)
-            logger.info(f"Published upload {upload_id}")
+            sleep(5)
+            nomad_upload = get_upload_by_id(
+                upload_id=upload_id, use_prod=cls.nomad_use_prod_database
+            )
+            nomad_upload.safe_publish()
         return None
 
     @classmethod

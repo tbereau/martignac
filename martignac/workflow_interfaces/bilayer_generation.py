@@ -13,6 +13,14 @@ class BilayerGenerationInterface(GenericInterface):
     bilayer_gro: str
     bilayer_top: str
 
+    @property
+    def solvent(self) -> str:
+        return self.state_point["solvent"]
+
+    @property
+    def lipids(self) -> list[dict]:
+        return self.state_point["lipids"]
+
     @classmethod
     def from_upload(
         cls,
@@ -20,7 +28,6 @@ class BilayerGenerationInterface(GenericInterface):
         job_id: Optional[str] = None,
         use_prod: bool = False,
         with_authentication: bool = True,
-        find_first_job_id: bool = False,
     ) -> "BilayerGenerationInterface":
         return get_interface_for_upload_id_and_job_id(
             upload_id,
@@ -29,5 +36,5 @@ class BilayerGenerationInterface(GenericInterface):
             job_id,
             use_prod=use_prod,
             with_authentication=with_authentication,
-            find_first_job_id=find_first_job_id,
+            find_first_job_id=False,
         )

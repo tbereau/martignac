@@ -11,7 +11,7 @@ init_for_streamlit()
 from init2 import paths_for_streamlit
 
 from martignac.nomad.datasets import get_dataset_by_id
-from martignac.nomad.queries import query_entries_in_mini_format
+from martignac.nomad.mini_entries import query_entries_in_mini_format
 
 paths_for_streamlit()
 

@@ -105,5 +105,4 @@ else:
     )
     st.info(
         "Column `free_energy_in_kt` displays the solvation free energy of `solute_name` in `solvent_name`",
-        icon="i️",
     )

@@ -57,7 +57,7 @@ def test_delete_nomad_dataset(global_state: dict):
 
     # Delete the dataset
     delete_dataset(dataset_id, use_prod=False)
-    sleep(1)
+    sleep(10)
 
     # Verify the dataset was deleted
     # Attempt to retrieve the dataset to ensure it no longer exists

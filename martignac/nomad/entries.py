@@ -6,7 +6,7 @@ import shutil
 from collections.abc import ByteString
 from dataclasses import field
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional, Union, cast
 from zipfile import ZipFile
 
 from cachetools.func import ttl_cache
@@ -16,9 +16,10 @@ from signac.job import Job
 
 from martignac import config
 from martignac.nomad.datasets import NomadDataset
-from martignac.nomad.queries import (
+from martignac.nomad.mini_entries import (
     find_mini_queries_corresponding_to_job,
 )
+from martignac.nomad.queries import query_nomad_entries
 from martignac.nomad.uploads import _get_raw_data_of_upload_by_id, get_all_my_uploads
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import (
@@ -519,6 +520,49 @@ def find_entries_corresponding_to_job(job: Job) -> list[NomadEntry]:
     ):
         raise ValueError(f"Inconsistent upload IDs in entries:\n{match_entries}")
     return match_entries
+
+
+@ttl_cache(maxsize=128, ttl=180)
+def get_multiple_entries_by_id(
+    entry_ids: tuple[str, ...],
+    use_prod: bool = False,
+    with_authentication: bool = False,
+    timeout_in_sec: int = 10,
+    page_size: int = 20,
+) -> list[NomadEntry]:
+    raw_entries = query_nomad_entries(
+        use_prod=use_prod,
+        with_authentication=with_authentication,
+        page_size=page_size,
+        entry_ids=entry_ids,
+        timeout_in_sec=timeout_in_sec,
+    )
+    nomad_entry_schema = class_schema(NomadEntry, base_schema=NomadEntrySchema)
+    return [nomad_entry_schema().load({**r, "use_prod": use_prod}) for r in raw_entries]
+
+
+def get_specific_file_from_entry(
+    entry_id: str,
+    path_to_file: str,
+    use_prod: bool = False,
+    with_authentication: bool = False,
+    return_json: bool = True,
+    timeout_in_sec: int = 10,
+) -> Union[ByteString, dict]:
+    logger.info(
+        f"downloading file {path_to_file} from entry {entry_id} on {'prod' if use_prod else 'test'} server"
+    )
+    response = get_nomad_request(
+        f"/entries/{entry_id}/raw/{path_to_file}",
+        use_prod=use_prod,
+        with_authentication=with_authentication,
+        timeout_in_sec=timeout_in_sec,
+        return_json=return_json,
+    )
+    if response:
+        return response
+    else:
+        raise ValueError(f"could not download file from entry {entry_id}")
 
 
 def _get_raw_data_of_entry_by_id(

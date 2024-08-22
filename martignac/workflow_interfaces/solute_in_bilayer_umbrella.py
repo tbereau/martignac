@@ -4,9 +4,11 @@ from typing import Optional
 
 import numpy as np
 
+from martignac.nomad.entries import NomadEntry
 from martignac.nomad.uploads import get_specific_file_from_upload
 from martignac.workflow_interfaces.generic import (
     GenericInterface,
+    get_interface_for_entry,
     get_interface_for_upload_id_and_job_id,
 )
 
@@ -70,6 +72,18 @@ class SoluteInBilayerInterface(GenericInterface):
             "SoluteInBilayerUmbrellaFlow",
             job_id,
             use_prod=use_prod,
+            with_authentication=with_authentication,
+            find_first_job_id=True,
+        )
+
+    @classmethod
+    def from_entry(
+        cls, entry: NomadEntry, with_authentication: bool = False
+    ) -> "SoluteInBilayerInterface":
+        return get_interface_for_entry(
+            entry,
+            cls,
+            "SoluteInBilayerUmbrellaFlow",
             with_authentication=with_authentication,
             find_first_job_id=True,
         )

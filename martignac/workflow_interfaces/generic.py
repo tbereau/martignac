@@ -6,7 +6,11 @@ from typing import Optional, TypeVar
 from marshmallow import Schema
 from marshmallow_dataclass import class_schema
 
-from martignac.nomad.entries import get_entries_of_upload
+from martignac.nomad.entries import (
+    NomadEntry,
+    get_entries_of_upload,
+    get_specific_file_from_entry,
+)
 from martignac.nomad.uploads import get_specific_file_from_upload
 
 Interface = TypeVar("Interface", bound="GenericInterface")
@@ -69,6 +73,13 @@ class GenericInterface:
         """
         raise NotImplementedError
 
+    @classmethod
+    @abstractmethod
+    def from_entry(
+        cls, entry: NomadEntry, with_authentication: bool = False
+    ) -> type["GenericInterface"]:
+        raise NotImplementedError
+
     @cached_property
     def state_point(self) -> dict:
         file_name = "signac_statepoint.json"
@@ -80,6 +91,37 @@ class GenericInterface:
             with_authentication=self.with_authentication,
         )
         return sp_doc
+
+
+def get_interface_for_entry(
+    entry: NomadEntry,
+    interface_class: type,
+    workflow_class_name: str,
+    find_first_job_id: bool = False,
+    file_name: str = "signac_job_document.json",
+    with_authentication: bool = True,
+    base_schema: Optional[type(Schema)] = None,
+) -> Interface:
+    job_id = None
+    if find_first_job_id:
+        job_id = entry.job_id
+    path_to_file = f"{job_id}/{file_name}" if job_id else file_name
+    job_doc = get_specific_file_from_entry(
+        entry.entry_id,
+        path_to_file,
+        use_prod=entry.use_prod,
+        with_authentication=with_authentication,
+    )
+    interface_class_schema = class_schema(interface_class, base_schema=base_schema)
+    info_doc = {
+        **job_doc[workflow_class_name],
+        "upload_id": entry.upload_id,
+        "job_id": job_id or "",
+        "use_prod": entry.use_prod,
+        "with_authentication": with_authentication,
+    }
+    interface = interface_class_schema().load(info_doc)
+    return interface
 
 
 def get_interface_for_upload_id_and_job_id(

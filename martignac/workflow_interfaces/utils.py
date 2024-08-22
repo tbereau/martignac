@@ -1,6 +1,10 @@
 import json
 
-from martignac.nomad.entries import NomadEntry, get_entry_by_id
+from martignac.nomad.entries import (
+    NomadEntry,
+    get_entry_by_id,
+    get_multiple_entries_by_id,
+)
 from martignac.workflow_interfaces.bilayer_generation import BilayerGenerationInterface
 from martignac.workflow_interfaces.generic import Interface
 from martignac.workflow_interfaces.solute_generation import SoluteGenerationInterface
@@ -41,8 +45,7 @@ def convert_entry_to_specific_interface(
     for workflow, interface in zip(workflows, interfaces):
         if workflow_name == workflow:
             return interface.from_upload(
-                entry.upload_id,
-                use_prod=use_prod,
+                upload_id=entry.upload_id,
                 with_authentication=with_authentication,
             )
     raise ValueError(f"could not find specific interface for entry {entry.entry_id}")
@@ -57,3 +60,19 @@ def convert_entry_id_to_specific_interface(
     return convert_entry_to_specific_interface(
         entry, use_prod=use_prod, with_authentication=with_authentication
     )
+
+
+def convert_multiple_entry_ids_to_specific_interfaces(
+    entry_ids: tuple[str, ...], use_prod: bool = False, with_authentication: bool = True
+) -> list[Interface]:
+    entries = get_multiple_entries_by_id(
+        tuple(entry_ids),
+        use_prod=use_prod,
+        with_authentication=with_authentication,
+    )
+    return [
+        convert_entry_to_specific_interface(
+            entry, use_prod=use_prod, with_authentication=with_authentication
+        )
+        for entry in entries
+    ]

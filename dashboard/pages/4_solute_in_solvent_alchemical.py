@@ -22,10 +22,12 @@ init_for_streamlit()
 
 from init2 import paths_for_streamlit
 
-from martignac.nomad.entries import get_entry_by_id
+from martignac.nomad.entries import get_multiple_entries_by_id
 from martignac.nomad.queries import find_mini_queries_corresponding_to_workflow
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflow_interfaces.utils import convert_entry_id_to_specific_interface
+from martignac.workflow_interfaces.utils import (
+    convert_multiple_entry_ids_to_specific_interfaces,
+)
 from martignac.workflows.solute_in_solvent_alchemical import project
 
 paths_for_streamlit()
@@ -82,16 +84,17 @@ else:
         axis=1,
     )
     with st.spinner("Querying NOMAD..."):
-        df["free_energy_in_kt"] = df["entry_id"].apply(
-            lambda x: convert_entry_id_to_specific_interface(
-                x, use_prod=project.nomad_use_prod_database
-            ).free_energy.mean
+        tuple_of_entry_ids = tuple(df["entry_id"].values)
+        interfaces = convert_multiple_entry_ids_to_specific_interfaces(
+            tuple_of_entry_ids,
+            use_prod=project.nomad_use_prod_database,
         )
-        df["nomad_url"] = df["entry_id"].apply(
-            lambda x: get_entry_by_id(
-                x, use_prod=project.nomad_use_prod_database
-            ).nomad_gui_url
+        df["free_energy_in_kt"] = [i.free_energy.mean for i in interfaces]
+        nomad_entries = get_multiple_entries_by_id(
+            tuple_of_entry_ids,
+            use_prod=project.nomad_use_prod_database,
         )
+        df["nomad_url"] = [e.nomad_gui_url for e in nomad_entries]
     column_free_energy = df.pop("free_energy_in_kt")
     column_nomad_url = df.pop("nomad_url")
     df.insert(0, "free_energy_in_kt", column_free_energy)

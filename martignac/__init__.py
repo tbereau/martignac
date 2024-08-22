@@ -12,14 +12,15 @@ from martignac.logging import logger
 
 __all__ = ["config"]
 
-if os.environ.get('MARTIGNACDIR') is None:
-    os.environ['MARTIGNACDIR'] = str(Path.cwd())
+if os.environ.get("MARTIGNACDIR") is None:
+    os.environ["MARTIGNACDIR"] = str(Path.cwd())
 CONFIG = confuse.Configuration("martignac", __name__)
 LOGGING_LEVEL = "INFO"
 logger.setLevel(LOGGING_LEVEL)
 
 if Path(CONFIG.config_dir()).resolve() == Path(__file__).parent.resolve():
-    logger.warning('You are currently using the default configuration of Martignac.')
+    logger.warning("You are currently using the default configuration of Martignac.")
+
 
 def config() -> Configuration:
     return CONFIG

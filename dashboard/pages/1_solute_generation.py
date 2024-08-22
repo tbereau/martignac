@@ -21,7 +21,7 @@ init_for_streamlit()
 from init2 import paths_for_streamlit
 
 from martignac.nomad.entries import get_entry_by_id
-from martignac.nomad.queries import find_mini_queries_corresponding_to_workflow
+from martignac.nomad.mini_entries import find_mini_queries_corresponding_to_workflow
 from martignac.utils.dashboard import generate_gravis_network
 from martignac.workflows.solute_generation import project
 

@@ -13,7 +13,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 logger = logging.getLogger(__name__)
 
-environ = AutoConfig(search_path=os.environ['MARTIGNACDIR'])
+environ = AutoConfig(search_path=os.environ["MARTIGNACDIR"])
 NOMAD_USERNAME = environ("NOMAD_USERNAME")
 NOMAD_PASSWORD = environ("NOMAD_PASSWORD")
 NOMAD_PROD_URL = "https://nomad-lab.eu/prod/v1/api/v1"

@@ -62,4 +62,5 @@ def test_delete_nomad_dataset(global_state: dict):
     # Verify the dataset was deleted
     # Attempt to retrieve the dataset to ensure it no longer exists
     with pytest.raises(ValueError, match=f"Problem retrieving dataset {dataset_id}"):
-        get_dataset_by_id(dataset_id, use_prod=False)
+        other_id = get_dataset_by_id(dataset_id, use_prod=False)
+        print(f"Other ID: {other_id}")

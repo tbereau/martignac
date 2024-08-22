@@ -8,8 +8,9 @@ from marshmallow_dataclass import class_schema, dataclass
 from signac.job import Job
 
 from martignac import config
+from martignac.nomad.datasets import NomadDataset
 from martignac.nomad.utils import post_nomad_request
-from martignac.utils.martini_flow_projects import MartiniFlowProject
+from martignac.utils.martini_flow_projects import MartiniFlowProject, MartiniTypeFlow
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class NomadMiniQuery:
     upload_id: str
     comment: dict
     published: bool
+    datasets: Optional[list[NomadDataset]] = None
     workflow_name: Optional[str] = None
     use_prod: Optional[bool] = None
 
@@ -49,22 +51,37 @@ class NomadMiniQuery:
             and self.comment.get("job_id") == job.id
         )
 
+    def matches_with_workflow(self, workflow_name: str) -> bool:
+        if not self.is_martignac_entry:
+            return False
+        return self.is_martignac_entry and self.workflow_name == workflow_name
+
 
 @ttl_cache(maxsize=128, ttl=180)
 def query_entries_in_mini_format(
     use_prod: bool = False,
     with_authentication: bool = False,
-    page_size: int = 10,
+    page_size: int = 100,
     timeout_in_sec: int = 10,
+    only_workflows: bool = True,
+    dataset_ids: Optional[tuple[str]] = None,
 ) -> list[NomadMiniQuery]:
+    if dataset_ids is None:
+        dataset_ids = ()
     logger.info(f"querying comments on {'prod' if use_prod else 'test'} server")
-    nomad_query_authors: list[str] = [
-        c.get(str) for c in config()["nomad"]["query_authors"]
-    ]
+    try:
+        nomad_query_authors: list[str] = [
+            c.get(str) for c in config()["nomad"]["query_authors"]
+        ]
+    except KeyError:
+        nomad_query_authors: list[str] = []
     query = {
         "query": {
             "authors.name": {
                 "any": nomad_query_authors,
+            },
+            "datasets.dataset_id": {
+                "any": dataset_ids,
             },
         },
         "pagination": {
@@ -76,9 +93,13 @@ def query_entries_in_mini_format(
                 "upload_id",
                 "comment",
                 "published",
+                "datasets.*",
             ],
         },
     }
+    if only_workflows:
+        query["query"]["entry_type"] = "Workflow"
+    logger.info(f"querying entries with query {query}")
     raw_entries = []
     while True:
         response = post_nomad_request(
@@ -110,8 +131,35 @@ def find_mini_queries_corresponding_to_job(job: Job) -> list[NomadMiniQuery]:
         raise TypeError(
             f"job project {type(job.project)} does not derive from MartiniFlowProject"
         )
+    project = cast("MartiniFlowProject", job.project)
     found_entries = [
-        query for query in query_entries_in_mini_format() if query.matches_with_job(job)
+        query
+        for query in query_entries_in_mini_format(
+            use_prod=project.nomad_use_prod_database
+        )
+        if query.matches_with_job(job)
     ]
     logger.info(f"found {len(found_entries)} entries online for job {job.id}")
+    return found_entries
+
+
+def find_mini_queries_corresponding_to_workflow(
+    workflow: MartiniTypeFlow,
+    dataset_ids: Optional[list[str]] = None,
+    use_prod: Optional[bool] = None,
+) -> list[NomadMiniQuery]:
+    if dataset_ids is None:
+        dataset_ids = []
+    if use_prod is None:
+        use_prod = workflow.nomad_use_prod_database
+    found_entries = [
+        query
+        for query in query_entries_in_mini_format(
+            use_prod=use_prod, dataset_ids=tuple(dataset_ids)
+        )
+        if query.matches_with_workflow(workflow.class_name())
+    ]
+    logger.info(
+        f"found {len(found_entries)} entries online for workflow {workflow.class_name()}"
+    )
     return found_entries

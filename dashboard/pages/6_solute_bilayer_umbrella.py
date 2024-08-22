@@ -1,92 +1,79 @@
+import os
+import sys
+
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+
 from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+from init import init_for_streamlit
 
-from martignac.nomad.entries import (
-    NomadEntry,
-    get_entries_of_my_uploads,
+st.set_page_config(
+    page_title="Martignac Solute-in-bilayer umbrella sampling",
+    page_icon="🧪",
+    layout="wide",
 )
+
+init_for_streamlit()
+
+from init2 import paths_for_streamlit
+
+from martignac.nomad.entries import get_entry_by_id
+from martignac.nomad.queries import find_mini_queries_corresponding_to_workflow
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflows.solute_in_bilayer_umbrella import (
-    project as solute_bilayer_project,
-)
+from martignac.workflows.solute_in_bilayer_umbrella import project
 
-st.set_page_config(page_title="Solute-in-bilayer umbrella sampling", page_icon="📊")
+paths_for_streamlit()
 
-st.title("Martignac: Solute-in-bilayer umbrella sampling")
+st.title("Martignac")
 
-components.html(generate_gravis_network(solute_bilayer_project).to_html(), height=400)
+st.subheader("Solute-in-bilayer umbrella sampling")
 
-# uploads
-upload_entries: list[NomadEntry] = get_entries_of_my_uploads(use_prod=False)
-df_u = pd.json_normalize(
-    [
-        {
-            **asdict(e),
-            "workflow_name": e.workflow_name,
-            "state_point": e.state_point,
-            "mdp_files": e.mdp_files,
-            "url": e.nomad_gui_url,
-        }
-        for e in upload_entries
-        if e.comment
-        and e._comment_dict.get("state_point")
-        and e._comment_dict.get("workflow_name")
-    ]
-)
-sp_columns = [c for c in df_u.columns if "state_point" in c]
-df_u = df_u[
-    [
-        "entry_id",
-        "upload_id",
-        "entry_name",
-        "entry_type",
-        "workflow_name",
-        "mdp_files",
-        *sp_columns,
-        "entry_create_time",
-        "url",
-    ]
-]
-df_u["entry_create_time"] = pd.to_datetime(df_u["entry_create_time"]).dt.date
+components.html(generate_gravis_network(project).to_html(), height=400)
 
-df_u = (
-    df_u[
-        (df_u["workflow_name"] == "SoluteInBilayerUmbrellaFlow")
-        & (df_u["entry_type"] == "Workflow")
-    ]
-    .drop(
-        [
-            "workflow_name",
-            "state_point.type",
-            "state_point.solvent_name",
-            "state_point.lambda_state",
-        ],
-        axis=1,
-        errors="ignore",
-    )
-    .sort_values("state_point.lipids")
-)
-
-
-# Expand the 'state_point.lipids' column
-def expand_lipids(lipids):
-    names = [lipid["name"] for lipid in lipids]
-    fractions = [lipid["fraction"] for lipid in lipids]
-    return pd.Series([names, fractions])
-
-
-# Apply the function to the 'state_point.lipids' column
-df_expanded = df_u["state_point.lipids"].apply(expand_lipids)
-df_expanded.columns = ["state_point.lipids.names", "state_point.lipids.fractions"]
-
-# Concatenate the expanded DataFrame with the original DataFrame (if you want to keep other columns)
-df_u = pd.concat([df_u.drop(columns=["state_point.lipids"]), df_expanded], axis=1)
-
-st.dataframe(
-    df_u, column_config={"url": st.column_config.LinkColumn("URL", display_text="link")}
-)
-
+database_id = st.text_input("Database ID", "HJdEI1q4SV-c5Di43BTT_Q")
+prod_db = st.toggle("Production database", False)
 st.button("Re-run")
+
+with st.spinner("Querying NOMAD..."):
+    df = pd.json_normalize(
+        [
+            asdict(e)
+            for e in find_mini_queries_corresponding_to_workflow(
+                project, dataset_ids=[database_id], use_prod=prod_db
+            )
+        ]
+    )
+
+if len(df) == 0:
+    st.warning(
+        f"No solute-in-bilayer umbrella entry found in database ID '{database_id}' on {'prod' if prod_db else 'test'} server",
+        icon="⚠️",
+    )
+else:
+    df = df.rename(
+        columns={
+            "comment.job_id": "job_id",
+            "comment.mdp_files": "mdp_files",
+            "comment.itp_files": "itp_files",
+        }
+    )
+    with st.spinner("Querying NOMAD..."):
+        df["nomad_url"] = df["entry_id"].apply(
+            lambda x: get_entry_by_id(
+                x, use_prod=project.nomad_use_prod_database
+            ).nomad_gui_url
+        )
+    column_nomad_url = df.pop("nomad_url")
+    df.insert(0, "nomad_url", column_nomad_url)
+
+    st.dataframe(
+        df,
+        column_config={
+            "nomad_url": st.column_config.LinkColumn("URL", display_text="link")
+        },
+    )

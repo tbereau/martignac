@@ -41,7 +41,7 @@ class NomadUser:
     last_name: str = field(repr=False)
     username: str = field(repr=False)
     affiliation: str = field(repr=False)
-    affiliation_address: str = field(repr=False)
+    affiliation_address: Optional[str] = field(repr=False)
     email: Optional[str] = field(repr=False, default=None)
     is_oasis_admin: Optional[bool] = field(repr=False, default=None)
     is_admin: Optional[bool] = field(repr=False, default=None)

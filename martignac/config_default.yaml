@@ -6,6 +6,7 @@ nomad:
     id: "HJdEI1q4SV-c5Di43BTT_Q"
   coauthors:
     - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
+    - "1e49a353-2ff3-4fcc-acde-e04a10107618" # Luis Walter
   query_authors:
     - "Tristan Bereau"
     - "Joseph Rudzinski"

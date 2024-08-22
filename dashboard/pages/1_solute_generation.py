@@ -1,76 +1,88 @@
+import os
+import sys
+
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+
 from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+from init import init_for_streamlit
 
-from martignac.nomad.entries import (
-    NomadEntry,
-    get_entries_of_my_uploads,
+st.set_page_config(
+    page_title="Martignac Solute generation", page_icon="🧪", layout="wide"
 )
+
+init_for_streamlit()
+
+from init2 import paths_for_streamlit
+
+from martignac.nomad.entries import get_entry_by_id
+from martignac.nomad.queries import find_mini_queries_corresponding_to_workflow
 from martignac.utils.dashboard import generate_gravis_network
-from martignac.workflows.solute_generation import project as solute_gen_project
+from martignac.workflows.solute_generation import project
 
-st.set_page_config(page_title="Solute generation", page_icon="📊")
+paths_for_streamlit()
 
-st.title("Martignac: Solute generation")
+st.title("Martignac")
 
-components.html(generate_gravis_network(solute_gen_project).to_html(), height=400)
+st.subheader("Solute generation")
 
-# uploads
-upload_entries: list[NomadEntry] = get_entries_of_my_uploads(use_prod=False)
-df_u = pd.json_normalize(
-    [
-        {
-            **asdict(e),
-            "workflow_name": e.workflow_name,
-            "state_point": e.state_point,
-            "mdp_files": e.mdp_files,
-            "url": e.nomad_gui_url,
+components.html(generate_gravis_network(project).to_html(), height=400)
+
+database_id = st.text_input("Database ID", "HJdEI1q4SV-c5Di43BTT_Q")
+prod_db = st.toggle("Production database", False)
+st.button("Re-run")
+
+with st.spinner("Querying NOMAD..."):
+    df = pd.json_normalize(
+        [
+            asdict(e)
+            for e in find_mini_queries_corresponding_to_workflow(
+                project, dataset_ids=[database_id], use_prod=prod_db
+            )
+        ]
+    )
+
+if len(df) == 0:
+    st.warning(
+        f"No solute generation entry found in database ID '{database_id}' on {'prod' if prod_db else 'test'} server",
+        icon="⚠️",
+    )
+else:
+    df = df.rename(
+        columns={
+            "comment.state_point.solute_name": "solute_name",
+            "comment.job_id": "job_id",
+            "comment.mdp_files": "mdp_files",
+            "comment.itp_files": "itp_files",
         }
-        for e in upload_entries
-        if e.comment
-        and e._comment_dict.get("state_point")
-        and e._comment_dict.get("workflow_name")
-    ]
-)
-sp_columns = [c for c in df_u.columns if "state_point" in c]
-df_u = df_u[
-    [
-        "entry_id",
-        "upload_id",
-        "entry_name",
-        "entry_type",
-        "workflow_name",
-        "mdp_files",
-        *sp_columns,
-        "entry_create_time",
-        "url",
-    ]
-]
-df_u["entry_create_time"] = pd.to_datetime(df_u["entry_create_time"]).dt.date
-
-df_u = (
-    df_u[
-        (df_u["workflow_name"] == "SoluteGenFlow") & (df_u["entry_type"] == "Workflow")
-    ]
-    .drop(
+    )
+    df = df.sort_values("solute_name", ignore_index=True).drop(
         [
             "workflow_name",
-            "state_point.type",
-            "state_point.solvent_name",
-            "state_point.lipids",
-            "state_point.lambda_state",
-            "state_point.depth_from_bilayer_core",
+            "comment.workflow_name",
+            "datasets",
+            "comment.state_point.type",
         ],
         axis=1,
-        errors="ignore",
     )
-    .sort_values("state_point.solute_name")
-)
+    with st.spinner("Querying NOMAD..."):
+        df["nomad_url"] = df["entry_id"].apply(
+            lambda x: get_entry_by_id(
+                x, use_prod=project.nomad_use_prod_database
+            ).nomad_gui_url
+        )
+    df = df.set_index("solute_name")
+    column_nomad_url = df.pop("nomad_url")
+    df.insert(0, "nomad_url", column_nomad_url)
 
-st.dataframe(
-    df_u, column_config={"url": st.column_config.LinkColumn("URL", display_text="link")}
-)
-
-st.button("Re-run")
+    st.dataframe(
+        df,
+        column_config={
+            "nomad_url": st.column_config.LinkColumn("URL", display_text="link")
+        },
+    )

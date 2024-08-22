@@ -130,10 +130,10 @@ class NomadUpload:
 
     def safe_publish(self) -> None:
         if not self.published:
-            wait_counter = 5
+            wait_counter = 600  # 10 minutes overall
             while self.process_running and wait_counter > 0:
                 logger.info("upload still processing, waiting before new attempt")
-                sleep(5)
+                sleep(10)
                 self.fetch()
                 wait_counter -= 1
             if self.process_running:

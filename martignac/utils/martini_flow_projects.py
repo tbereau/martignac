@@ -60,7 +60,12 @@ class MartiniFlowProject(FlowProject):
     itp_path: str = config()["local"]["input_files"]["itp_files"].get(str)
     nomad_use_prod_database: bool = config()["nomad"]["use_prod"].get(bool)
     nomad_dataset_id: str = config()["nomad"]["dataset"]["id"].get(str)
-    nomad_coauthors: list[str] = [c.get(str) for c in config()["nomad"]["coauthors"]]
+    try:
+        nomad_coauthors: list[str] = [
+            c.get(str) for c in config()["nomad"]["coauthors"]
+        ]
+    except KeyError:
+        nomad_coauthors: list[str] = []
     allow_symlinks: bool = config()["local"]["allow_symlinks"].get(bool)
     workspace_path: str = ""
     itp_files: Dict[str, str] = {}

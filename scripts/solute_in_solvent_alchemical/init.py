@@ -13,7 +13,7 @@ if not isdir(SoluteInSolventAlchemicalFlow.workspace_path):
 
 project = signac.init_project(path=SoluteInSolventAlchemicalFlow.workspace_path)
 
-solvent_names = ["HD"]  # ["HD", "OCO", "CLF", "ETH", "BENZ", "CHEX", "W"]
+solvent_names = ["HD", "CLF", "ETH", "CHEX", "W"]
 solute_names = ["P6"]  # ["P6", "Q1", "D", "N3a"]
 lambda_states = range(11)  # 11
 

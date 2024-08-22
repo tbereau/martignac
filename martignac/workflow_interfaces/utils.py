@@ -1,6 +1,6 @@
 import json
 
-from martignac.nomad.entries import NomadEntry
+from martignac.nomad.entries import NomadEntry, get_entry_by_id
 from martignac.workflow_interfaces.bilayer_generation import BilayerGenerationInterface
 from martignac.workflow_interfaces.generic import Interface
 from martignac.workflow_interfaces.solute_generation import SoluteGenerationInterface
@@ -46,3 +46,14 @@ def convert_entry_to_specific_interface(
                 with_authentication=with_authentication,
             )
     raise ValueError(f"could not find specific interface for entry {entry.entry_id}")
+
+
+def convert_entry_id_to_specific_interface(
+    entry_id: str, use_prod: bool = False, with_authentication: bool = True
+) -> Interface:
+    entry = get_entry_by_id(
+        entry_id, use_prod=use_prod, with_authentication=with_authentication
+    )
+    return convert_entry_to_specific_interface(
+        entry, use_prod=use_prod, with_authentication=with_authentication
+    )

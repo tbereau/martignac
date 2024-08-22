@@ -2,12 +2,14 @@ import datetime as dt
 import logging
 from typing import Optional
 
+from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
 from martignac.nomad.users import NomadUser, get_user_by_id
 from martignac.nomad.utils import (
     delete_nomad_request,
+    get_nomad_base_url,
     get_nomad_request,
     post_nomad_request,
 )
@@ -52,6 +54,19 @@ class NomadDataset:
     doi: Optional[str] = None
     pid: Optional[int] = None
     m_annotations: Optional[dict] = None
+    use_prod: Optional[bool] = None
+
+    @property
+    def base_url(self) -> Optional[str]:
+        if self.use_prod is not None:
+            return get_nomad_base_url(self.use_prod)
+        return None
+
+    @property
+    def nomad_gui_url(self) -> str:
+        if self.base_url is None:
+            raise ValueError(f"missing attribute 'use_prod' for entry {self}")
+        return f"{self.base_url}/gui/user/datasets/dataset/id/{self.dataset_id}"
 
 
 def retrieve_datasets(
@@ -106,13 +121,19 @@ def retrieve_datasets(
         response = get_nomad_request(url, headers=headers, use_prod=use_prod)
         if len(response["data"]) == 0:
             break
-        datasets.extend([nomad_entry_schema().load(d) for d in response["data"]])
+        datasets.extend(
+            [
+                nomad_entry_schema().load({**d, "use_prod": use_prod})
+                for d in response["data"]
+            ]
+        )
         if response["pagination"]["page"] == response["pagination"]["total"]:
             break
         page_after_value = response["pagination"]["next_page_after_value"]
     return datasets
 
 
+@ttl_cache(maxsize=128, ttl=180)
 def get_dataset_by_id(dataset_id: str, use_prod: bool = True) -> NomadDataset:
     """
     Retrieves a single NomadDataset object by its dataset ID.

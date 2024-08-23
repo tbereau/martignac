@@ -88,7 +88,7 @@ and execute the following commands:
 ```bash
 python init.py
 python project.py run
-``` 
+```
 
 The results can be found in your output `workspace/` directory.
 
@@ -104,3 +104,4 @@ for a general NOMAD API documentation, see https://nomad-lab.eu/prod/v1/api/v1/e
 ## Tutorial
 
 A tutorial in the form of a Jupyter notebook is available in the [scripts/tutorial.ipynb](https://github.com/tbereau/martignac/blob/main/scripts/tutorial.ipynb) file.
+

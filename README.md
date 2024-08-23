@@ -101,3 +101,6 @@ mkdocs serve
 
 for a general NOMAD API documentation, see https://nomad-lab.eu/prod/v1/api/v1/extensions/docs
 
+## Tutorial
+
+A tutorial in the form of a Jupyter notebook is available in the [scripts/tutorial.ipynb](https://github.com/tbereau/martignac/blob/main/scripts/tutorial.ipynb) file.

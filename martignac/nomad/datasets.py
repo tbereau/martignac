@@ -129,7 +129,9 @@ def retrieve_datasets(
         )
         if response["pagination"]["page"] == response["pagination"]["total"]:
             break
-        page_after_value = response["pagination"]["next_page_after_value"]
+        page_after_value = response["pagination"].get("next_page_after_value", "")
+        if not page_after_value:
+            break
     return datasets
 
 

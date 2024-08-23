@@ -386,7 +386,7 @@ def query_entries(
 
 
 @ttl_cache(maxsize=128, ttl=180)
-def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
+def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:  # noqa: C901
     """
     Downloads the raw data associated with a given job from the NOMAD system and stores it in the job's directory.
 
@@ -442,7 +442,16 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
             name_list = [
                 name for name in name_list if name.startswith(f"{entry.upload_id}/")
             ]
-        zip_file.extractall(path=job.path, members=name_list)
+        path_to_extract = job.path
+        if f"{job.id}/" in name_list:
+            name_list = [
+                name
+                for name in name_list
+                if name.startswith(f"{job.id}/") and name != f"{job.id}/"
+            ]
+            path_to_extract = Path(job.path).parent
+        logger.info(f"to extract: {name_list}")
+        zip_file.extractall(path=path_to_extract, members=name_list)
     for file_name in name_list:
         if Path(file_name).name not in os.listdir(job.path):
             shutil.move(job.path + "/" + file_name, job.path)
@@ -459,6 +468,7 @@ def download_raw_data_of_job(job: Job, timeout_in_sec: int = 10) -> bool:
     if entry.workflow_name not in job.document:
         job.document[entry.workflow_name] = {}
     job.document[entry.workflow_name]["nomad_upload_id"] = entry.upload_id
+
     return True
 
 

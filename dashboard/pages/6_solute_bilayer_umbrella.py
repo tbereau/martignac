@@ -22,9 +22,13 @@ init_for_streamlit()
 
 from init2 import paths_for_streamlit
 
+from martignac.liquid_models.mixtures import LiquidMixture
 from martignac.nomad.entries import get_entry_by_id
 from martignac.nomad.mini_entries import find_mini_queries_corresponding_to_workflow
 from martignac.utils.dashboard import generate_gravis_network
+from martignac.workflow_interfaces.utils import (
+    convert_multiple_entry_ids_to_specific_interfaces,
+)
 from martignac.workflows.solute_in_bilayer_umbrella import project
 
 paths_for_streamlit()
@@ -58,22 +62,55 @@ else:
     df = df.rename(
         columns={
             "comment.job_id": "job_id",
+            "comment.state_point.lipids": "lipids",
+            "comment.state_point.depth_from_bilayer_core": "depth_from_bilayer_core",
+            "comment.state_point.solute_name": "solute_name",
             "comment.mdp_files": "mdp_files",
             "comment.itp_files": "itp_files",
         }
     )
+    df["lipids"] = df["lipids"].apply(
+        lambda x: LiquidMixture.from_list_of_dicts(x).to_insane_format()
+    )
+    df = (
+        df.sort_values("depth_from_bilayer_core")
+        .groupby(by=["solute_name", "lipids"])
+        .first()
+    )
+    df = df.drop(
+        [
+            "workflow_name",
+            "comment.workflow_name",
+            "datasets",
+            "comment.state_point.type",
+            "depth_from_bilayer_core",
+        ],
+        axis=1,
+    )
+    tuple_of_entry_ids = tuple(df["entry_id"].values)
     with st.spinner("Querying NOMAD..."):
+        interfaces = convert_multiple_entry_ids_to_specific_interfaces(
+            tuple_of_entry_ids, use_prod=project.nomad_use_prod_database
+        )
+        df["pmf"] = [i.get_wham_npy(use_bootstrap=False)[1] for i in interfaces]
         df["nomad_url"] = df["entry_id"].apply(
             lambda x: get_entry_by_id(
                 x, use_prod=project.nomad_use_prod_database
             ).nomad_gui_url
         )
     column_nomad_url = df.pop("nomad_url")
-    df.insert(0, "nomad_url", column_nomad_url)
+    column_pmf = df.pop("pmf")
+    df.insert(0, "pmf", column_pmf)
+    df.insert(1, "nomad_url", column_nomad_url)
 
     st.dataframe(
         df,
         column_config={
-            "nomad_url": st.column_config.LinkColumn("URL", display_text="link")
+            "nomad_url": st.column_config.LinkColumn("nomad_url", display_text="link"),
+            "pmf": st.column_config.LineChartColumn(
+                "pmf",
+                width="medium",
+                help="Potential of mean force (PMF) in kT",
+            ),
         },
     )

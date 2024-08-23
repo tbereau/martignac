@@ -83,6 +83,6 @@ else:
     st.dataframe(
         df,
         column_config={
-            "nomad_url": st.column_config.LinkColumn("URL", display_text="link")
+            "nomad_url": st.column_config.LinkColumn("nomad_url", display_text="link")
         },
     )

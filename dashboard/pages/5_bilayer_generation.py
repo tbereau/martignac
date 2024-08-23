@@ -22,6 +22,7 @@ init_for_streamlit()
 
 from init2 import paths_for_streamlit
 
+from martignac.liquid_models.mixtures import LiquidMixture
 from martignac.nomad.entries import get_entry_by_id
 from martignac.nomad.mini_entries import find_mini_queries_corresponding_to_workflow
 from martignac.utils.dashboard import generate_gravis_network
@@ -60,7 +61,20 @@ else:
             "comment.job_id": "job_id",
             "comment.mdp_files": "mdp_files",
             "comment.itp_files": "itp_files",
+            "comment.state_point.lipids": "lipids",
         }
+    )
+    df["lipids"] = df["lipids"].apply(
+        lambda x: LiquidMixture.from_list_of_dicts(x).to_insane_format()
+    )
+    df = df.drop(
+        [
+            "workflow_name",
+            "comment.workflow_name",
+            "datasets",
+            "comment.state_point.type",
+        ],
+        axis=1,
     )
     with st.spinner("Querying NOMAD..."):
         df["nomad_url"] = df["entry_id"].apply(
@@ -74,6 +88,6 @@ else:
     st.dataframe(
         df,
         column_config={
-            "nomad_url": st.column_config.LinkColumn("URL", display_text="link")
+            "nomad_url": st.column_config.LinkColumn("nomad_url", display_text="link")
         },
     )

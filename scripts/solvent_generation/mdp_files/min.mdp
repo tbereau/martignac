@@ -1,7 +1,6 @@
-define           = -DFLEXIBLE
-integrator       =  steep 
-dt               =  0.02 
-nsteps           =  500 
+integrator       =  steep
+dt               =  0.01
+nsteps           =  5000
 nstxout          =  0 
 nstvout          =  0
 nstlog           =  100 
@@ -17,7 +16,5 @@ vdw_type                 = cutoff
 vdw-modifier             = Potential-shift-verlet
 rvdw                     = 1.1
 
-tcoupl           =  v-rescale 
-tc-grps          =  System 
-tau-t            =  1.0 
-ref-t            =  300 
+constraints        = none
+

@@ -103,9 +103,23 @@ else:
     st.dataframe(
         df,
         column_config={
-            "nomad_url": st.column_config.LinkColumn("URL", display_text="link")
+            "nomad_url": st.column_config.LinkColumn("nomad_url", display_text="link")
         },
     )
+
+    # df = df.reset_index(level=[0, 1])
+    #
+    # st.data_editor(
+    #     styled_df,
+    #     column_config={
+    #         "nomad_url": st.column_config.LinkColumn(
+    #             "nomad_url",
+    #             help="Hyperlink to NOMAD GUI",
+    #             display_text="url",
+    #         )
+    #     },
+    # )
     st.info(
-        "Column `free_energy_in_kt` displays the solvation free energy of `solute_name` in `solvent_name`",
+        "Column `free_energy_in_kt` displays the solvation free energy of `solute_name` "
+        r"in `solvent_name` in units of $k_\mathrm{B}T$.",
     )

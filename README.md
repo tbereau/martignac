@@ -1,11 +1,7 @@
 [![Build and Deploy](https://github.com/tbereau/martignac/actions/workflows/main.yml/badge.svg)](https://github.com/tbereau/martignac/actions/workflows/main.yml)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://martignac.streamlit.app/)
 
-# Martignac
-
-Martignac: Coarse-grained Martini simulation worfklows
-
-- **GitHub repository**: <https://github.com/tbereau/martignac/>
+> Martignac: Coarse-grained Martini simulation worfklows
 
 ## Getting started with your project
 

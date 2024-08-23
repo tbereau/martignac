@@ -1,6 +1,6 @@
-import os
 import json
 import logging
+import os
 import time
 from functools import wraps
 from typing import Any, Optional
@@ -8,7 +8,6 @@ from typing import Any, Optional
 import requests
 from cachetools.func import ttl_cache
 from decouple import AutoConfig
-from decouple import config as environ
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 logger = logging.getLogger(__name__)
@@ -19,7 +18,7 @@ NOMAD_PASSWORD = environ("NOMAD_PASSWORD")
 NOMAD_PROD_URL = "https://nomad-lab.eu/prod/v1/api/v1"
 NOMAD_TEST_URL = "https://nomad-lab.eu/prod/v1/test/api/v1"
 TIMEOUT_IN_SEC = 60
-NOMAD_SLEEP_INTERVAL_IN_SECONDS = 0.2
+NOMAD_SLEEP_INTERVAL_IN_SECONDS = 0.05
 
 
 def rate_limiter(min_interval):

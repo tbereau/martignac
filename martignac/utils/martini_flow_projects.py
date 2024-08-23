@@ -470,12 +470,26 @@ def is_ready_for_upload(job: Job) -> bool:
 
 @MartiniFlowProject.label
 def uploaded_to_nomad(job: Job) -> bool:
+    from martignac.nomad.entries import get_entries_of_upload
+
     project_name = cast("MartiniFlowProject", job.project).class_name()
     if not UPLOAD_TO_NOMAD:
         return True
-    return project_name in job.doc and job.doc[project_name].get(
-        "nomad_upload_id", False
-    )
+    project = cast("MartiniFlowProject", job.project)
+    if job.doc.get("nomad_dataset_id", "") != project.nomad_dataset_id:
+        return False
+    if project_name not in job.doc:
+        return False
+    nomad_upload_id = job.doc[project_name].get("nomad_upload_id", "")
+    if not nomad_upload_id:
+        return False
+    try:
+        nomad_entries = get_entries_of_upload(
+            nomad_upload_id, project.nomad_use_prod_database
+        )
+    except ValueError:
+        return False
+    return any(e.job_id == job.id for e in nomad_entries)
 
 
 @MartiniFlowProject.label

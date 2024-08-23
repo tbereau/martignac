@@ -13,6 +13,7 @@ project = signac.init_project(path=SoluteGenFlow.workspace_path)
 for solute_name in [
     "P6",
     "P5",
+    "P4",
     "C4",
     "C3",
     "C2",

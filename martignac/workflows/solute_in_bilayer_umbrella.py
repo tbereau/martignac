@@ -142,6 +142,7 @@ def solute_generated(job) -> bool:
         solute_gen_name in job.doc
         and job.doc[solute_gen_name].get("solute_gro")
         and job.doc[solute_gen_name].get("solute_top")
+        and uploaded_to_nomad(job)
     )
 
 
@@ -171,7 +172,11 @@ def generated_box_pdb(job):
 
 @SoluteInBilayerUmbrellaFlow.label
 def bilayer_generated(job) -> bool:
-    return bilayer_gen_name in job.doc and job.doc[bilayer_gen_name].get("bilayer_gro")
+    return (
+        bilayer_gen_name in job.doc
+        and job.doc[bilayer_gen_name].get("bilayer_gro")
+        and uploaded_to_nomad(job)
+    )
 
 
 @SoluteInBilayerUmbrellaFlow.label

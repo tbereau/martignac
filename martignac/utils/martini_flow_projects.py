@@ -143,7 +143,9 @@ class MartiniFlowProject(FlowProject):
         if not nomad_upload_flag:
             logger.info("NOMAD upload turned off")
             return None
-        if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
+        if uploaded_to_nomad(job):
+            project_name = cast("MartiniFlowProject", job.project).class_name()
+            upload_id = job.doc[project_name].get("nomad_upload_id", "")
             logger.info(f"Workflow {cls.class_name()} already uploaded to {upload_id}")
             return None
         dataset = get_dataset_by_id(
@@ -186,7 +188,9 @@ class MartiniFlowProject(FlowProject):
         )
         logger.info(f"made connection to dataset {dataset.dataset_id}")
         for job in jobs:
-            if upload_id := job.doc[cls.class_name()].get("nomad_upload_id"):
+            if uploaded_to_nomad(job):
+                project_name = cast("MartiniFlowProject", job.project).class_name()
+                upload_id = job.doc[project_name].get("nomad_upload_id", "")
                 logger.info(
                     f"Workflow {cls.class_name()} already uploaded to {upload_id}"
                 )

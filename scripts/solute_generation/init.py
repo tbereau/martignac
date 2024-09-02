@@ -14,6 +14,7 @@ for solute_name in [
     "P6",
     "P5",
     "P4",
+    "P3",
     "C4",
     "C3",
     "C2",

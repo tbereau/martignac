@@ -117,27 +117,21 @@ class NomadEntry:
     upload_id: str
     references: list[str]
     origin: str
-    quantities: list[str] = field(repr=False)
     datasets: list[NomadDataset] = field(repr=False)
     n_quantities: int
     nomad_version: str
     upload_create_time: dt.datetime
     nomad_commit: str
-    section_defs: list[NomadSectionDefinition] = field(repr=False)
-    processing_errors: list[Any]
-    last_processing_time: dt.datetime
     parser_name: str
     calc_id: str
     published: bool
     writers: list[NomadUser]
-    sections: list[str] = field(repr=False)
     processed: bool
     mainfile: str
     main_author: NomadUser
     viewers: list[NomadUser] = field(repr=False)
     entry_create_time: dt.datetime
     with_embargo: bool
-    files: list[str] = field(repr=False)
     authors: list[NomadUser] = field(repr=False)
     license: str
     results: Optional[dict] = field(repr=False, default=None)
@@ -147,8 +141,16 @@ class NomadEntry:
     optimade: Optional[dict] = field(repr=False, default=None)
     comment: Optional[str] = None
     upload_name: Optional[str] = None
+    last_processing_time: Optional[dt.datetime] = None
+    processing_errors: Optional[list[Any]] = field(default=None)
+    quantities: Optional[list[str]] = field(repr=False, default=None)
     viewer_groups: Optional[list[Any]] = field(repr=False, default=None)
     writer_groups: Optional[list[Any]] = field(repr=False, default=None)
+    files: Optional[list[str]] = field(repr=False, default=None)
+    sections: Optional[list[str]] = field(repr=False, default=None)
+    section_defs: Optional[list[NomadSectionDefinition]] = field(
+        repr=False, default=None
+    )
     text_search_contents: Optional[list[str]] = None
     publish_time: Optional[dt.datetime] = None
     entry_references: Optional[list[dict]] = None

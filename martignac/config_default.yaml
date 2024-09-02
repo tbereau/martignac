@@ -1,6 +1,6 @@
 nomad:
   upload_to_nomad: true
-  publish_uploads: true
+  publish_uploads: false
   use_prod: false
   dataset:
     id: "HJdEI1q4SV-c5Di43BTT_Q"

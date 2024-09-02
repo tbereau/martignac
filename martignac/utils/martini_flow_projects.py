@@ -481,17 +481,23 @@ def uploaded_to_nomad(job: Job) -> bool:
         return True
     project = cast("MartiniFlowProject", job.project)
     if job.doc.get("nomad_dataset_id", "") != project.nomad_dataset_id:
+        logger.info(
+            f"inconsistent dataset_id ({job.doc.get('nomad_dataset_id', '')} vs {project.nomad_dataset_id}"
+        )
         return False
     if project_name not in job.doc:
+        logger.info(f"missing project name {project_name} in job.doc")
         return False
     nomad_upload_id = job.doc[project_name].get("nomad_upload_id", "")
     if not nomad_upload_id:
+        logger.info(f"missing nomad_upload_id in job.doc[{project_name}]")
         return False
     try:
         nomad_entries = get_entries_of_upload(
-            nomad_upload_id, project.nomad_use_prod_database
+            nomad_upload_id, project.nomad_use_prod_database, with_authentication=True
         )
     except ValueError:
+        logger.info(f"retrieving entries of upload {nomad_upload_id} on NOMAD failed")
         return False
     return any(e.job_id == job.id for e in nomad_entries)
 

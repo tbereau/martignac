@@ -138,11 +138,12 @@ def highest_depth_job(jobs) -> Job:
 
 @SoluteInBilayerUmbrellaFlow.label
 def solute_generated(job) -> bool:
+    solute_job: Job = get_solute_job(job)
     return (
         solute_gen_name in job.doc
         and job.doc[solute_gen_name].get("solute_gro")
         and job.doc[solute_gen_name].get("solute_top")
-        and uploaded_to_nomad(job)
+        and uploaded_to_nomad(solute_job)
     )
 
 
@@ -172,10 +173,11 @@ def generated_box_pdb(job):
 
 @SoluteInBilayerUmbrellaFlow.label
 def bilayer_generated(job) -> bool:
+    solvent_job: Job = get_solvent_job(job)
     return (
         bilayer_gen_name in job.doc
         and job.doc[bilayer_gen_name].get("bilayer_gro")
-        and uploaded_to_nomad(job)
+        and uploaded_to_nomad(solvent_job)
     )
 
 

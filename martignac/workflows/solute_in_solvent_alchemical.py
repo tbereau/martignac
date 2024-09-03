@@ -123,8 +123,16 @@ def lowest_lambda_job(jobs) -> Job:
 
 @SoluteInSolventAlchemicalFlow.label
 def system_prepared(job) -> bool:
+    solute_job: Job = get_solute_job(job)
+    solvent_job: Job = get_solvent_job(job)
+    solvation_job: Job = get_solvation_job(job)
     if project_name in job.document:
-        return job.doc[project_name].get("system_prepared", False)
+        return (
+            job.doc[project_name].get("system_prepared", False)
+            and uploaded_to_nomad(solute_job)
+            and uploaded_to_nomad(solvent_job)
+            and uploaded_to_nomad(solvation_job)
+        )
     return False
 
 

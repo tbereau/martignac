@@ -79,16 +79,23 @@ solvent_gen_name = SolventGenFlow.class_name()
 
 @SoluteInSolventGenFlow.label
 def solute_generated(job) -> bool:
+    solute_job: Job = get_solute_job(job)
     return (
         solute_gen_name in job.doc
         and job.doc[solute_gen_name].get("solute_gro")
         and job.doc[solute_gen_name].get("solute_top")
+        and uploaded_to_nomad(solute_job)
     )
 
 
 @SoluteInSolventGenFlow.label
 def solvent_generated(job) -> bool:
-    return solvent_gen_name in job.doc and job.doc[solvent_gen_name].get("solvent_gro")
+    solvent_job: Job = get_solvent_job(job)
+    return (
+        solvent_gen_name in job.doc
+        and job.doc[solvent_gen_name].get("solvent_gro")
+        and uploaded_to_nomad(solvent_job)
+    )
 
 
 @SoluteInSolventGenFlow.pre(fetched_from_nomad)

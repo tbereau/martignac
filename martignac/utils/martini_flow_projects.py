@@ -578,6 +578,8 @@ def symlink_itp_and_mdp_files(job: Job) -> None:
     def symlink_or_copy(files, _path):
         for file in files:
             if not job.isfile(os.path.basename(file)):
+                if not os.path.isfile(f"{_path}/{file}"):
+                    raise FileNotFoundError(f"{_path}/{file} not found")
                 if project.allow_symlinks:
                     os.symlink(f"{_path}/{file}", job.fn(os.path.basename(file)))
                 else:

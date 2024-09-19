@@ -87,12 +87,12 @@ else:
         tuple_of_entry_ids = tuple(df["entry_id"].values)
         interfaces = convert_multiple_entry_ids_to_specific_interfaces(
             tuple_of_entry_ids,
-            use_prod=project.nomad_use_prod_database,
+            use_prod=prod_db,
         )
         df["free_energy_in_kt"] = [i.free_energy.mean for i in interfaces]
         nomad_entries = get_multiple_entries_by_id(
             tuple_of_entry_ids,
-            use_prod=project.nomad_use_prod_database,
+            use_prod=prod_db,
         )
         df["nomad_url"] = [e.nomad_gui_url for e in nomad_entries]
     column_free_energy = df.pop("free_energy_in_kt")

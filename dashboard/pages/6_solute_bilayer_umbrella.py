@@ -90,13 +90,11 @@ else:
     tuple_of_entry_ids = tuple(df["entry_id"].values)
     with st.spinner("Querying NOMAD..."):
         interfaces = convert_multiple_entry_ids_to_specific_interfaces(
-            tuple_of_entry_ids, use_prod=project.nomad_use_prod_database
+            tuple_of_entry_ids, use_prod=prod_db
         )
         df["pmf"] = [i.get_wham_npy(use_bootstrap=False)[1] for i in interfaces]
         df["nomad_url"] = df["entry_id"].apply(
-            lambda x: get_entry_by_id(
-                x, use_prod=project.nomad_use_prod_database
-            ).nomad_gui_url
+            lambda x: get_entry_by_id(x, use_prod=prod_db).nomad_gui_url
         )
     column_nomad_url = df.pop("nomad_url")
     column_pmf = df.pop("pmf")

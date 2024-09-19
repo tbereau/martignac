@@ -78,9 +78,7 @@ else:
     )
     with st.spinner("Querying NOMAD..."):
         df["nomad_url"] = df["entry_id"].apply(
-            lambda x: get_entry_by_id(
-                x, use_prod=project.nomad_use_prod_database
-            ).nomad_gui_url
+            lambda x: get_entry_by_id(x, use_prod=prod_db).nomad_gui_url
         )
     column_nomad_url = df.pop("nomad_url")
     df.insert(0, "nomad_url", column_nomad_url)

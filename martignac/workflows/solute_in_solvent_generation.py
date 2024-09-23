@@ -316,7 +316,7 @@ def upload_to_nomad(job: Job):
 
 def get_solvation_job(job: Job) -> Job:
     sp = {
-        "type": "solute_solvation",
+        "type": "solute_in_solvent_generation",
         "solvent_name": job.sp.get("solvent_name"),
         "solute_name": job.sp.get("solute_name"),
     }

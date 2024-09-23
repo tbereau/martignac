@@ -798,7 +798,7 @@ def upload_to_nomad(*jobs):
 
 def get_solvation_job(job: Job) -> Job:
     sp = {
-        "type": "solute_solvation",
+        "type": "solute_in_solvent_generation",
         "lipids": job.sp.get("lipids"),
         "solute_name": job.sp.get("solute_name"),
         "depth_from_bilayer_core": job.sp.get("depth_from_bilayer_core"),

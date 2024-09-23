@@ -62,7 +62,12 @@ else:
             "comment.itp_files": "itp_files",
         }
     )
-    df = df.sort_values(["solute_name", "solvent_name"], ignore_index=True).drop(
+    df = (
+        df.sort_values(["solute_name", "solvent_name"], ignore_index=True)
+        .groupby(by=["upload_id"])
+        .first()
+    )
+    df = df.drop(
         [
             "workflow_name",
             "comment.workflow_name",

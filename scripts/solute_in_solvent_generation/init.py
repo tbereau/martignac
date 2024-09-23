@@ -6,7 +6,7 @@ from martignac.workflows.solute_in_solvent_generation import SoluteInSolventGenF
 
 project = signac.init_project(path=SoluteInSolventGenFlow.workspace_path)
 
-solvent_names = ["HD"]  # "ETH", "BENZ"]
+solvent_names = ["HD", "CLF", "ETH", "CHEX", "W"]
 solute_names = ["P6"]
 
 pairs = list(itertools.product(solute_names, solvent_names))

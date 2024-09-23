@@ -1,9 +1,9 @@
 nomad:
   upload_to_nomad: true
   publish_uploads: false
-  use_prod: false
+  use_prod: true
   dataset:
-    id: "HJdEI1q4SV-c5Di43BTT_Q"
+    id: "Q6CrHWQzS2CYi8NwQDw5ng"
   coauthors:
     - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
     - "1e49a353-2ff3-4fcc-acde-e04a10107618" # Luis Walter

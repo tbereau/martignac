@@ -25,7 +25,7 @@ st.subheader("Martignac datasets")
 
 "Toggle the switch to see the Martignac datasets in the NOMAD production or test databases."
 
-prod_db = st.toggle("Production database", False)
+prod_db = st.toggle("Production database", True)
 
 
 with st.spinner("Querying NOMAD..."):

@@ -38,8 +38,8 @@ st.subheader("Solute-in-solvent alchemical transformation")
 
 components.html(generate_gravis_network(project).to_html(), height=400)
 
-database_id = st.text_input("Database ID", "HJdEI1q4SV-c5Di43BTT_Q")
-prod_db = st.toggle("Production database", False)
+database_id = st.text_input("Database ID", "Q6CrHWQzS2CYi8NwQDw5ng")
+prod_db = st.toggle("Production database", True)
 st.button("Re-run")
 
 with st.spinner("Querying NOMAD..."):

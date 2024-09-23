@@ -796,16 +796,6 @@ def upload_to_nomad(*jobs):
     return SoluteInBilayerUmbrellaFlow.upload_to_nomad_multiple_jobs(list(jobs))
 
 
-def get_solvation_job(job: Job) -> Job:
-    sp = {
-        "type": "solute_in_solvent_generation",
-        "lipids": job.sp.get("lipids"),
-        "solute_name": job.sp.get("solute_name"),
-        "depth_from_bilayer_core": job.sp.get("depth_from_bilayer_core"),
-    }
-    return project.open_job(sp).init()
-
-
 project = SoluteInBilayerUmbrellaFlow.init_and_get_project()
 solute_gen_project = SoluteGenFlow.init_and_get_project()
 bilayer_gen_project = BilayerGenFlow.init_and_get_project()

@@ -47,6 +47,7 @@ def convert_entry_to_specific_interface(
             return interface.from_upload(
                 upload_id=entry.upload_id,
                 with_authentication=with_authentication,
+                use_prod=use_prod,
             )
     raise ValueError(f"could not find specific interface for entry {entry.entry_id}")
 

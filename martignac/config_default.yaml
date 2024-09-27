@@ -1,22 +1,20 @@
 nomad:
-  upload_to_nomad: true
+  upload_to_nomad: false
   publish_uploads: false
-  use_prod: true
+  use_prod: false
   dataset:
     id: "Q6CrHWQzS2CYi8NwQDw5ng"
   coauthors:
-    - "7c85bdf1-8b53-40a8-81a4-04f26ff56f29" # Joe Rudzinski
-    - "1e49a353-2ff3-4fcc-acde-e04a10107618" # Luis Walter
+    - "<coauthor_nomad_id>" # coauthor #1
   query_authors:
-    - "Tristan Bereau"
-    - "Joseph Rudzinski"
+    - "<Your_Name>"
 
 local:
   workspaces:
-    absolute_path: "/Users/bereau/work/projects/martignac/workspaces"
+    absolute_path: "<path_to_martignac_root>/martignac/workspaces"
   input_files:
-    absolute_path: "/Users/bereau/work/projects/martignac/scripts"
-    itp_files: "/Users/bereau/work/projects/martignac/scripts/martini_v300"
+    absolute_path: "<path_to_martignac_root>/scripts"
+    itp_files: "<path_to_martignac_root>/scripts/martini_v300"
   allow_symlinks: true
 
 solute_generation:

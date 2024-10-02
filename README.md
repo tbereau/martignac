@@ -5,6 +5,16 @@
 
 > Martignac: Coarse-grained Martini simulation worfklows
 
+See our [preprint](https://arxiv.org/abs/2409.15478) for more details on the Martignac workflows:
+```
+@article{bereau2024martignac,
+  title={Martignac: Computational workflows for reproducible, traceable, and composable coarse-grained Martini simulations},
+  author={Bereau, Tristan and Walter, Luis J and Rudzinski, Joseph F},
+  journal={arXiv preprint arXiv:2409.15478},
+  year={2024}
+}
+```
+
 ## Getting started with your project
 
 First, clone (or fork and then clone) the repository::

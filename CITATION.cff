@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Bereau"
+  given-names: "Tristan"
+  orcid: "https://orcid.org/0000-0001-9945-1271"
+- family-names: "Walter"
+  given-names: "Luis J."
+  orcid: "https://orcid.org/0009-0000-0113-6215"
+- family-names: "Rudzinski"
+  given-names: "Joseph F."
+  orcid: "https://orcid.org/0000-0003-3403-640X"
+title: "Martignac: Computational workflows for reproducible, traceable, and composable coarse-grained Martini simulations"
+doi: 10.48550/arXiv:2409.15478
+date-released: 2024-10-01
+url: "https://github.com/tbereau/martignac"

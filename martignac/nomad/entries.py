@@ -329,7 +329,7 @@ def get_entries_in_database(
 
 @ttl_cache(maxsize=128, ttl=180)
 def query_entries(
-    worfklow_name: Optional[str] = None,
+    workflow_name: Optional[str] = None,
     program_name: Optional[str] = None,
     dataset_id: Optional[str] = None,
     origin: Optional[str] = None,
@@ -345,7 +345,7 @@ def query_entries(
     `max_entries`. The environment (production or test) can be specified with `use_prod`.
 
     Args:
-        worfklow_name (str, optional): Filter entries by the name of the workflow. Defaults to None.
+        workflow_name (str, optional): Filter entries by the name of the workflow. Defaults to None.
         program_name (str, optional): Filter entries by the program name. Defaults to None.
         dataset_id (str, optional): Filter entries by the dataset ID. Defaults to None.
         origin (str, optional): Filter entries by their origin. Defaults to None.
@@ -365,8 +365,8 @@ def query_entries(
     while (max_entries > 0 and len(entries) <= max_entries) or (max_entries < 0):
         if dataset_id:
             json_dict["query"]["datasets"] = {"dataset_id": dataset_id}
-        if worfklow_name:
-            json_dict["query"]["results.method"] = {"workflow_name": worfklow_name}
+        if workflow_name:
+            json_dict["query"]["results.method"] = {"workflow_name": workflow_name}
         if program_name:
             json_dict["query"]["results.method"] = {
                 "simulation": {"program_name": program_name}

@@ -1,4 +1,4 @@
-# Martignac: Coarse-grained Martini simulation worfklows
+# Martignac: Coarse-grained Martini simulation workflows
 
 Martignac is a Python-based toolkit designed to streamline the preparation and analysis of coarse-grained Martini 
 molecular dynamics simulations. 

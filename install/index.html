@@ -431,9 +431,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#martignac-dependencies-installation" class="md-nav__link">
+  <a href="#gomacs-installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Martignac dependencies installation
+      Gomacs installation
     </span>
   </a>
   
@@ -1374,9 +1374,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#martignac-dependencies-installation" class="md-nav__link">
+  <a href="#gomacs-installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Martignac dependencies installation
+      Gomacs installation
     </span>
   </a>
   
@@ -1470,56 +1470,71 @@
 
 
 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
-<p>First, clone the repository::
+<p>First, clone (or fork and then clone) the repository::
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:tbereau/martignac.git
-</span></code></pre></div>
-Setup a virtual environment (Python 3.9 recommended) and install the package
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>virtualenv<span class="w"> </span>--python<span class="o">=</span><span class="s2">&quot;/path/to/python/version&quot;</span><span class="w"> </span>.venv
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>python<span class="w"> </span>setup.py<span class="w"> </span>install
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </span></code></pre></div></p>
-<h2 id="martignac-dependencies-installation">Martignac dependencies installation<a class="headerlink" href="#martignac-dependencies-installation" title="Permanent link">&para;</a></h2>
-<p>Update <code>requirements.txt</code> from <code>pyproject.toml</code> with piptools, and then install dependencies with pip:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>pip-tools
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>python<span class="w"> </span>-m<span class="w"> </span>piptools<span class="w"> </span>compile<span class="w"> </span>-o<span class="w"> </span>requirements.txt<span class="w"> </span>pyproject.toml
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+<p>To begin your Martignac project, fork the repository and then create a clone in your local workspace.</p>
+<p>Setup a virtual environment (Python 3.9 recommended) within the root directory of the local repo:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.pyenv<span class="w"> </span><span class="nv">python</span><span class="o">==</span><span class="m">3</span>.9
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>.<span class="w"> </span>.pyenv/bin/activate
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 </span></code></pre></div>
-For development:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>test_requirements.txt
+<p>We recommend installing the <code>uv</code> package for efficient installations with pip:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>uv
 </span></code></pre></div>
-If you don't already have Gromacs installed, you can quickly install with conda via:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>conda<span class="w"> </span>config<span class="w"> </span>--add<span class="w"> </span>channels<span class="w"> </span>bioconda
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>conda<span class="w"> </span>install<span class="w"> </span>conda<span class="w"> </span>install<span class="w"> </span>ocl-icd-system<span class="o">==</span><span class="m">1</span>.0.0
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>conda<span class="w"> </span>install<span class="w"> </span><span class="nv">gromacs</span><span class="o">==</span><span class="m">2018</span>.6
+<!-- Update `requirements.txt` from `pyproject.toml` with piptools, and then install dependencies with pip: -->
+<!-- ```bash
+pip install pip-tools
+python -m piptools compile -o requirements.txt pyproject.toml
+pip install -r requirements.txt
+``` -->
+
+<p>Now, install the package dependencies (<code>test_requirements.txt</code> is only needed for development):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>test_requirements.txt
+</span></code></pre></div>
+<p>Finally, run the setup and install the package:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>setup.py<span class="w"> </span>install
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </span></code></pre></div></p>
-<p>alternatively, to install <code>conda</code>:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>wget<span class="w"> </span>-c<span class="w"> </span>https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh<span class="w"> </span>-O<span class="w"> </span>miniconda.sh
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># on MacOS replace with:</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>bash<span class="w"> </span>./miniconda.sh<span class="w"> </span>-b<span class="w"> </span>-f<span class="w"> </span>-p<span class="w"> </span>/path/to/conda
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;/path/to/conda/bin:</span><span class="nv">$PATH</span><span class="s2">&quot;</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">source</span><span class="w"> </span>activate<span class="w"> </span>base
-</span></code></pre></div></p>
-<p>and gromacs
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>gromacs
+<p>The <code>-e</code> option installs the package in "editable" mode, which allows on the fly changes to the code without re-installing during testing or debugging phases.</p>
+<h2 id="gomacs-installation">Gomacs installation<a class="headerlink" href="#gomacs-installation" title="Permanent link">&para;</a></h2>
+<p>If you don't already have Gromacs installed, you can install with <code>apt-get</code> on linux (tested on Ubuntu 22.04):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>update
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>build-essential<span class="w"> </span>cmake<span class="w"> </span>git<span class="w"> </span>libfftw3-dev<span class="w"> </span>libgsl0-dev
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>libboost-all-dev<span class="w"> </span>libopenmpi-dev
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>gromacs
+</span></code></pre></div>
+<p>Alternatively, you can quickly install with conda via:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>conda<span class="w"> </span>config<span class="w"> </span>--add<span class="w"> </span>channels<span class="w"> </span>bioconda<span class="w"> </span>conda-forge
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>conda<span class="w"> </span>install<span class="w"> </span>conda<span class="w"> </span>install<span class="w"> </span>ocl-icd-system<span class="o">==</span><span class="m">1</span>.0.0
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>conda<span class="w"> </span>install<span class="w"> </span><span class="nv">gromacs</span><span class="o">==</span><span class="m">2023</span>.1
+</span></code></pre></div>
+<p>In either case, you will need to make the gromacs executables available to your environment. If you use conda, make sure not to intertwine your conda and venv (i.e., only work within 1 environment at a time).</p>
+<p>To install <code>conda</code>:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>wget<span class="w"> </span>-c<span class="w"> </span>https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh<span class="w"> </span>-O<span class="w"> </span>miniconda.sh
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># on MacOS replace with:</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># wget -c https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>bash<span class="w"> </span>./miniconda.sh<span class="w"> </span>-b<span class="w"> </span>-f<span class="w"> </span>-p<span class="w"> </span>/path/to/conda
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;/path/to/conda/bin:</span><span class="nv">$PATH</span><span class="s2">&quot;</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="nb">source</span><span class="w"> </span>activate<span class="w"> </span>base
 </span></code></pre></div></p>
 <h2 id="nomad">NOMAD<a class="headerlink" href="#nomad" title="Permanent link">&para;</a></h2>
 <h3 id="credentials">Credentials<a class="headerlink" href="#credentials" title="Permanent link">&para;</a></h3>
-<p>Martignac will need to connect to NOMAD. Create an account on <a href="https://nomad-lab.eu/">https://nomad-lab.eu/</a>. 
+<p>Martignac will need to connect to NOMAD. Create an account on <a href="https://nomad-lab.eu/">https://nomad-lab.eu/</a>.
 Store your credentials in a <code>.env</code> file at the root of the <code>martignac</code> directory, with the following content
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">NOMAD_USERNAME</span><span class="o">=</span><span class="s2">&quot;MyLogin&quot;</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">NOMAD_PASSWORD</span><span class="o">=</span><span class="s2">&quot;MyPassword&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">NOMAD_USERNAME</span><span class="o">=</span><span class="s2">&quot;MyLogin&quot;</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">NOMAD_PASSWORD</span><span class="o">=</span><span class="s2">&quot;MyPassword&quot;</span>
 </span></code></pre></div>
-and insert your username and password. </p>
+and insert your username and password.</p>
 <div class="admonition warning">
 <p class="admonition-title"><code>.env</code> file</p>
 <p>Never push your <code>.env</code> file to a repository. This would expose your password.</p>
 </div>
 <h3 id="dataset">Dataset<a class="headerlink" href="#dataset" title="Permanent link">&para;</a></h3>
-<p>You will need to create your own dataset to push to NOMAD. 
-See the <a href="../nomad/datasets/">NOMAD datasets</a> page for more information. 
-The function <a class="autorefs autorefs-internal" href="../nomad/datasets/#martignac.nomad.datasets.create_dataset">martignac.nomad.datasets.create_dataset</a> will help you create a dataset. </p>
+<p>You will need to create your own dataset to push to NOMAD.
+See the <a href="../nomad/datasets/">NOMAD datasets</a> page for more information.
+The function <a class="autorefs autorefs-internal" href="../nomad/datasets/#martignac.nomad.datasets.create_dataset">martignac.nomad.datasets.create_dataset</a> will help you create a dataset.</p>
 <h3 id="production-vs-test-databases">Production vs. test databases<a class="headerlink" href="#production-vs-test-databases" title="Permanent link">&para;</a></h3>
 <p>There are two main databases in NOMAD: production and test. Make sure to run all tests on the <strong>test database</strong>.</p>
 <div class="admonition warning">
@@ -1554,27 +1569,51 @@ The function <a class="autorefs autorefs-internal" href="../nomad/datasets/#mart
 <p class="admonition-title"><code>publish</code> toggle</p>
 <p><img alt="🚧" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f6a7.svg" title=":construction:" /> <code>publish</code> is not yet supported.</p>
 </div>
-<p>These safeguards can be changed in the <code>config.yaml</code> file. Note that any simulation that is published on NOMAD 
+<p>These safeguards can be changed in the <code>config.yaml</code> file. Note that any simulation that is published on NOMAD
 <strong>canot</strong> be deleted.</p>
 <h2 id="config-file">Config file<a class="headerlink" href="#config-file" title="Permanent link">&para;</a></h2>
-<p>Martignac is controlled through a <code>config.yaml</code>. You can find an example file in <code>martignac/config_default.yaml</code>. 
-All aspects of simulation input files and parameters can be controlled from the yaml file. </p>
+<p>Martignac is controlled through a <code>config.yaml</code> within the <code>martigac/</code> folder of the root directory. There you will find an example file called <code>config_default.yaml</code>. We recommend you copy this default config to <code>config.yaml</code>. You may want to initially delete some options including the dataset id and coauthor nomad ids, and add them back in later. You can add your own name under <code>query_authors</code>:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">nomad</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">upload_to_nomad</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">publish_uploads</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">use_prod</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">dataset</span><span class="p">:</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;dataset_id&gt;&quot;</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nt">coauthors</span><span class="p">:</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;&lt;coauthor_nomad_id&gt;&quot;</span><span class="w"> </span><span class="c1"># coauthor #1</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">query_authors</span><span class="p">:</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;&lt;Your_Name&gt;&quot;</span>
+</span></code></pre></div>
+<p>You will need to add the appropriate paths to your workspace:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">local</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">workspaces</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">absolute_path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;path_to_martignac_root&gt;/martignac/workspaces&quot;</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">input_files</span><span class="p">:</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">absolute_path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;path_to_martignac_root&gt;/scripts&quot;</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="nt">itp_files</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;path_to_martignac_root&gt;/scripts/martini_v300&quot;</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="nt">allow_symlinks</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span></code></pre></div>
+<p>The rest of the yaml file consists of a variety of other options which control all aspects of simulation input files and parameters.</p>
+<div class="admonition note">
+<p class="admonition-title">Martignac workspace path</p>
+<p>The variable <code>MARTIGNACDIR</code> ensures that your Martignac config file can be found by the code. It should be set automatically, but there have been instances of import errors associated with config variables, which can be easily fixed by explicitly setting this variable with <code>export MARTIGNACDIR=&lt;path_to_martignac_root&gt;/martignac/</code>.</p>
+</div>
 <h2 id="workflow-paths">Workflow paths<a class="headerlink" href="#workflow-paths" title="Permanent link">&para;</a></h2>
-<p>You can set the directories for input and output of your workflows in the <code>config.yaml</code>. </p>
+<p>You can set the directories for input and output of your workflows in the <code>config.yaml</code>.</p>
 <ul>
 <li>Output directory: set the key <code>local &gt; workspaces &gt; absolute_path</code></li>
-<li>Input directories: set the keys </li>
-<li><code>local &gt; input_files &gt; absolute_path</code> (default: <code>scripts/</code>), containing python scripts and mdp files </li>
+<li>Input directories: set the keys</li>
+<li><code>local &gt; input_files &gt; absolute_path</code> (default: <code>scripts/</code>), containing python scripts and mdp files</li>
 <li><code>local &gt; input_files &gt; itp_files</code>, containing force-field itp files</li>
 </ul>
 <p>In your workspace directory <code>${WORKSPACE}</code>, create the necessary subdirectories and initialize <code>signac</code>:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">for</span><span class="w"> </span>dir<span class="w"> </span><span class="k">in</span><span class="w"> </span>alchemical_transformation<span class="w"> </span>solute_generation<span class="w"> </span>solute_in_solvent<span class="w"> </span>bilayer_generation<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>solute_in_bilayer<span class="w"> </span>solvent_generation<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="si">${</span><span class="nv">dir</span><span class="si">}</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nb">cd</span><span class="w"> </span><span class="si">${</span><span class="nv">dir</span><span class="si">}</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>signac<span class="w"> </span>init
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nb">cd</span><span class="w"> </span>..
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">done</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">for</span><span class="w"> </span>dir<span class="w"> </span><span class="k">in</span><span class="w"> </span>alchemical_transformation<span class="w"> </span>solute_generation<span class="w"> </span>solute_in_solvent<span class="w"> </span>bilayer_generation<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>solute_in_bilayer<span class="w"> </span>solvent_generation<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="si">${</span><span class="nv">dir</span><span class="si">}</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nb">cd</span><span class="w"> </span><span class="si">${</span><span class="nv">dir</span><span class="si">}</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span>signac<span class="w"> </span>init
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nb">cd</span><span class="w"> </span>..
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="k">done</span>
 </span></code></pre></div>
 you should read <code>Initialized project</code> for each directory.</p>
 

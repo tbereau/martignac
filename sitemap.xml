@@ -2,142 +2,142 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://tbereau.github.io/martignac/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/install/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/quickstart/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/running_workflows/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/liquid_models/mixtures/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/nomad/datasets/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/nomad/entries/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/nomad/uploads/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/nomad/users/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/nomad/utils/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/nomad/workflows/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/parsers/gromacs_forcefields/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/parsers/gromacs_particle_definitions/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/parsers/gromacs_structures/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/parsers/gromacs_topologies/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/dashboard/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/gromacs/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/insane/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/martini_flow_projects/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/misc/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/nomad/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/utils/packmol/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/workflows/bilayer_generation/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/workflows/solute_generation/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/workflows/solute_in_bilayer_umbrella/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/workflows/solute_in_solvent_alchemical/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/workflows/solute_in_solvent_generation/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://tbereau.github.io/martignac/workflows/solvent_generation/</loc>
-         <lastmod>2024-09-23</lastmod>
+         <lastmod>2024-11-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

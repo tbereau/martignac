@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Optional
 
@@ -27,23 +26,19 @@ def query_nomad_entries(
     entry_ids = entry_ids or ()
     logger.info(f"querying comments on {'prod' if use_prod else 'test'} server")
     query = {
-        "query": {
-            "authors.name": {
-                "any": query_authors,
-            },
-            "datasets.dataset_id": {
-                "any": dataset_ids,
-            },
-            "entry_id": {
-                "any": entry_ids,
-            },
-        },
+        "query": {},
         "pagination": {
             "page_size": page_size,
         },
     }
+    if query_authors:
+        query["query"]["authors.name"] = {"any": list(query_authors)}
+    if dataset_ids:
+        query["query"]["datasets.dataset_id"] = {"any": list(dataset_ids)}
+    if entry_ids:
+        query["query"]["entry_id"] = {"any": list(entry_ids)}
     if required:
-        query["required"] = {"include": required}
+        query["required"] = {"include": list(required)}
     if only_workflows:
         query["query"]["entry_type"] = "Workflow"
     logger.info(f"querying entries with query {query}")
@@ -52,7 +47,7 @@ def query_nomad_entries(
         response = post_nomad_request(
             "entries/query",
             use_prod=use_prod,
-            data=json.dumps(query),
+            json_dict=query,
             with_authentication=with_authentication,
             timeout_in_sec=timeout_in_sec,
         )

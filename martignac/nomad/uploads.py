@@ -9,7 +9,7 @@ from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
-from martignac.nomad.users import NomadUser, get_user_by_id
+from martignac.nomad.users import NomadUser, get_user_by_id, use_prod_from_data
 from martignac.nomad.utils import (
     delete_nomad_request,
     get_nomad_base_url,
@@ -24,12 +24,22 @@ logger = logging.getLogger(__name__)
 class NomadUploadSchema(Schema):
     @pre_load
     def convert_users(self, data, **kwargs):
-        data["main_author"] = get_user_by_id(user_id=data["main_author"]).as_dict()
-        data["writers"] = [get_user_by_id(user_id=w).as_dict() for w in data["writers"]]
-        data["reviewers"] = [
-            get_user_by_id(user_id=r).as_dict() for r in data["reviewers"]
+        use_prod = use_prod_from_data(data)
+        data["main_author"] = get_user_by_id(
+            user_id=data["main_author"], use_prod=use_prod
+        ).as_dict()
+        data["writers"] = [
+            get_user_by_id(user_id=w, use_prod=use_prod).as_dict()
+            for w in data["writers"]
         ]
-        data["viewers"] = [get_user_by_id(user_id=v).as_dict() for v in data["viewers"]]
+        data["reviewers"] = [
+            get_user_by_id(user_id=r, use_prod=use_prod).as_dict()
+            for r in data["reviewers"]
+        ]
+        data["viewers"] = [
+            get_user_by_id(user_id=v, use_prod=use_prod).as_dict()
+            for v in data["viewers"]
+        ]
         return data
 
 

@@ -21,7 +21,12 @@ from martignac.nomad.mini_entries import (
 )
 from martignac.nomad.queries import query_nomad_entries
 from martignac.nomad.uploads import _get_raw_data_of_upload_by_id, get_all_my_uploads
-from martignac.nomad.users import NomadUser, get_user_by_id
+from martignac.nomad.users import (
+    DEFAULT_USE_PROD,
+    NomadUser,
+    get_user_by_id,
+    use_prod_from_data,
+)
 from martignac.nomad.utils import (
     get_nomad_base_url,
     get_nomad_request,
@@ -33,7 +38,6 @@ from martignac.utils.misc import update_nested_dict
 logger = logging.getLogger(__name__)
 
 DEFAULT_DATABASE = config()["nomad"]["dataset"]["id"].get(str)
-DEFAULT_USE_PROD = config()["nomad"]["use_prod"].get(bool)
 
 
 @dataclass(frozen=True)
@@ -46,17 +50,21 @@ class NomadSectionDefinition:
 class NomadEntrySchema(Schema):
     @pre_load
     def convert_users(self, data, **kwargs):
+        use_prod = use_prod_from_data(data)
         data["main_author"] = get_user_by_id(
-            user_id=data["main_author"]["user_id"]
+            user_id=data["main_author"]["user_id"], use_prod=use_prod
         ).as_dict()
         data["writers"] = [
-            get_user_by_id(user_id=w["user_id"]).as_dict() for w in data["writers"]
+            get_user_by_id(user_id=w["user_id"], use_prod=use_prod).as_dict()
+            for w in data["writers"]
         ]
         data["authors"] = [
-            get_user_by_id(user_id=a["user_id"]).as_dict() for a in data["authors"]
+            get_user_by_id(user_id=a["user_id"], use_prod=use_prod).as_dict()
+            for a in data["authors"]
         ]
         data["viewers"] = [
-            get_user_by_id(user_id=v["user_id"]).as_dict() for v in data["viewers"]
+            get_user_by_id(user_id=v["user_id"], use_prod=use_prod).as_dict()
+            for v in data["viewers"]
         ]
         return data
 

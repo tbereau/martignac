@@ -6,9 +6,31 @@ from typing import Optional
 from cachetools.func import ttl_cache
 from marshmallow_dataclass import class_schema, dataclass
 
+from martignac import config
 from martignac.nomad.utils import get_nomad_request
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_USE_PROD = config()["nomad"]["use_prod"].get(bool)
+
+
+def use_prod_from_data(data: dict) -> bool:
+    """
+    Reads the NOMAD environment a payload was retrieved from.
+
+    Schema ``pre_load`` hooks resolve user ids against the NOMAD deployment the
+    surrounding entry, dataset or upload came from. Every loader injects
+    ``use_prod`` into the payload for exactly this purpose; the configured
+    default applies when it is missing or unset.
+
+    Parameters:
+        data (dict): The payload handed to a ``pre_load`` hook.
+
+    Returns:
+        bool: Whether to query the production environment.
+    """
+    use_prod = data.get("use_prod")
+    return DEFAULT_USE_PROD if use_prod is None else use_prod
 
 
 @dataclass(frozen=True)
@@ -80,7 +102,7 @@ def search_users_by_name(
         f"retrieving user {user_name} on {'prod' if use_prod else 'test'} server"
     )
     response = get_nomad_request(
-        f"/users?prefix={user_name}", timeout_in_sec=timeout_in_sec
+        f"/users?prefix={user_name}", use_prod=use_prod, timeout_in_sec=timeout_in_sec
     ).get("data", [])
     return [class_schema(NomadUser)().load(user) for user in response]
 
@@ -111,7 +133,9 @@ def get_user_by_id(
         The function is decorated with `@ttl_cache` to cache the results for 180 seconds and limit the cache size to 128 entries.
     """
     logger.info(f"retrieving user {user_id} on {'prod' if use_prod else 'test'} server")
-    response = get_nomad_request(f"/users/{user_id}", timeout_in_sec=timeout_in_sec)
+    response = get_nomad_request(
+        f"/users/{user_id}", use_prod=use_prod, timeout_in_sec=timeout_in_sec
+    )
     user_schema = class_schema(NomadUser)
     return user_schema().load(response)
 
@@ -140,7 +164,10 @@ def who_am_i(use_prod: bool = True, timeout_in_sec: int = 10) -> NomadUser:
     """
     logger.info(f"retrieving self user info on {'prod' if use_prod else 'test'} server")
     response = get_nomad_request(
-        "/users/me", with_authentication=True, timeout_in_sec=timeout_in_sec
+        "/users/me",
+        use_prod=use_prod,
+        with_authentication=True,
+        timeout_in_sec=timeout_in_sec,
     )
     user_schema = class_schema(NomadUser)
     return user_schema().load(response)

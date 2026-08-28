@@ -6,7 +6,7 @@ from cachetools.func import ttl_cache
 from marshmallow import Schema, pre_load
 from marshmallow_dataclass import class_schema, dataclass
 
-from martignac.nomad.users import NomadUser, get_user_by_id
+from martignac.nomad.users import NomadUser, get_user_by_id, use_prod_from_data
 from martignac.nomad.utils import (
     delete_nomad_request,
     get_nomad_base_url,
@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 class NomadDatasetSchema(Schema):
     @pre_load
     def convert_users(self, data, **kwargs):
-        data["user"] = get_user_by_id(user_id=data["user_id"]).as_dict()
+        data["user"] = get_user_by_id(
+            user_id=data["user_id"], use_prod=use_prod_from_data(data)
+        ).as_dict()
         del data["user_id"]
         return data
 

@@ -1,3 +1,42 @@
+import importlib
+import importlib.resources
+import importlib.util
+import sys
+import types
+
+
+def _install_pkg_resources_shim() -> None:
+    """
+    Supplies the sliver of ``pkg_resources`` that gravis 0.1.0 relies on.
+
+    gravis reads its bundled HTML and JavaScript templates through
+    ``pkg_resources.resource_string``. setuptools removed ``pkg_resources`` in
+    version 82.0.0, and gravis has had no release since 0.1.0, so on a recent
+    environment ``import gravis`` fails outright. Rather than pinning setuptools
+    below the removal, back the single function gravis calls with
+    ``importlib.resources`` and register it under the expected module name.
+
+    The shim is installed only when ``pkg_resources`` is genuinely absent, and
+    is deliberately minimal: it covers gravis's usage, not the wider API.
+    """
+    if "pkg_resources" in sys.modules or importlib.util.find_spec("pkg_resources"):
+        return
+
+    def resource_string(package: str, resource_path: str) -> bytes:
+        anchor = sys.modules.get(package) or importlib.import_module(package)
+        if getattr(anchor, "__path__", None) is None:
+            # gravis anchors on a module rather than a package; its resources
+            # sit alongside that module, in the parent package's directory.
+            package = anchor.__package__ or package.rpartition(".")[0]
+        return importlib.resources.files(package).joinpath(resource_path).read_bytes()
+
+    shim = types.ModuleType("pkg_resources")
+    shim.resource_string = resource_string
+    sys.modules["pkg_resources"] = shim
+
+
+_install_pkg_resources_shim()
+
 import gravis as gv
 import networkx as nx
 import numpy as np

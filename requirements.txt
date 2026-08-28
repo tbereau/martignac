@@ -25,7 +25,5 @@ mkdocs-material
 mkdocstrings[python]
 requests_toolbelt
 gravis
-# gravis 0.1.0 imports pkg_resources, which setuptools removed in 82.0.0
-setuptools<82
 streamlit
 .

@@ -74,9 +74,9 @@ def get_authentication_token(
     """
     url = NOMAD_PROD_URL if use_prod else NOMAD_TEST_URL
     logger.info(f"Requesting authentication token @ {url}")
-    response = requests.get(
+    response = requests.post(
         url + "/auth/token",
-        params={"username": username, "password": password},
+        data={"grant_type": "password", "username": username, "password": password},
         timeout=timeout_in_sec,
     )
     if not response.status_code == 200:
